@@ -1,0 +1,77 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dev-001",
+      "properties": {
+        "id": "dev-001",
+        "projectName": "George Street Tower",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-11"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2065, -33.8725] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-002",
+      "properties": {
+        "id": "dev-002",
+        "projectName": "Exchange Place Mixed Use",
+        "status": "Approved",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-08"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2110, -33.8682] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-003",
+      "properties": {
+        "id": "dev-003",
+        "projectName": "Foundry Yard Redevelopment",
+        "status": "Lodged",
+        "applicationType": "Rezoning",
+        "lodgedMonth": "2026-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2045, -33.8652] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-004",
+      "properties": {
+        "id": "dev-004",
+        "projectName": "Parkside Community Hub",
+        "status": "Approved",
+        "applicationType": "Complying Development",
+        "lodgedMonth": "2025-06"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2160, -33.8665] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-005",
+      "properties": {
+        "id": "dev-005",
+        "projectName": "Crown Street Terraces",
+        "status": "Refused",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-09"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2135, -33.8625] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-006",
+      "properties": {
+        "id": "dev-006",
+        "projectName": "Elizabeth Street Offices",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-12"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2025, -33.8700] }
+    }
+  ]
+}

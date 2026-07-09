@@ -18,11 +18,22 @@ export interface MapViewport {
   zoom: number;
 }
 
+import type { PlanningLayerId } from './planning';
+
 /**
  * A feature the user has selected on the map (e.g. a parcel or planning layer).
- * For Step 1 we only track the identifier; richer metadata arrives with the
- * GeoJSON layers in a later step.
+ * Captures enough context for the details panel to render metadata without
+ * re-querying the map.
  */
 export interface SelectedFeature {
-  id: string;
+  /** The planning layer the feature belongs to. */
+  layerId: PlanningLayerId;
+  /** The feature's id from its GeoJSON. */
+  featureId: string;
+  /** GeoJSON geometry type (e.g. `Polygon`, `Point`). */
+  geometryType: string;
+  /** Raw feature properties. */
+  properties: Record<string, unknown>;
+  /** Coordinates of the click, when available (`[lng, lat]`). */
+  coordinates?: [number, number];
 }

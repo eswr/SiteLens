@@ -30,16 +30,32 @@ can inspect parcels, planning layers, and spatial insights in one place.
 
 **Step 1 — App shell & interactive map — ✅ complete.**
 
-Delivered in this step:
-
 - React + TypeScript + Vite foundation.
 - Polished, full-height dashboard layout using Material UI.
 - MapLibre map with navigation controls, rendering the demo basemap.
-- Zustand store tracking `center`, `zoom`, and `selectedFeatureId`.
+- Zustand store tracking `center`, `zoom`, and the selected feature.
 - Base TypeScript types (`LngLat`, `MapViewport`, `SelectedFeature`).
 
-Planned for later steps: GeoJSON planning/parcel layers, drawing tools, charts,
-an AI-generated summary, and a backend.
+**Step 2 — GeoJSON planning layers & layer toggles — ✅ complete.**
+
+- Mock planning GeoJSON datasets served from `public/data` (parcels, zoning,
+  constraints, transit, development activity).
+- Multiple MapLibre layers (polygon fill/outline + point circles) added once
+  the map style loads, with no duplicate registration.
+- Sidebar **Planning Layers** toggles that show/hide layers instantly, plus a
+  compact legend. Default visible: parcels, zoning, transit. Default hidden:
+  constraints, development activity.
+- Feature selection: clicking a visible feature (priority parcels →
+  development activity → transit → constraints → zoning) highlights it and
+  shows its metadata in the details panel.
+- Pointer cursor on hover over clickable features.
+
+> **Mock data note:** the datasets under `public/data` are small, hand-authored
+> mock planning layers around the Sydney CBD, provided for portfolio/demo
+> purposes only — they are not real cadastral or planning data.
+
+Planned for later steps: drawing tools, charts, an AI-generated summary, and a
+backend.
 
 ## Local setup
 
@@ -62,6 +78,8 @@ npm run preview     # preview the production build
 ## Project structure
 
 ```txt
+public/
+  data/                # mock planning GeoJSON (parcels, zoning, etc.)
 src/
   app/
     App.tsx            # root: theme provider + shell
@@ -69,14 +87,18 @@ src/
     layout/
       AppShell.tsx     # full-height dashboard layout
       HeaderBar.tsx    # top brand/title bar
-      Sidebar.tsx      # left tools rail (Layers / Search / Analysis)
-      DetailsPanel.tsx # right inspector panel
+      Sidebar.tsx      # planning-layer toggles, legend, placeholder tools
+      DetailsPanel.tsx # right inspector panel (selected feature details)
     map/
-      SiteMap.tsx      # MapLibre GL map
+      SiteMap.tsx      # MapLibre GL map + planning layers
+  data/
+    layers.ts          # typed planning-layer configuration
   store/
-    mapStore.ts        # Zustand map/UI store
+    mapStore.ts        # Zustand map camera + selected feature
+    layerStore.ts      # Zustand layer visibility
   types/
     map.ts             # shared geospatial types
+    planning.ts        # planning feature property types
   theme/
     theme.ts           # Material UI theme
   main.tsx             # entry point
