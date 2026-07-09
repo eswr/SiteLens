@@ -35,6 +35,8 @@ function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[]
 
     if (layer.geometryType === 'polygon') {
       const [fillId, lineId] = layer.layerIds;
+      const baseOpacity =
+        layer.id === 'parcels' ? 0.22 : layer.id === 'zoning' ? 0.3 : 0.2;
       if (!map.getLayer(fillId)) {
         map.addLayer({
           id: fillId,
@@ -47,7 +49,7 @@ function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[]
               'case',
               ['boolean', ['feature-state', 'selected'], false],
               0.55,
-              layer.id === 'parcels' ? 0.22 : 0.15,
+              baseOpacity,
             ],
           },
         });
@@ -64,8 +66,10 @@ function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[]
               'case',
               ['boolean', ['feature-state', 'selected'], false],
               3,
-              1,
+              layer.id === 'zoning' ? 2 : 1,
             ],
+            // Dashed outline distinguishes the zoning underlay from parcels.
+            ...(layer.id === 'zoning' ? { 'line-dasharray': [2, 1] } : {}),
           },
         });
       }
