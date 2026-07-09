@@ -24,6 +24,7 @@ can inspect parcels, planning layers, and spatial insights in one place.
 - [Material UI](https://mui.com/) (layout, theming, icons)
 - [MapLibre GL JS](https://maplibre.org/) (interactive map)
 - [Zustand](https://zustand.docs.pmnd.rs/) (map/UI state)
+- [Turf.js](https://turfjs.org/) (feature bbox/centroid for search & fly-to)
 - Deployable to [Vercel](https://vercel.com/) (later)
 
 ## Project status
@@ -49,6 +50,22 @@ can inspect parcels, planning layers, and spatial insights in one place.
   development activity → transit → constraints → zoning) highlights it and
   shows its metadata in the details panel.
 - Pointer cursor on hover over clickable features.
+
+**Step 3 — Search, fly-to & polished inspection — ✅ complete.**
+
+- Searchable feature index built from the mock GeoJSON (`src/utils/featureIndex.ts`),
+  using Turf.js for each feature's bbox and centroid.
+- Sidebar **Search** across parcels, zoning, constraints, transit, and
+  development activity (site name, parcel ID, zone code/name, project name,
+  transit name, constraint type, status) — case-insensitive, debounced, top 8
+  results, with loading and error states.
+- Selecting a search result selects the feature, makes its layer visible if
+  hidden, and flies/fits the map to it (`fitBounds` for polygons, `flyTo` for
+  points), padded so the details panel doesn't cover it.
+- Details panel now shows prioritized "Key facts" per layer plus remaining
+  metadata, with **Zoom to feature** and **Clear selection** actions.
+- Stronger, professional selected-feature highlight for both polygons and
+  points, plus a `Selected: <name>` chip in the header.
 
 > **Mock data note:** the datasets under `public/data` are small, hand-authored
 > mock planning layers around the Sydney CBD, provided for portfolio/demo
@@ -93,9 +110,13 @@ src/
       SiteMap.tsx      # MapLibre GL map + planning layers
   data/
     layers.ts          # typed planning-layer configuration
+    featureDisplay.ts  # title / subtitle / priority-key helpers
   store/
-    mapStore.ts        # Zustand map camera + selected feature
+    mapStore.ts        # Zustand map camera, selection + fly-to requests
     layerStore.ts      # Zustand layer visibility
+    searchStore.ts     # Zustand search index + results
+  utils/
+    featureIndex.ts    # builds the searchable feature index (Turf)
   types/
     map.ts             # shared geospatial types
     planning.ts        # planning feature property types

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import type { MapGeoJSONFeature } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
 import Box from '@mui/material/Box';
 import { INITIAL_CENTER, INITIAL_ZOOM, useMapStore } from '../../store/mapStore';
 import { useLayerStore } from '../../store/layerStore';
@@ -86,11 +87,21 @@ function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[]
             'circle-radius': [
               'case',
               ['boolean', ['feature-state', 'selected'], false],
-              9,
+              10,
               6,
             ],
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-width': 2,
+            'circle-stroke-color': [
+              'case',
+              ['boolean', ['feature-state', 'selected'], false],
+              '#0f172a',
+              '#ffffff',
+            ],
+            'circle-stroke-width': [
+              'case',
+              ['boolean', ['feature-state', 'selected'], false],
+              3,
+              2,
+            ],
           },
         });
       }
@@ -114,6 +125,10 @@ export default function SiteMap() {
   const setViewport = useMapStore((state) => state.setViewport);
   const setSelectedFeature = useMapStore((state) => state.setSelectedFeature);
   const selectedFeature = useMapStore((state) => state.selectedFeature);
+  const flyToFeatureRequest = useMapStore((state) => state.flyToFeatureRequest);
+  const clearFlyToFeatureRequest = useMapStore(
+    (state) => state.clearFlyToFeatureRequest,
+  );
   const visibleLayerIds = useLayerStore((state) => state.visibleLayerIds);
 
   useEffect(() => {
@@ -156,12 +171,19 @@ export default function SiteMap() {
       }
 
       const featureId = String(best.id ?? best.properties?.id ?? '');
+      const box = turfBbox(best) as [number, number, number, number];
+      const centroid = turfCenter(best).geometry.coordinates as [
+        number,
+        number,
+      ];
       setSelectedFeature({
         layerId: config.id,
         featureId,
+        sourceId: config.sourceId,
         geometryType: best.geometry.type,
         properties: best.properties ?? {},
-        coordinates: [event.lngLat.lng, event.lngLat.lat],
+        center: centroid,
+        bbox: box,
       });
     };
     map.on('click', handleClick);
@@ -208,6 +230,31 @@ export default function SiteMap() {
     }
   }, [visibleLayerIds, ready]);
 
+  // Execute pending fly-to requests, padding for the right-hand details panel.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !flyToFeatureRequest) {
+      return;
+    }
+    const { bbox, center, geometryType } = flyToFeatureRequest;
+    const padding = { top: 60, bottom: 60, left: 60, right: 360 };
+    const isPoint =
+      geometryType === 'Point' || geometryType === 'MultiPoint';
+
+    if (!isPoint && bbox) {
+      map.fitBounds(
+        [
+          [bbox[0], bbox[1]],
+          [bbox[2], bbox[3]],
+        ],
+        { padding, maxZoom: 16, duration: 800 },
+      );
+    } else {
+      map.flyTo({ center, zoom: 15, padding, duration: 800 });
+    }
+    clearFlyToFeatureRequest();
+  }, [flyToFeatureRequest, ready, clearFlyToFeatureRequest]);
+
   // Reflect the selected feature as a MapLibre feature-state for highlighting.
   useEffect(() => {
     const map = mapRef.current;
@@ -220,18 +267,13 @@ export default function SiteMap() {
       highlightRef.current = null;
     }
 
-    if (selectedFeature) {
-      const config = PLANNING_LAYERS.find(
-        (layer) => layer.id === selectedFeature.layerId,
-      );
-      if (config && selectedFeature.featureId) {
-        const target = {
-          source: config.sourceId,
-          id: selectedFeature.featureId,
-        };
-        map.setFeatureState(target, { selected: true });
-        highlightRef.current = target;
-      }
+    if (selectedFeature?.featureId && selectedFeature.sourceId) {
+      const target = {
+        source: selectedFeature.sourceId,
+        id: selectedFeature.featureId,
+      };
+      map.setFeatureState(target, { selected: true });
+      highlightRef.current = target;
     }
   }, [selectedFeature, ready]);
 

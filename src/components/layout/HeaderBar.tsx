@@ -2,10 +2,19 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import PublicIcon from '@mui/icons-material/Public';
+import PlaceIcon from '@mui/icons-material/Place';
+import { useMapStore } from '../../store/mapStore';
+import { getFeatureTitle } from '../../data/featureDisplay';
 
 /** Top application bar showing the SiteLens brand and tagline. */
 export default function HeaderBar() {
+  const selectedFeature = useMapStore((state) => state.selectedFeature);
+  const selectedName = selectedFeature
+    ? getFeatureTitle(selectedFeature.layerId, selectedFeature.properties)
+    : null;
+
   return (
     <AppBar
       position="static"
@@ -44,6 +53,18 @@ export default function HeaderBar() {
             Geospatial Planning Intelligence Demo
           </Typography>
         </Box>
+
+        <Box sx={{ flexGrow: 1 }} />
+
+        {selectedName && (
+          <Chip
+            icon={<PlaceIcon />}
+            color="primary"
+            variant="outlined"
+            label={`Selected: ${selectedName}`}
+            sx={{ maxWidth: 320, fontWeight: 600 }}
+          />
+        )}
       </Toolbar>
     </AppBar>
   );
