@@ -22,6 +22,7 @@ function PlaceholderSection({
   return (
     <Box
       sx={{
+        flexShrink: 0,
         p: 1.5,
         borderRadius: 2,
         border: 1,
@@ -47,6 +48,7 @@ function LayerToggles() {
   return (
     <Box
       sx={{
+        flexShrink: 0,
         borderRadius: 2,
         border: 1,
         borderColor: 'divider',
@@ -104,6 +106,7 @@ function Legend() {
   return (
     <Box
       sx={{
+        flexShrink: 0,
         p: 1.5,
         borderRadius: 2,
         border: 1,
