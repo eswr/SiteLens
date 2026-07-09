@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Switch from '@mui/material/Switch';
@@ -11,52 +10,24 @@ import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import SearchIcon from '@mui/icons-material/Search';
-import InsightsIcon from '@mui/icons-material/Insights';
+import GestureIcon from '@mui/icons-material/Gesture';
 import { PLANNING_LAYERS, LAYER_COLORS, LAYER_BY_ID } from '../../data/layers';
 import { useLayerStore } from '../../store/layerStore';
 import { useSearchStore } from '../../store/searchStore';
 import { useMapStore } from '../../store/mapStore';
+import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
+import AnalysisSummary from '../analysis/AnalysisSummary';
 import type { IndexedFeature } from '../../utils/featureIndex';
-
-interface PlaceholderSectionProps {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}
-
-function PlaceholderSection({
-  icon,
-  title,
-  description,
-}: PlaceholderSectionProps) {
-  return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        p: 1.5,
-        borderRadius: 2,
-        border: 1,
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Box sx={{ display: 'flex', color: 'primary.main' }}>{icon}</Box>
-        <Typography variant="subtitle2">{title}</Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary">
-        {description}
-      </Typography>
-    </Box>
-  );
-}
+import type { PlanningLayerId } from '../../types/planning';
 
 function LayerColorDot({
   layerId,
   point,
 }: {
-  layerId: IndexedFeature['layerId'];
+  layerId: PlanningLayerId;
   point: boolean;
 }) {
   return (
@@ -72,6 +43,23 @@ function LayerColorDot({
   );
 }
 
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      sx={{
+        flexShrink: 0,
+        p: 1.5,
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'divider',
+        backgroundColor: 'background.paper',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
 function SearchSection() {
   const [input, setInput] = useState('');
   const initialize = useSearchStore((state) => state.initialize);
@@ -83,22 +71,22 @@ function SearchSection() {
   const query = useSearchStore((state) => state.query);
 
   const setSelectedFeature = useMapStore((state) => state.setSelectedFeature);
-  const requestFlyToFeature = useMapStore(
-    (state) => state.requestFlyToFeature,
-  );
+  const requestFlyToFeature = useMapStore((state) => state.requestFlyToFeature);
   const setLayerVisible = useLayerStore((state) => state.setLayerVisible);
+  const cancelDrawing = useAnalysisStore((state) => state.cancelDrawing);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Debounce the query update by ~200ms.
   useEffect(() => {
     const timer = setTimeout(() => setQuery(input), 200);
     return () => clearTimeout(timer);
   }, [input, setQuery]);
 
   const handleSelect = (record: IndexedFeature) => {
+    // Selecting a search result exits any in-progress AOI drawing.
+    cancelDrawing();
     setLayerVisible(record.layerId, true);
     setSelectedFeature({
       layerId: record.layerId,
@@ -118,26 +106,11 @@ function SearchSection() {
     setInput('');
   };
 
-  const showEmpty = query.trim() !== '' && !isLoading && !error && results.length === 0;
+  const showEmpty =
+    query.trim() !== '' && !isLoading && !error && results.length === 0;
 
   return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        p: 1.5,
-        borderRadius: 2,
-        border: 1,
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <Box sx={{ display: 'flex', color: 'primary.main' }}>
-          <SearchIcon fontSize="small" />
-        </Box>
-        <Typography variant="subtitle2">Search</Typography>
-      </Box>
-
+    <SectionCard>
       <TextField
         fullWidth
         size="small"
@@ -220,7 +193,108 @@ function SearchSection() {
           })}
         </List>
       )}
-    </Box>
+    </SectionCard>
+  );
+}
+
+function AnalysisSection() {
+  const isDrawing = useAnalysisStore((state) => state.isDrawing);
+  const draftPoints = useAnalysisStore((state) => state.draftPoints);
+  const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
+  const startDrawing = useAnalysisStore((state) => state.startDrawing);
+  const completeDrawing = useAnalysisStore((state) => state.completeDrawing);
+  const undoLastPoint = useAnalysisStore((state) => state.undoLastPoint);
+  const cancelDrawing = useAnalysisStore((state) => state.cancelDrawing);
+  const clearAnalysis = useAnalysisStore((state) => state.clearAnalysis);
+
+  const pointCount = draftPoints.length;
+
+  return (
+    <SectionCard>
+      {isDrawing ? (
+        <>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Click on the map to add points. Complete the area when you have at
+            least {MIN_AOI_POINTS} points.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {pointCount} point{pointCount === 1 ? '' : 's'} added
+          </Typography>
+          <Stack spacing={1} sx={{ mt: 1 }}>
+            <Button
+              fullWidth
+              size="small"
+              variant="contained"
+              disabled={pointCount < MIN_AOI_POINTS}
+              onClick={() => completeDrawing()}
+            >
+              Complete area
+            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                fullWidth
+                size="small"
+                variant="outlined"
+                color="inherit"
+                disabled={pointCount < 1}
+                onClick={() => undoLastPoint()}
+              >
+                Undo point
+              </Button>
+              <Button
+                fullWidth
+                size="small"
+                variant="outlined"
+                color="inherit"
+                onClick={() => cancelDrawing()}
+              >
+                Cancel
+              </Button>
+            </Stack>
+          </Stack>
+        </>
+      ) : areaOfInterest ? (
+        <Stack spacing={1.5}>
+          <Stack direction="row" spacing={1}>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              startIcon={<GestureIcon fontSize="small" />}
+              onClick={() => startDrawing()}
+            >
+              Draw new
+            </Button>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              color="inherit"
+              onClick={() => clearAnalysis()}
+            >
+              Clear analysis
+            </Button>
+          </Stack>
+          <AnalysisSummary />
+        </Stack>
+      ) : (
+        <>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Draw an area of interest to analyze parcels, zoning, constraints,
+            transit, and development activity.
+          </Typography>
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            startIcon={<GestureIcon fontSize="small" />}
+            onClick={() => startDrawing()}
+          >
+            Draw area
+          </Button>
+        </>
+      )}
+    </SectionCard>
   );
 }
 
@@ -280,16 +354,7 @@ function LayerToggles() {
 
 function Legend() {
   return (
-    <Box
-      sx={{
-        flexShrink: 0,
-        p: 1.5,
-        borderRadius: 2,
-        border: 1,
-        borderColor: 'divider',
-        backgroundColor: 'background.paper',
-      }}
-    >
+    <SectionCard>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
         Legend
       </Typography>
@@ -309,11 +374,11 @@ function Legend() {
           </Box>
         ))}
       </Box>
-    </Box>
+    </SectionCard>
   );
 }
 
-/** Left navigation rail: search, live layer toggles, legend, and placeholder tools. */
+/** Left navigation rail: search, analysis, live layer toggles, and legend. */
 export default function Sidebar() {
   return (
     <Box
@@ -336,18 +401,14 @@ export default function Sidebar() {
       <Typography variant="overline">Search</Typography>
       <SearchSection />
 
-      <Typography variant="overline">Planning Layers</Typography>
-      <LayerToggles />
-      <Legend />
+      <Typography variant="overline">Analysis</Typography>
+      <AnalysisSection />
 
       <Divider sx={{ my: 0.5 }} />
 
-      <Typography variant="overline">Tools</Typography>
-      <PlaceholderSection
-        icon={<InsightsIcon fontSize="small" />}
-        title="Analysis"
-        description="Run spatial analysis and view generated insights."
-      />
+      <Typography variant="overline">Planning Layers</Typography>
+      <LayerToggles />
+      <Legend />
     </Box>
   );
 }

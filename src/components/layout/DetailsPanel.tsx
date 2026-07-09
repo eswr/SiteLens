@@ -8,6 +8,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import CloseIcon from '@mui/icons-material/Close';
 import { useMapStore } from '../../store/mapStore';
+import { useAnalysisStore } from '../../store/analysisStore';
+import AnalysisSummary from '../analysis/AnalysisSummary';
 import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
 import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
 import type { SelectedFeature } from '../../types/map';
@@ -199,9 +201,13 @@ function EmptyState() {
   );
 }
 
-/** Right-hand inspector panel. Shows prioritized metadata + actions for the selection. */
+/** Right-hand inspector panel. Shows feature details, or AOI analysis, or a prompt. */
 export default function DetailsPanel() {
   const selectedFeature = useMapStore((state) => state.selectedFeature);
+  const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
+  const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
+
+  const showAoi = !selectedFeature && (Boolean(areaOfInterest) || isAnalyzing);
 
   return (
     <Box
@@ -222,6 +228,13 @@ export default function DetailsPanel() {
       {selectedFeature ? (
         <Box sx={{ mt: 1.5 }}>
           <SelectedFeatureDetails feature={selectedFeature} />
+        </Box>
+      ) : showAoi ? (
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
+            Area of Interest Analysis
+          </Typography>
+          <AnalysisSummary />
         </Box>
       ) : (
         <EmptyState />

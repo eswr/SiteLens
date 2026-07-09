@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import type { MapGeoJSONFeature } from 'maplibre-gl';
+import type { GeoJSONSource, MapGeoJSONFeature } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
+import type { Feature, FeatureCollection } from 'geojson';
 import Box from '@mui/material/Box';
 import { INITIAL_CENTER, INITIAL_ZOOM, useMapStore } from '../../store/mapStore';
 import { useLayerStore } from '../../store/layerStore';
+import { useAnalysisStore } from '../../store/analysisStore';
 import {
   CLICK_PRIORITY,
   CONFIG_BY_MAP_LAYER_ID,
@@ -13,6 +15,7 @@ import {
   PLANNING_LAYERS,
 } from '../../data/layers';
 import type { PlanningLayerId } from '../../types/planning';
+import type { AreaOfInterest, AreaPoint } from '../../types/analysis';
 
 /** No-token public demo style. Swapped for a richer basemap in a later step. */
 const MAP_STYLE = 'https://demotiles.maplibre.org/style.json';
@@ -23,6 +26,99 @@ const INTERACTIVE_LAYER_IDS = PLANNING_LAYERS.flatMap((layer) =>
     (id) => id.endsWith('-fill') || id.endsWith('-circle'),
   ),
 );
+
+/** Area-of-interest source/layer ids and styling. */
+const AOI_SOURCE_ID = 'area-of-interest';
+const AOI_COLOR = '#db2777';
+const EMPTY_FEATURE_COLLECTION: FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [],
+};
+
+/** Add the AOI source and its fill/outline/draft layers, once, above planning layers. */
+function addAoiLayers(map: maplibregl.Map) {
+  if (!map.getSource(AOI_SOURCE_ID)) {
+    map.addSource(AOI_SOURCE_ID, {
+      type: 'geojson',
+      data: EMPTY_FEATURE_COLLECTION,
+    });
+  }
+  if (!map.getLayer('aoi-fill')) {
+    map.addLayer({
+      id: 'aoi-fill',
+      type: 'fill',
+      source: AOI_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'fill-color': AOI_COLOR, 'fill-opacity': 0.12 },
+    });
+  }
+  if (!map.getLayer('aoi-outline')) {
+    map.addLayer({
+      id: 'aoi-outline',
+      type: 'line',
+      source: AOI_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'line-color': AOI_COLOR, 'line-width': 2.5 },
+    });
+  }
+  if (!map.getLayer('aoi-draft-line')) {
+    map.addLayer({
+      id: 'aoi-draft-line',
+      type: 'line',
+      source: AOI_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'LineString'],
+      paint: {
+        'line-color': AOI_COLOR,
+        'line-width': 2,
+        'line-dasharray': [2, 1],
+      },
+    });
+  }
+  if (!map.getLayer('aoi-draft-points')) {
+    map.addLayer({
+      id: 'aoi-draft-points',
+      type: 'circle',
+      source: AOI_SOURCE_ID,
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#ffffff',
+        'circle-stroke-color': AOI_COLOR,
+        'circle-stroke-width': 2,
+      },
+    });
+  }
+}
+
+/** Build the AOI source data: a completed polygon, or the in-progress draft. */
+function buildAoiData(
+  draftPoints: AreaPoint[],
+  areaOfInterest: AreaOfInterest | null,
+): FeatureCollection {
+  const features: Feature[] = [];
+  if (areaOfInterest) {
+    features.push(areaOfInterest.polygon);
+  } else if (draftPoints.length > 0) {
+    if (draftPoints.length >= 2) {
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: draftPoints.map((point) => [point.lng, point.lat]),
+        },
+      });
+    }
+    for (const point of draftPoints) {
+      features.push({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
+      });
+    }
+  }
+  return { type: 'FeatureCollection', features };
+}
 
 /** Add every planning source + layer to a loaded map, honoring initial visibility. */
 function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[]) {
@@ -130,6 +226,9 @@ export default function SiteMap() {
     (state) => state.clearFlyToFeatureRequest,
   );
   const visibleLayerIds = useLayerStore((state) => state.visibleLayerIds);
+  const draftPoints = useAnalysisStore((state) => state.draftPoints);
+  const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
+  const isDrawing = useAnalysisStore((state) => state.isDrawing);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -154,6 +253,15 @@ export default function SiteMap() {
     map.on('moveend', handleMoveEnd);
 
     const handleClick = (event: maplibregl.MapMouseEvent) => {
+      // While drawing an AOI, clicks add vertices instead of selecting features.
+      if (useAnalysisStore.getState().isDrawing) {
+        useAnalysisStore.getState().addDraftPoint({
+          lng: event.lngLat.lng,
+          lat: event.lngLat.lat,
+        });
+        return;
+      }
+
       const features = map.queryRenderedFeatures(event.point, {
         layers: INTERACTIVE_LAYER_IDS,
       });
@@ -189,6 +297,10 @@ export default function SiteMap() {
     map.on('click', handleClick);
 
     const handleMouseMove = (event: maplibregl.MapMouseEvent) => {
+      if (useAnalysisStore.getState().isDrawing) {
+        map.getCanvas().style.cursor = 'crosshair';
+        return;
+      }
       const features = map.queryRenderedFeatures(event.point, {
         layers: INTERACTIVE_LAYER_IDS,
       });
@@ -198,6 +310,7 @@ export default function SiteMap() {
 
     const handleLoad = () => {
       addPlanningData(map, useLayerStore.getState().visibleLayerIds);
+      addAoiLayers(map);
       setReady(true);
     };
     map.on('load', handleLoad);
@@ -254,6 +367,50 @@ export default function SiteMap() {
     }
     clearFlyToFeatureRequest();
   }, [flyToFeatureRequest, ready, clearFlyToFeatureRequest]);
+
+  // Keep the AOI source in sync with the draft/completed geometry.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) {
+      return;
+    }
+    const source = map.getSource(AOI_SOURCE_ID) as GeoJSONSource | undefined;
+    source?.setData(buildAoiData(draftPoints, areaOfInterest));
+  }, [draftPoints, areaOfInterest, ready]);
+
+  // Fit the map to a newly completed AOI.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !areaOfInterest) {
+      return;
+    }
+    const box = turfBbox(areaOfInterest.polygon) as [
+      number,
+      number,
+      number,
+      number,
+    ];
+    map.fitBounds(
+      [
+        [box[0], box[1]],
+        [box[2], box[3]],
+      ],
+      {
+        padding: { top: 60, bottom: 60, left: 60, right: 360 },
+        maxZoom: 16,
+        duration: 800,
+      },
+    );
+  }, [areaOfInterest, ready]);
+
+  // Keep a crosshair cursor for the duration of draw mode.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) {
+      return;
+    }
+    map.getCanvas().style.cursor = isDrawing ? 'crosshair' : '';
+  }, [isDrawing, ready]);
 
   // Reflect the selected feature as a MapLibre feature-state for highlighting.
   useEffect(() => {

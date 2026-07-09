@@ -67,12 +67,26 @@ can inspect parcels, planning layers, and spatial insights in one place.
 - Stronger, professional selected-feature highlight for both polygons and
   points, plus a `Selected: <name>` chip in the header.
 
+**Step 4 — Area of Interest & spatial analysis — ✅ complete.**
+
+- Simple click-to-add-points draw workflow (custom MapLibre draw mode, no heavy
+  drawing library) with draft points, a draft line, and a completed AOI polygon
+  rendered above the planning layers.
+- Turf.js spatial analysis (`src/utils/spatialAnalysis.ts`) against all mock
+  layers: parcel count + average development score, zoning breakdown,
+  intersecting constraints, transit within 1.5 km of the AOI centroid, and
+  development-activity counts by status.
+- Analysis store (`src/store/analysisStore.ts`) for drawing state, the AOI, and
+  results; feature selection is disabled while drawing and restored afterward.
+- Analysis summary UI (`src/components/analysis/AnalysisSummary.tsx`) shown in
+  the sidebar and, when nothing is selected, in the details panel.
+
 > **Mock data note:** the datasets under `public/data` are small, hand-authored
 > mock planning layers around the Sydney CBD, provided for portfolio/demo
-> purposes only — they are not real cadastral or planning data.
+> purposes only — they are not real cadastral or planning data. Spatial analysis
+> is likewise based on this mock data, not official planning records.
 
-Planned for later steps: drawing tools, charts, an AI-generated summary, and a
-backend.
+Planned for later steps: charts, an AI-generated summary, and a backend.
 
 ## Local setup
 
@@ -103,11 +117,13 @@ src/
   components/
     layout/
       AppShell.tsx     # full-height dashboard layout
-      HeaderBar.tsx    # top brand/title bar
-      Sidebar.tsx      # planning-layer toggles, legend, placeholder tools
-      DetailsPanel.tsx # right inspector panel (selected feature details)
+      HeaderBar.tsx    # top brand/title bar + selected-feature chip
+      Sidebar.tsx      # search, analysis controls, layer toggles, legend
+      DetailsPanel.tsx # right inspector (feature details or AOI analysis)
     map/
-      SiteMap.tsx      # MapLibre GL map + planning layers
+      SiteMap.tsx      # MapLibre GL map, planning layers + AOI draw mode
+    analysis/
+      AnalysisSummary.tsx # spatial-analysis result cards
   data/
     layers.ts          # typed planning-layer configuration
     featureDisplay.ts  # title / subtitle / priority-key helpers
@@ -115,11 +131,14 @@ src/
     mapStore.ts        # Zustand map camera, selection + fly-to requests
     layerStore.ts      # Zustand layer visibility
     searchStore.ts     # Zustand search index + results
+    analysisStore.ts   # Zustand AOI drawing + analysis results
   utils/
     featureIndex.ts    # builds the searchable feature index (Turf)
+    spatialAnalysis.ts # Turf.js AOI spatial analysis
   types/
     map.ts             # shared geospatial types
     planning.ts        # planning feature property types
+    analysis.ts        # AOI + spatial-analysis types
   theme/
     theme.ts           # Material UI theme
   main.tsx             # entry point
