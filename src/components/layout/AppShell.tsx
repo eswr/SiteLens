@@ -4,6 +4,7 @@ import HeaderBar from './HeaderBar';
 import Sidebar from './Sidebar';
 import DetailsPanel from './DetailsPanel';
 import SiteMap from '../map/SiteMap';
+import MapStatusBadge from '../map/MapStatusBadge';
 
 /**
  * Top-level dashboard layout.
@@ -29,7 +30,7 @@ export default function AppShell() {
         <Sidebar />
         <Box
           component="main"
-          sx={{ flex: 1, minWidth: 0, position: 'relative' }}
+          sx={{ flex: 1, minWidth: 120, position: 'relative' }}
         >
           <Paper
             elevation={0}
@@ -38,6 +39,7 @@ export default function AppShell() {
           >
             <SiteMap />
           </Paper>
+          <MapStatusBadge />
         </Box>
         <DetailsPanel />
       </Box>

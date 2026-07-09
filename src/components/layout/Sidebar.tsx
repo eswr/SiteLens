@@ -19,7 +19,7 @@ import { useLayerStore } from '../../store/layerStore';
 import { useSearchStore } from '../../store/searchStore';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
-import AnalysisSummary from '../analysis/AnalysisSummary';
+import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import type { IndexedFeature } from '../../utils/featureIndex';
 import type { PlanningLayerId } from '../../types/planning';
 
@@ -275,7 +275,7 @@ function AnalysisSection() {
               Clear analysis
             </Button>
           </Stack>
-          <AnalysisSummary />
+          <AnalysisSummaryCompact />
         </Stack>
       ) : (
         <>
@@ -385,7 +385,7 @@ export default function Sidebar() {
       component="nav"
       aria-label="Tools"
       sx={{
-        width: 280,
+        width: { xs: 240, md: 280 },
         flexShrink: 0,
         height: '100%',
         overflowY: 'auto',

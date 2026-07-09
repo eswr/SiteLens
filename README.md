@@ -24,7 +24,8 @@ can inspect parcels, planning layers, and spatial insights in one place.
 - [Material UI](https://mui.com/) (layout, theming, icons)
 - [MapLibre GL JS](https://maplibre.org/) (interactive map)
 - [Zustand](https://zustand.docs.pmnd.rs/) (map/UI state)
-- [Turf.js](https://turfjs.org/) (feature bbox/centroid for search & fly-to)
+- [Turf.js](https://turfjs.org/) (feature bbox/centroid + spatial analysis)
+- [Recharts](https://recharts.org/) (analytics charts)
 - Deployable to [Vercel](https://vercel.com/) (later)
 
 ## Project status
@@ -81,12 +82,26 @@ can inspect parcels, planning layers, and spatial insights in one place.
 - Analysis summary UI (`src/components/analysis/AnalysisSummary.tsx`) shown in
   the sidebar and, when nothing is selected, in the details panel.
 
+**Step 5 — Analytics dashboard & polish — ✅ complete.**
+
+- [Recharts](https://recharts.org/) visualizations in `src/components/charts/`:
+  zoning breakdown, development-activity by status, constraints by risk, and a
+  development-score card — each with empty states.
+- `AnalyticsDashboard` (`src/components/analysis/`) with headline metrics and
+  the four charts in a responsive layout.
+- Details panel now uses **Summary** / **Analytics** tabs for the AOI; a compact
+  sidebar summary links through to the detailed analytics.
+- Feature selection still takes priority; a `Back to AOI analysis` action clears
+  only the selected feature. A non-blocking map status badge shows the current
+  workflow state (Drawing area / Feature selected / Area analyzed / No selection).
+- Visual polish and responsive widths for desktop and tablet.
+
 > **Mock data note:** the datasets under `public/data` are small, hand-authored
 > mock planning layers around the Sydney CBD, provided for portfolio/demo
 > purposes only — they are not real cadastral or planning data. Spatial analysis
-> is likewise based on this mock data, not official planning records.
+> and charts are likewise based on this mock data, not official planning records.
 
-Planned for later steps: charts, an AI-generated summary, and a backend.
+Planned for later steps: an AI-generated summary, and a backend.
 
 ## Local setup
 
@@ -122,8 +137,11 @@ src/
       DetailsPanel.tsx # right inspector (feature details or AOI analysis)
     map/
       SiteMap.tsx      # MapLibre GL map, planning layers + AOI draw mode
+      MapStatusBadge.tsx # non-blocking workflow status overlay
     analysis/
-      AnalysisSummary.tsx # spatial-analysis result cards
+      AnalysisSummary.tsx    # spatial-analysis result cards
+      AnalyticsDashboard.tsx # Recharts analytics dashboard
+    charts/            # Recharts chart components
   data/
     layers.ts          # typed planning-layer configuration
     featureDisplay.ts  # title / subtitle / priority-key helpers
@@ -132,6 +150,7 @@ src/
     layerStore.ts      # Zustand layer visibility
     searchStore.ts     # Zustand search index + results
     analysisStore.ts   # Zustand AOI drawing + analysis results
+    uiStore.ts         # Zustand UI state (details-panel tab)
   utils/
     featureIndex.ts    # builds the searchable feature index (Turf)
     spatialAnalysis.ts # Turf.js AOI spatial analysis

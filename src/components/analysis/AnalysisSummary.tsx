@@ -4,8 +4,11 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
+import InsightsIcon from '@mui/icons-material/Insights';
 import { useAnalysisStore } from '../../store/analysisStore';
+import { useUiStore } from '../../store/uiStore';
 import { LAYER_COLORS } from '../../data/layers';
 import type { SpatialAnalysisResult } from '../../types/analysis';
 
@@ -210,6 +213,70 @@ export function AnalysisResultView({
         Analysis is based on mock portfolio GeoJSON data, not official planning
         records.
       </Typography>
+    </Stack>
+  );
+}
+
+/** Compact summary for the sidebar: a few key metrics plus an analytics cue. */
+export function AnalysisSummaryCompact() {
+  const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
+  const error = useAnalysisStore((state) => state.error);
+  const result = useAnalysisStore((state) => state.analysisResult);
+  const setDetailsTab = useUiStore((state) => state.setDetailsTab);
+
+  if (isAnalyzing) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          color: 'text.secondary',
+        }}
+      >
+        <CircularProgress size={16} />
+        <Typography variant="body2">Analyzing area…</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <Alert severity="error">{error}</Alert>;
+  }
+
+  if (!result) {
+    return null;
+  }
+
+  return (
+    <Stack spacing={1}>
+      <Stack direction="row" spacing={1}>
+        <Stat label="Area (ha)" value={`${result.areaHectares}`} />
+        <Stat label="Parcels" value={`${result.parcelCount}`} />
+        <Stat
+          label="Avg score"
+          value={
+            result.averageDevelopmentScore === null
+              ? '—'
+              : `${result.averageDevelopmentScore}`
+          }
+        />
+      </Stack>
+      <Typography variant="caption" color="text.secondary">
+        {result.intersectingConstraints.length} constraint
+        {result.intersectingConstraints.length === 1 ? '' : 's'} ·{' '}
+        {result.nearbyTransit.length} nearby transit ·{' '}
+        {result.developmentActivityCount} dev. app
+        {result.developmentActivityCount === 1 ? '' : 's'}
+      </Typography>
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<InsightsIcon fontSize="small" />}
+        onClick={() => setDetailsTab('analytics')}
+      >
+        View detailed analytics
+      </Button>
     </Stack>
   );
 }

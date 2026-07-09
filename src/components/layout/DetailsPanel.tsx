@@ -4,12 +4,17 @@ import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore } from '../../store/analysisStore';
+import { useUiStore } from '../../store/uiStore';
 import AnalysisSummary from '../analysis/AnalysisSummary';
+import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
 import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
 import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
 import type { SelectedFeature } from '../../types/map';
@@ -82,6 +87,7 @@ function SelectedFeatureDetails({ feature }: { feature: SelectedFeature }) {
 
   const requestFlyToFeature = useMapStore((state) => state.requestFlyToFeature);
   const setSelectedFeature = useMapStore((state) => state.setSelectedFeature);
+  const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
 
   const priorityKeys = PRIORITY_KEYS[feature.layerId].filter(
     (key) => key !== titleKey && feature.properties[key] !== undefined,
@@ -93,6 +99,17 @@ function SelectedFeatureDetails({ feature }: { feature: SelectedFeature }) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {areaOfInterest && (
+        <Button
+          size="small"
+          variant="text"
+          startIcon={<ArrowBackIcon fontSize="small" />}
+          onClick={() => setSelectedFeature(null)}
+          sx={{ alignSelf: 'flex-start' }}
+        >
+          Back to AOI analysis
+        </Button>
+      )}
       <Box
         sx={{
           p: 2,
@@ -201,6 +218,35 @@ function EmptyState() {
   );
 }
 
+function AoiPanel() {
+  const analysisResult = useAnalysisStore((state) => state.analysisResult);
+  const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
+  const detailsTab = useUiStore((state) => state.detailsTab);
+  const setDetailsTab = useUiStore((state) => state.setDetailsTab);
+
+  return (
+    <Box sx={{ mt: 1.5 }}>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        Area of Interest Analysis
+      </Typography>
+      <Tabs
+        value={detailsTab}
+        onChange={(_, value) => setDetailsTab(value)}
+        variant="fullWidth"
+        sx={{ mb: 1.5, minHeight: 40 }}
+      >
+        <Tab value="summary" label="Summary" sx={{ minHeight: 40 }} />
+        <Tab value="analytics" label="Analytics" sx={{ minHeight: 40 }} />
+      </Tabs>
+      {detailsTab === 'summary' ? (
+        <AnalysisSummary />
+      ) : (
+        <AnalyticsDashboard result={analysisResult} isLoading={isAnalyzing} />
+      )}
+    </Box>
+  );
+}
+
 /** Right-hand inspector panel. Shows feature details, or AOI analysis, or a prompt. */
 export default function DetailsPanel() {
   const selectedFeature = useMapStore((state) => state.selectedFeature);
@@ -214,7 +260,7 @@ export default function DetailsPanel() {
       component="aside"
       aria-label="Details"
       sx={{
-        width: 320,
+        width: { xs: 280, md: 320 },
         flexShrink: 0,
         height: '100%',
         overflowY: 'auto',
@@ -230,12 +276,7 @@ export default function DetailsPanel() {
           <SelectedFeatureDetails feature={selectedFeature} />
         </Box>
       ) : showAoi ? (
-        <Box sx={{ mt: 1.5 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Area of Interest Analysis
-          </Typography>
-          <AnalysisSummary />
-        </Box>
+        <AoiPanel />
       ) : (
         <EmptyState />
       )}
