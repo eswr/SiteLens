@@ -10,6 +10,8 @@ import type {
 } from '@sitelens/shared';
 import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { analysisKey, CACHE_TTL } from '../cache/cacheKeys';
 
 /**
  * Validated body: a GeoJSON Polygon or MultiPolygon. Coordinates are validated
@@ -33,10 +35,19 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
         | GeoJsonPolygon
         | GeoJsonMultiPolygon;
       try {
-        const result = await analyzeArea(geometry);
+        const { data: result, cache, computedAt } = await cached({
+          key: analysisKey(geometry),
+          ttlSeconds: CACHE_TTL.analysis,
+          compute: () => analyzeArea(geometry),
+        });
         const body: ApiEnvelope<AnalyzeAreaResponse> = {
           data: { result, engine: 'postgis' },
-          meta: { computedAt: new Date().toISOString() },
+          meta: {
+            requestId: request.id,
+            cache,
+            cacheKey: analysisKey(geometry),
+            computedAt,
+          },
         };
         return body;
       } catch (error) {

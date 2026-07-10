@@ -30,17 +30,37 @@ export class ApiError extends Error {
   }
 }
 
+/** Cache outcome reported by the API (mirrors `@sitelens/shared` CacheStatus). */
+export type CacheStatus =
+  | 'hit'
+  | 'miss'
+  | 'bypass'
+  | 'disabled'
+  | 'error'
+  | 'none';
+
+export interface ApiMeta {
+  requestId?: string;
+  cache?: CacheStatus;
+  cacheKey?: string;
+  computedAt?: string;
+  count?: number;
+}
+
 interface ApiEnvelope<T> {
   data: T;
-  meta?: Record<string, unknown>;
+  meta?: ApiMeta;
 }
 
 interface ApiErrorBody {
   error?: { code?: string; message?: string };
 }
 
-/** POST JSON to `path` and unwrap the `{ data }` envelope. */
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+/** POST JSON to `path` and return both the unwrapped `data` and `meta`. */
+export async function apiPostWithMeta<T>(
+  path: string,
+  body: unknown,
+): Promise<{ data: T; meta?: ApiMeta }> {
   if (!isApiConfigured()) {
     throw new ApiError('API base URL is not configured');
   }
@@ -77,5 +97,12 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     throw new ApiError('Malformed API response');
   }
 
-  return (json as ApiEnvelope<T>).data;
+  const envelope = json as ApiEnvelope<T>;
+  return { data: envelope.data, meta: envelope.meta };
+}
+
+/** POST JSON to `path` and unwrap just the `{ data }` payload. */
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const { data } = await apiPostWithMeta<T>(path, body);
+  return data;
 }

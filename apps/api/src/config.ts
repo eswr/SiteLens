@@ -8,10 +8,14 @@ export interface AppConfig {
   isProduction: boolean;
   databaseUrl: string;
   dbSsl: boolean;
+  redisUrl: string;
+  cacheEnabled: boolean;
+  cacheDefaultTtlSeconds: number;
 }
 
 const DEFAULT_DATABASE_URL =
   'postgres://sitelens:sitelens@localhost:54329/sitelens';
+const DEFAULT_CACHE_TTL_SECONDS = 300;
 
 /** Read runtime configuration from the environment, with safe defaults. */
 export function loadConfig(): AppConfig {
@@ -21,6 +25,18 @@ export function loadConfig(): AppConfig {
   const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
   const databaseUrl = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
   const dbSsl = (process.env.DB_SSL ?? 'false').toLowerCase() === 'true';
+
+  const redisUrl = (process.env.REDIS_URL ?? '').trim();
+  // Caching requires a Redis URL and is on by default unless explicitly disabled.
+  const cacheEnabled =
+    redisUrl.length > 0 &&
+    (process.env.CACHE_ENABLED ?? 'true').toLowerCase() !== 'false';
+  const parsedTtl = Number(process.env.CACHE_DEFAULT_TTL_SECONDS);
+  const cacheDefaultTtlSeconds =
+    Number.isFinite(parsedTtl) && parsedTtl > 0
+      ? parsedTtl
+      : DEFAULT_CACHE_TTL_SECONDS;
+
   return {
     port,
     nodeEnv,
@@ -28,5 +44,8 @@ export function loadConfig(): AppConfig {
     isProduction: nodeEnv === 'production',
     databaseUrl,
     dbSsl,
+    redisUrl,
+    cacheEnabled,
+    cacheDefaultTtlSeconds,
   };
 }

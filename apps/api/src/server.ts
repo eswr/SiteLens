@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { buildApp } from './app';
 import { loadConfig } from './config';
 import { closePool } from './db/pool';
+import { closeRedisClient, waitForCacheReady } from './cache/cacheClient';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -12,6 +13,8 @@ async function main(): Promise<void> {
 
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
+    // Eagerly connect the cache so the first request doesn't race the handshake.
+    void waitForCacheReady();
     console.log(
       `sitelens-api listening on http://0.0.0.0:${config.port} (${config.nodeEnv})`,
     );
@@ -25,6 +28,7 @@ async function main(): Promise<void> {
     process.on(signal, () => {
       void app
         .close()
+        .then(() => closeRedisClient())
         .then(() => closePool())
         .finally(() => process.exit(0));
     });

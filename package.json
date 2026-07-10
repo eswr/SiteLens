@@ -22,6 +22,7 @@
     "db:reset": "npm run db:reset -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
-    "ingest:geojson": "npm run ingest:geojson -w apps/api"
+    "ingest:geojson": "npm run ingest:geojson -w apps/api",
+    "cache:clear": "npm run cache:clear -w apps/api"
   }
 }

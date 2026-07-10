@@ -6,7 +6,7 @@ import type {
 } from '../types/analysis';
 import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
 import { analyzeAreaWithApi } from '../api/analysisApi';
-import { isApiConfigured } from '../api/client';
+import { isApiConfigured, type CacheStatus } from '../api/client';
 import { useAiSummaryStore } from './aiSummaryStore';
 import { useMapStore } from './mapStore';
 
@@ -28,6 +28,10 @@ interface AnalysisState {
   error: string | null;
   /** Which engine produced `analysisResult`. */
   analysisEngine: AnalysisEngine;
+  /** Cache outcome reported by the backend (when engine is `postgis`). */
+  analysisCacheStatus: CacheStatus | null;
+  /** When the result was computed (ISO string), when known. */
+  analysisComputedAt: string | null;
   /** Non-fatal warning (e.g. when the backend was unavailable). */
   analysisWarning?: string;
 
@@ -50,6 +54,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   isAnalyzing: false,
   error: null,
   analysisEngine: null,
+  analysisCacheStatus: null,
+  analysisComputedAt: null,
   analysisWarning: undefined,
 
   startDrawing: () => {
@@ -62,6 +68,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       analysisResult: null,
       error: null,
       analysisEngine: null,
+      analysisCacheStatus: null,
+      analysisComputedAt: null,
       analysisWarning: undefined,
     });
   },
@@ -88,6 +96,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       error: null,
       isAnalyzing: true,
       analysisEngine: null,
+      analysisCacheStatus: null,
+      analysisComputedAt: null,
       analysisWarning: undefined,
     });
 
@@ -95,11 +105,13 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       if (isApiConfigured()) {
         // Prefer the backend PostGIS analysis; fall back to local Turf.
         try {
-          const result = await analyzeAreaWithApi(areaOfInterest);
+          const api = await analyzeAreaWithApi(areaOfInterest);
           set({
-            analysisResult: result,
+            analysisResult: api.result,
             isAnalyzing: false,
             analysisEngine: 'postgis',
+            analysisCacheStatus: api.cache ?? null,
+            analysisComputedAt: api.computedAt ?? null,
             analysisWarning: undefined,
           });
         } catch {
@@ -108,6 +120,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             analysisResult: result,
             isAnalyzing: false,
             analysisEngine: 'turf-fallback',
+            analysisCacheStatus: 'none',
+            analysisComputedAt: new Date().toISOString(),
             analysisWarning: FALLBACK_WARNING,
           });
         }
@@ -117,6 +131,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
           analysisResult: result,
           isAnalyzing: false,
           analysisEngine: 'turf-local',
+          analysisCacheStatus: 'none',
+          analysisComputedAt: new Date().toISOString(),
           analysisWarning: undefined,
         });
       }
@@ -146,6 +162,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       isAnalyzing: false,
       error: null,
       analysisEngine: null,
+      analysisCacheStatus: null,
+      analysisComputedAt: null,
       analysisWarning: undefined,
     });
   },

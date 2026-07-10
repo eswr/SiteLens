@@ -16,5 +16,20 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: sitelens-redis
+    ports:
+      - "6389:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - sitelens_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   sitelens_postgres_data:
+  sitelens_redis_data:

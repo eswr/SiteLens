@@ -12,6 +12,12 @@ import {
   type IngestFeature,
 } from './geojson';
 import { LAYER_DEFS } from '../lib/layerConfig';
+import { clearPlanningCache } from '../cache/clearCache';
+import {
+  closeRedisClient,
+  isCacheEnabled,
+  waitForCacheReady,
+} from '../cache/cacheClient';
 
 const DATA_DIR = fileURLToPath(new URL('../../data/', import.meta.url));
 
@@ -247,16 +253,39 @@ const isMain =
   process.argv[1] !== undefined &&
   fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
+async function invalidateCache(): Promise<void> {
+  if (!isCacheEnabled()) {
+    return;
+  }
+  try {
+    await waitForCacheReady();
+    const removed = await clearPlanningCache();
+    console.log(`Cleared ${removed} cache key(s) after ingestion.`);
+  } catch (error) {
+    // Cache invalidation must never fail the ingestion.
+    console.warn(
+      `Cache invalidation skipped: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
 if (isMain) {
   ingestAll()
-    .then((results) => {
+    .then(async (results) => {
       const failed = results.reduce((sum, r) => sum + r.failed, 0);
       const total = results.reduce((sum, r) => sum + r.inserted + r.updated, 0);
       console.log(`Ingestion complete: ${total} rows, ${failed} failed.`);
-      return closePool().then(() => process.exit(failed > 0 ? 1 : 0));
+      await invalidateCache();
+      await closeRedisClient();
+      await closePool();
+      process.exit(failed > 0 ? 1 : 0);
     })
     .catch((error) => {
       console.error(error);
-      void closePool().finally(() => process.exit(1));
+      void closeRedisClient()
+        .then(() => closePool())
+        .finally(() => process.exit(1));
     });
 }

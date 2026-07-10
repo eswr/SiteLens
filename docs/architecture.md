@@ -13,6 +13,9 @@ Fastify + TypeScript (run with `tsx`), `pg` for database access
 **Database**
 PostgreSQL + PostGIS (via Docker Compose)
 
+**Cache**
+Redis (via Docker Compose, port 6389; Azure Cache for Redis equivalent)
+
 **Shared** (`packages/shared`)
 Shared TypeScript types (API envelopes, planning + analysis contracts)
 
@@ -27,15 +30,22 @@ GeoJSON files (apps/api/data/*.geojson)
   → Fastify API (ST_AsGeoJSON) → JSON envelopes
 ```
 
-AOI analysis (full-stack):
+AOI analysis (full-stack, with cache):
 
 ```
 Frontend AOI polygon (MapLibre draw)
   → POST /api/analyze-area
-  → PostGIS spatial SQL (ST_IsValid, ST_Area::geography, ST_Intersects, ST_DWithin, ST_Distance, aggregates)
-  → { result, engine: "postgis" }
-  → frontend analytics + AI summary
+  → Redis cache lookup (key = sha256(geometry))
+  → PostGIS spatial SQL on cache miss (ST_IsValid, ST_Area::geography, ST_Intersects, ST_DWithin, ST_Distance, aggregates)
+  → Redis cache write (TTL)
+  → { result, engine: "postgis" } + meta.cache (hit|miss|disabled|error)
+  → frontend analytics + AI summary (shows cache status)
 ```
+
+Layers, parcels, parcel detail, and search follow the same read-through cache
+pattern. Redis is optional: if unset the API returns `cache: "disabled"`; if
+unreachable it returns the DB result with `cache: "error"`. Ingestion clears the
+planning cache keys.
 
 The frontend calls the API when `VITE_API_BASE_URL` is set; otherwise (or if the
 API is unreachable) it uses local Turf.js analysis and marks the engine as
@@ -62,4 +72,5 @@ GeoJSON directly.
 ## Roadmap
 
 - Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
-- Later: Redis caching, backend planning summary, authentication, Stripe, Azure deployment.
+- Done: Redis caching for layers/parcels/search/analysis with cache metadata.
+- Later: backend planning summary, authentication, Stripe, Azure deployment.

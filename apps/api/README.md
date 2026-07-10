@@ -5,9 +5,9 @@ Fastify + TypeScript API foundation for SiteLens.
 ## Purpose
 
 Provides a production-shaped HTTP API for the SiteLens platform, backed by
-**PostgreSQL + PostGIS**. Layers, parcels, and search are served from spatial
-tables; `analyze-area` and `planning-summary` remain typed, validated
-placeholders (backend analysis arrives in a later step).
+**PostgreSQL + PostGIS** with an optional **Redis cache**. Layers, parcels,
+search, and AOI analysis are served from spatial tables and cached in Redis;
+`planning-summary` remains a typed, validated placeholder.
 
 ## Endpoints
 
@@ -26,6 +26,21 @@ All responses use a consistent envelope: `{ data, meta? }` on success and
 `{ error: { code, message, details? } }` on error. Every response includes an
 `x-request-id` header. When the database is unavailable, DB-backed routes return
 `503 SERVICE_UNAVAILABLE` (never a silent fallback).
+
+## Caching (Redis)
+
+Layers, parcels, parcel detail, search, and `analyze-area` are cached in Redis
+(via Docker Compose, port `6389`). Responses report the cache outcome in
+`meta.cache` (`hit` / `miss` / `disabled` / `error` / `none`) plus a safe
+`meta.cacheKey` (the `analyze-area` key is a SHA-256 of the geometry — no raw
+coordinates). TTLs: layers 10m, parcels 5m, parcel detail 10m, search 2m,
+analysis 5m.
+
+Caching is optional and degrades gracefully: if `REDIS_URL` is unset caching is
+`disabled`; if Redis is unreachable the route still returns the DB result with
+`meta.cache = "error"` (Redis failures never break a valid response). Running
+`npm run ingest:geojson` clears the planning cache keys; `npm run cache:clear`
+clears all `sitelens:*` keys. The Azure equivalent is Azure Cache for Redis.
 
 ## Database
 
@@ -71,10 +86,14 @@ Other scripts (from this directory):
 ```bash
 npm run typecheck      # tsc --noEmit
 npm run lint           # oxlint
-npm run test           # vitest run (DB integration tests skipped by default)
+npm run test           # vitest run (DB/Redis integration tests skipped by default)
 npm run test:db        # RUN_DB_TESTS=true vitest run src/db (needs DB up)
+npm run test:redis     # RUN_REDIS_TESTS=true vitest run src/cache (needs Redis up + REDIS_URL)
 npm run db:reset       # drop tables + re-run migrations (dev only)
+npm run cache:clear    # clear all sitelens:* cache keys
 ```
+
+`npm run db:up` starts both PostgreSQL/PostGIS (`54329`) and Redis (`6389`).
 
 Smoke tests:
 
@@ -92,16 +111,18 @@ Configuration (env vars, with defaults — see `.env.example`):
 - `WEB_ORIGIN` (default `http://localhost:5173`) — allowed CORS origin.
 - `DATABASE_URL` (default `postgres://sitelens:sitelens@localhost:54329/sitelens`)
 - `DB_SSL` (default `false`)
+- `REDIS_URL` (e.g. `redis://localhost:6389`) — caching is disabled when unset.
+- `CACHE_ENABLED` (default `true` when `REDIS_URL` is set)
+- `CACHE_DEFAULT_TTL_SECONDS` (default `300`)
 
 ## Current limitations
 
 - `planning-summary` is still a typed/validated placeholder (`501`).
 - Search uses `ILIKE`, not ranked full-text search yet.
-- No cache, authentication, or external services.
+- No authentication or external services.
 - The API is run directly with `tsx`; there is no compiled build artifact yet.
 
 ## Next planned backend steps
 
-- Redis caching for analysis/search.
 - Authentication and access control.
 - Azure deployment notes and CI.

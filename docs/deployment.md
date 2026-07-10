@@ -19,15 +19,17 @@ Notes:
 - No paid map token is required (public MapLibre demo style).
 - The AI summary is deterministic and local (no LLM).
 
-## Backend database (local, Docker)
+## Backend database + cache (local, Docker)
 
-The API (`apps/api`) is backed by PostgreSQL + PostGIS via Docker Compose.
+The API (`apps/api`) is backed by PostgreSQL + PostGIS and an optional Redis
+cache, both via Docker Compose. `npm run db:up` starts both services
+(PostGIS on `54329`, Redis on `6389`).
 
 ```bash
 npm install
-npm run db:up          # start PostgreSQL + PostGIS (host port 54329)
+npm run db:up          # start PostgreSQL + PostGIS (54329) and Redis (6389)
 npm run db:migrate     # apply SQL migrations
-npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS
+npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS (clears cache)
 npm run dev:api        # start the API on :4000
 ```
 
@@ -48,11 +50,19 @@ npm run db:down        # stop and remove the container
 ```
 
 Configuration is read from `apps/api/.env` (see `apps/api/.env.example`):
-`DATABASE_URL`, `DB_SSL`, `PORT`, `WEB_ORIGIN`, `NODE_ENV`.
+`DATABASE_URL`, `DB_SSL`, `PORT`, `WEB_ORIGIN`, `NODE_ENV`, `REDIS_URL`,
+`CACHE_ENABLED`, `CACHE_DEFAULT_TTL_SECONDS`.
+
+## Caching (Redis)
+
+- Redis runs through Docker Compose on port `6389`.
+- The API caches layers, parcels, search, and AOI analysis; responses include
+  `meta.cache` (`hit` / `miss` / `disabled` / `error`).
+- Caching is optional and degrades gracefully — the API returns DB results even
+  if Redis is down. Ingestion clears the planning cache keys.
+- The Azure equivalent is **Azure Cache for Redis**.
 
 ## Roadmap
 
-- PostGIS is now used for spatial storage; the frontend still reads static
-  GeoJSON directly.
-- Step 10 will connect the frontend AOI analysis to backend PostGIS.
-- Redis, authentication, Stripe, and Azure deployment are future steps.
+- Done: PostGIS spatial storage + backend AOI analysis; Redis response caching.
+- Authentication, Stripe, and Azure deployment are future steps.

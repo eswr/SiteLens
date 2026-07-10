@@ -100,6 +100,8 @@ without exposing proprietary work.
 - [Zustand](https://zustand.docs.pmnd.rs/) (state management)
 - [Turf.js](https://turfjs.org/) (spatial analysis)
 - [Recharts](https://recharts.org/) (analytics charts)
+- [PostgreSQL + PostGIS](https://postgis.net/) (spatial database) and
+  [Redis](https://redis.io/) (response cache), via Docker Compose
 
 ## Architecture
 
@@ -190,13 +192,23 @@ npm run dev:api
 npm run dev:web
 ```
 
-Analyze-area smoke test:
+Analyze-area smoke test (run twice — first `cache: "miss"`, second `cache: "hit"`):
 
 ```bash
 curl -X POST http://localhost:4000/api/analyze-area \
   -H "content-type: application/json" \
   -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}'
 ```
+
+### Caching (Redis)
+
+`npm run db:up` also starts Redis (port `6389`). The API caches layers, parcels,
+search, and AOI analysis, and reports the outcome in `meta.cache`
+(`hit` / `miss` / `disabled` / `error`); the frontend shows it subtly
+(e.g. `PostGIS API · cache hit`). Caching is optional and degrades gracefully —
+if Redis is down the API still returns DB results (`cache: "error"`) and the app
+keeps working. Ingestion clears the planning cache; `npm run cache:clear` clears
+all keys.
 
 ### Current boundaries
 

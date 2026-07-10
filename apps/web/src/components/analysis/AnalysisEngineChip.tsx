@@ -6,6 +6,7 @@ import FunctionsIcon from '@mui/icons-material/Functions';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useAnalysisStore } from '../../store/analysisStore';
 import type { AnalysisEngine } from '../../store/analysisStore';
+import type { CacheStatus } from '../../api/client';
 
 type ChipColor = 'success' | 'default' | 'warning';
 
@@ -30,7 +31,25 @@ const ENGINE_META: Record<
   },
 };
 
-/** Subtle chip (+ optional warning) showing which engine produced the analysis. */
+/** Human label for a cache status (only shown for backend results). */
+function cacheLabel(status: CacheStatus | null): string | null {
+  switch (status) {
+    case 'hit':
+      return 'cache hit';
+    case 'miss':
+      return 'cache miss';
+    case 'disabled':
+      return 'cache disabled';
+    case 'error':
+      return 'cache error';
+    case 'bypass':
+      return 'cache bypass';
+    default:
+      return null;
+  }
+}
+
+/** Subtle chip (+ optional warning + computed time) describing the analysis engine. */
 export default function AnalysisEngineChip({
   showWarning = true,
 }: {
@@ -38,12 +57,27 @@ export default function AnalysisEngineChip({
 }) {
   const engine = useAnalysisStore((state) => state.analysisEngine);
   const warning = useAnalysisStore((state) => state.analysisWarning);
+  const cacheStatus = useAnalysisStore((state) => state.analysisCacheStatus);
+  const computedAt = useAnalysisStore((state) => state.analysisComputedAt);
 
   if (!engine) {
     return null;
   }
 
   const meta = ENGINE_META[engine];
+  const cacheSuffix = engine === 'postgis' ? cacheLabel(cacheStatus) : null;
+  const label = cacheSuffix ? `${meta.label} · ${cacheSuffix}` : meta.label;
+
+  let computedTime: string | null = null;
+  if (computedAt) {
+    const parsed = new Date(computedAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      computedTime = parsed.toLocaleTimeString('en-AU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  }
 
   return (
     <Box>
@@ -52,9 +86,18 @@ export default function AnalysisEngineChip({
         size="small"
         variant="outlined"
         color={meta.color === 'default' ? undefined : meta.color}
-        label={meta.label}
+        label={label}
         sx={{ fontWeight: 600 }}
       />
+      {computedTime && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 0.25 }}
+        >
+          Computed at {computedTime}
+        </Typography>
+      )}
       {showWarning && warning && (
         <Typography
           variant="caption"

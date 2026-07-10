@@ -4,13 +4,15 @@ import type { Static } from '@sinclair/typebox';
 import type { ApiEnvelope, SearchResultItem } from '@sitelens/shared';
 import { searchFeatures } from '../db/spatialRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, searchKey } from '../cache/cacheKeys';
 
 const MAX_RESULTS = 8;
 
 const searchQuery = Type.Object({ q: Type.Optional(Type.String()) });
 type SearchQuery = Static<typeof searchQuery>;
 
-/** `GET /api/search?q=` — search across mock features (top 8), from PostGIS. */
+/** `GET /api/search?q=` — search across features (top 8), from PostGIS (cached). */
 export async function searchRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: SearchQuery }>(
     '/search',
@@ -20,15 +22,25 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
       if (!query) {
         const body: ApiEnvelope<SearchResultItem[]> = {
           data: [],
-          meta: { count: 0 },
+          meta: { requestId: request.id, cache: 'none', count: 0 },
         };
         return body;
       }
       try {
-        const results = await searchFeatures(query, MAX_RESULTS);
+        const { data: results, cache, computedAt } = await cached({
+          key: searchKey(query),
+          ttlSeconds: CACHE_TTL.search,
+          compute: () => searchFeatures(query, MAX_RESULTS),
+        });
         const body: ApiEnvelope<SearchResultItem[]> = {
           data: results,
-          meta: { count: results.length },
+          meta: {
+            requestId: request.id,
+            cache,
+            cacheKey: searchKey(query),
+            computedAt,
+            count: results.length,
+          },
         };
         return body;
       } catch (error) {
