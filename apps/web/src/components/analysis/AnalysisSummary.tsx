@@ -11,6 +11,7 @@ import { useAnalysisStore } from '../../store/analysisStore';
 import { useUiStore } from '../../store/uiStore';
 import { LAYER_COLORS } from '../../data/layers';
 import type { SpatialAnalysisResult } from '../../types/analysis';
+import AnalysisEngineChip from './AnalysisEngineChip';
 
 function formatNumber(value: number): string {
   return value.toLocaleString('en-AU');
@@ -250,6 +251,7 @@ export function AnalysisSummaryCompact() {
 
   return (
     <Stack spacing={1}>
+      <AnalysisEngineChip />
       <Stack direction="row" spacing={1}>
         <Stat label="Area (ha)" value={`${result.areaHectares}`} />
         <Stat label="Parcels" value={`${result.parcelCount}`} />

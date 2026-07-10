@@ -10,9 +10,10 @@ planning summary.
 
 It is organized as an **npm-workspaces monorepo** with a React/Vite web app, a
 Fastify + TypeScript API, and a shared types package. The API is backed by
-**PostgreSQL + PostGIS** (layers, parcels, and search come from spatial tables).
-In the current step the **frontend still runs entirely on static mock GeoJSON**;
-connecting it to the backend arrives in the next step.
+**PostgreSQL + PostGIS** — layers, parcels, and search come from spatial tables,
+and AOI spatial analysis runs in PostGIS. When `VITE_API_BASE_URL` is set the
+web app runs analysis through the API (with a local Turf.js fallback); otherwise
+it runs fully client-side.
 
 ## Monorepo Structure
 
@@ -167,14 +168,45 @@ curl "http://localhost:4000/api/search?q=central"
 See [`docs/architecture.md`](docs/architecture.md) and
 [`apps/api/README.md`](apps/api/README.md) for schema and details.
 
+### Full-stack analysis mode
+
+`POST /api/analyze-area` runs the AOI spatial analysis in **PostGIS**. The
+frontend uses it when `VITE_API_BASE_URL` is set, and falls back to local
+Turf.js if the API is unreachable — the UI shows which engine was used
+(`PostGIS API` / `Local Turf` / `Turf fallback`).
+
+Enable full-stack mode for the web app:
+
+```bash
+# apps/web/.env.local
+VITE_API_BASE_URL=http://localhost:4000
+```
+
+Run everything, then draw an area of interest in the browser:
+
+```bash
+npm run db:up && npm run db:migrate && npm run ingest:geojson
+npm run dev:api
+npm run dev:web
+```
+
+Analyze-area smoke test:
+
+```bash
+curl -X POST http://localhost:4000/api/analyze-area \
+  -H "content-type: application/json" \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}'
+```
+
 ### Current boundaries
 
-- The **frontend still uses static mock GeoJSON** in this step — it does not yet
-  call the API. Step 10 will connect the AOI analysis to backend PostGIS.
-- The **API reads layers/parcels/search from PostGIS**; `analyze-area` and
-  `planning-summary` remain typed/validated `501` placeholders.
+- **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's
+  layer rendering + search still read static GeoJSON directly; only AOI analysis
+  calls the API (with a Turf fallback).
+- `planning-summary` remains a typed/validated `501` placeholder; the AI summary
+  is still generated locally from the analysis result.
 - If the database is unavailable, DB-backed routes return `503` (no silent
-  fallback).
+  fallback); the frontend's AOI analysis falls back to Turf and shows a warning.
 - **Redis** caching, auth, Stripe, and Azure deployment are future steps.
 - No real LLM API and no paid map token are used anywhere.
 

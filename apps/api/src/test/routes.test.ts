@@ -36,6 +36,18 @@ vi.mock('../db/spatialRepository', () => {
           ]
         : [],
     ),
+    analyzeArea: vi.fn(async () => ({
+      areaSqm: 12345,
+      areaHectares: 1.23,
+      parcelCount: 4,
+      averageDevelopmentScore: 72.5,
+      zoningBreakdown: [],
+      intersectingConstraints: [],
+      nearbyTransit: [],
+      developmentActivityCount: 2,
+      developmentActivityByStatus: [],
+    })),
+    InvalidGeometryError: class InvalidGeometryError extends Error {},
   };
 });
 
@@ -119,7 +131,7 @@ describe('POST /api/analyze-area', () => {
     expect(res.json().error.details).toBeDefined();
   });
 
-  it('returns 501 for a valid polygon body (placeholder)', async () => {
+  it('returns 200 with a PostGIS result for a valid polygon body', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
@@ -137,8 +149,10 @@ describe('POST /api/analyze-area', () => {
         },
       },
     });
-    expect(res.statusCode).toBe(501);
-    expect(res.json().error.code).toBe('NOT_IMPLEMENTED');
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data.engine).toBe('postgis');
+    expect(body.data.result.areaSqm).toBeGreaterThan(0);
   });
 });
 

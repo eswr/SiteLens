@@ -16,6 +16,7 @@ import { useUiStore } from '../../store/uiStore';
 import AnalysisSummary from '../analysis/AnalysisSummary';
 import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
 import PlanningSummaryPanel from '../analysis/PlanningSummaryPanel';
+import AnalysisEngineChip from '../analysis/AnalysisEngineChip';
 import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
 import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
 import type { SelectedFeature } from '../../types/map';
@@ -230,6 +231,9 @@ function AoiPanel() {
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
         Area of Interest Analysis
       </Typography>
+      <Box sx={{ mb: 1.5 }}>
+        <AnalysisEngineChip />
+      </Box>
       <Tabs
         value={detailsTab}
         onChange={(_, value) => setDetailsTab(value)}

@@ -5,11 +5,19 @@ import type {
   SpatialAnalysisResult,
 } from '../types/analysis';
 import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
+import { analyzeAreaWithApi } from '../api/analysisApi';
+import { isApiConfigured } from '../api/client';
 import { useAiSummaryStore } from './aiSummaryStore';
 import { useMapStore } from './mapStore';
 
 /** Minimum vertices required to close a polygon. */
 export const MIN_AOI_POINTS = 3;
+
+/** Which engine produced the current analysis result. */
+export type AnalysisEngine = 'postgis' | 'turf-local' | 'turf-fallback' | null;
+
+const FALLBACK_WARNING =
+  'Backend analysis unavailable; using local Turf.js demo analysis.';
 
 interface AnalysisState {
   isDrawing: boolean;
@@ -18,6 +26,10 @@ interface AnalysisState {
   analysisResult: SpatialAnalysisResult | null;
   isAnalyzing: boolean;
   error: string | null;
+  /** Which engine produced `analysisResult`. */
+  analysisEngine: AnalysisEngine;
+  /** Non-fatal warning (e.g. when the backend was unavailable). */
+  analysisWarning?: string;
 
   startDrawing: () => void;
   addDraftPoint: (point: AreaPoint) => void;
@@ -37,6 +49,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   analysisResult: null,
   isAnalyzing: false,
   error: null,
+  analysisEngine: null,
+  analysisWarning: undefined,
 
   startDrawing: () => {
     // A new drawing invalidates any previous AI summary.
@@ -47,6 +61,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       areaOfInterest: null,
       analysisResult: null,
       error: null,
+      analysisEngine: null,
+      analysisWarning: undefined,
     });
   },
 
@@ -71,14 +87,43 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       analysisResult: null,
       error: null,
       isAnalyzing: true,
+      analysisEngine: null,
+      analysisWarning: undefined,
     });
 
     try {
-      const result = await analyzeArea(areaOfInterest.polygon);
-      set({ analysisResult: result, isAnalyzing: false });
+      if (isApiConfigured()) {
+        // Prefer the backend PostGIS analysis; fall back to local Turf.
+        try {
+          const result = await analyzeAreaWithApi(areaOfInterest);
+          set({
+            analysisResult: result,
+            isAnalyzing: false,
+            analysisEngine: 'postgis',
+            analysisWarning: undefined,
+          });
+        } catch {
+          const result = await analyzeArea(areaOfInterest.polygon);
+          set({
+            analysisResult: result,
+            isAnalyzing: false,
+            analysisEngine: 'turf-fallback',
+            analysisWarning: FALLBACK_WARNING,
+          });
+        }
+      } else {
+        const result = await analyzeArea(areaOfInterest.polygon);
+        set({
+          analysisResult: result,
+          isAnalyzing: false,
+          analysisEngine: 'turf-local',
+          analysisWarning: undefined,
+        });
+      }
     } catch (error) {
       set({
         isAnalyzing: false,
+        analysisEngine: null,
         error:
           error instanceof Error
             ? error.message
@@ -100,6 +145,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       analysisResult: null,
       isAnalyzing: false,
       error: null,
+      analysisEngine: null,
+      analysisWarning: undefined,
     });
   },
 

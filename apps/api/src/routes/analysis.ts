@@ -1,33 +1,55 @@
 import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import type { ApiErrorEnvelope } from '@sitelens/shared';
-
-/** Validated body: a GeoJSON Polygon geometry. */
-const analyzeAreaBody = Type.Object({
-  geometry: Type.Object({
-    type: Type.Literal('Polygon'),
-    coordinates: Type.Array(Type.Array(Type.Array(Type.Number()))),
-  }),
-});
+import type { Static } from '@sinclair/typebox';
+import type {
+  AnalyzeAreaResponse,
+  ApiEnvelope,
+  ApiErrorEnvelope,
+  GeoJsonMultiPolygon,
+  GeoJsonPolygon,
+} from '@sitelens/shared';
+import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
 
 /**
- * `POST /api/analyze-area` — typed + validated placeholder.
- * Real spatial analysis will be implemented with PostGIS in a later step.
+ * Validated body: a GeoJSON Polygon or MultiPolygon. Coordinates are validated
+ * loosely here (present + array); PostGIS performs authoritative validation.
  */
+const analyzeAreaBody = Type.Object({
+  geometry: Type.Object({
+    type: Type.Union([Type.Literal('Polygon'), Type.Literal('MultiPolygon')]),
+    coordinates: Type.Array(Type.Unknown()),
+  }),
+});
+type AnalyzeAreaBody = Static<typeof analyzeAreaBody>;
+
+/** `POST /api/analyze-area` — real spatial analysis in PostGIS. */
 export async function analysisRoutes(app: FastifyInstance): Promise<void> {
-  app.post(
+  app.post<{ Body: AnalyzeAreaBody }>(
     '/analyze-area',
     { schema: { body: analyzeAreaBody } },
-    async (_request, reply) => {
-      const body: ApiErrorEnvelope = {
-        error: {
-          code: 'NOT_IMPLEMENTED',
-          message:
-            'Backend spatial analysis will be implemented with PostGIS in Step 10.',
-        },
-      };
-      reply.code(501);
-      return body;
+    async (request, reply) => {
+      const geometry = request.body.geometry as
+        | GeoJsonPolygon
+        | GeoJsonMultiPolygon;
+      try {
+        const result = await analyzeArea(geometry);
+        const body: ApiEnvelope<AnalyzeAreaResponse> = {
+          data: { result, engine: 'postgis' },
+          meta: { computedAt: new Date().toISOString() },
+        };
+        return body;
+      } catch (error) {
+        if (error instanceof InvalidGeometryError) {
+          const body: ApiErrorEnvelope = {
+            error: { code: 'INVALID_GEOMETRY', message: error.message },
+          };
+          reply.code(400);
+          return body;
+        }
+        sendDatabaseUnavailable(reply, error);
+        return reply;
+      }
     },
   );
 }

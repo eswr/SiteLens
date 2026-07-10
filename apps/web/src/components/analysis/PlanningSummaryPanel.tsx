@@ -10,6 +10,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useAiSummaryStore } from '../../store/aiSummaryStore';
 import { useAnalysisStore } from '../../store/analysisStore';
+import AnalysisEngineChip from './AnalysisEngineChip';
 import type {
   PlanningSummary,
   PlanningSummarySeverity,
@@ -99,6 +100,7 @@ function SummaryContent({ summary }: { summary: PlanningSummary }) {
         <Typography variant="caption" color="text.secondary">
           Generated {generatedAt}
         </Typography>
+        <AnalysisEngineChip showWarning={false} />
         <Box sx={{ flexGrow: 1 }} />
         <Button
           size="small"

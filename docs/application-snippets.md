@@ -10,7 +10,11 @@ I built SiteLens as a public portfolio project because my production map-based a
 
 ## Technical Ownership
 
-I designed and implemented the full frontend workflow: dashboard layout, MapLibre integration, GeoJSON layers, layer visibility controls, search index, feature inspection, custom drawing workflow, Turf.js spatial analysis, Recharts analytics, and deterministic AI summary generation.
+I designed and implemented the full stack: the frontend workflow (dashboard layout, MapLibre integration, GeoJSON layers, layer visibility controls, search, feature inspection, custom AOI drawing, Recharts analytics, deterministic AI summary) and the backend (a Fastify + TypeScript API over PostgreSQL/PostGIS with SQL migrations, GeoJSON ingestion, spatial indexes, and a real AOI spatial-analysis endpoint). The frontend runs analysis through the PostGIS API when configured and falls back to local Turf.js otherwise.
+
+## Full-Stack Spatial Engineering
+
+SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest polygon is sent to a Fastify endpoint, analyzed in PostGIS with `ST_Intersects`/`ST_DWithin`/`ST_Area(::geography)` against parcels, zoning, constraints, transit, and development activity, and returned as a typed result the frontend renders as analytics and a planning summary — with a client-side Turf.js fallback for robustness.
 
 ## Relevant To Geospatial Roles
 

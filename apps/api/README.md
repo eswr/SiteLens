@@ -19,7 +19,7 @@ placeholders (backend analysis arrives in a later step).
 | GET | `/api/parcels` | Parcels FeatureCollection via `ST_AsGeoJSON` (count meta). |
 | GET | `/api/parcels/:id` | One parcel by `id` / `parcel_id` (404 if missing). |
 | GET | `/api/search?q=` | Search across spatial tables with `ILIKE` (top 8, incl. bbox). |
-| POST | `/api/analyze-area` | Validated placeholder → `501` (backend PostGIS analysis later). |
+| POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (area, parcels, zoning, constraints, transit, development activity). |
 | POST | `/api/planning-summary` | Validated placeholder → `501`. |
 
 All responses use a consistent envelope: `{ data, meta? }` on success and
@@ -38,6 +38,21 @@ indexes.
 
 Data flow: `apps/api/data/*.geojson` → ingestion script (`ST_GeomFromGeoJSON` +
 `ST_Multi` for polygons) → PostGIS tables → Fastify API (`ST_AsGeoJSON`).
+
+`POST /api/analyze-area` runs the AOI analysis in PostGIS: it validates the
+geometry (`ST_IsValid` → `400 INVALID_GEOMETRY` on failure), computes area with
+`ST_Area(geom::geography)`, and uses `ST_Intersects` / `ST_DWithin` +
+`ST_Distance` for parcels (count + avg development score), zoning breakdown,
+intersecting constraints, transit within 1.5 km of the AOI centroid, and
+development activity by status. Response: `{ data: { result, engine: "postgis" }, meta }`.
+
+Smoke test:
+
+```bash
+curl -X POST http://localhost:4000/api/analyze-area \
+  -H "content-type: application/json" \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}'
+```
 
 ## Local development
 
@@ -80,14 +95,13 @@ Configuration (env vars, with defaults — see `.env.example`):
 
 ## Current limitations
 
-- `analyze-area` and `planning-summary` are typed/validated placeholders only.
+- `planning-summary` is still a typed/validated placeholder (`501`).
 - Search uses `ILIKE`, not ranked full-text search yet.
 - No cache, authentication, or external services.
 - The API is run directly with `tsx`; there is no compiled build artifact yet.
 
 ## Next planned backend steps
 
-- Backend spatial analysis in PostGIS (replacing the `analyze-area` placeholder).
 - Redis caching for analysis/search.
 - Authentication and access control.
 - Azure deployment notes and CI.

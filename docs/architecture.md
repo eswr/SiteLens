@@ -16,7 +16,9 @@ PostgreSQL + PostGIS (via Docker Compose)
 **Shared** (`packages/shared`)
 Shared TypeScript types (API envelopes, planning + analysis contracts)
 
-## Current data flow
+## Data flow
+
+Ingestion + read APIs:
 
 ```
 GeoJSON files (apps/api/data/*.geojson)
@@ -25,17 +27,25 @@ GeoJSON files (apps/api/data/*.geojson)
   → Fastify API (ST_AsGeoJSON) → JSON envelopes
 ```
 
-The **frontend still reads static GeoJSON directly** from `apps/web/public/data`
-and does not call the API yet. The API is DB-backed and independently usable.
+AOI analysis (full-stack):
+
+```
+Frontend AOI polygon (MapLibre draw)
+  → POST /api/analyze-area
+  → PostGIS spatial SQL (ST_IsValid, ST_Area::geography, ST_Intersects, ST_DWithin, ST_Distance, aggregates)
+  → { result, engine: "postgis" }
+  → frontend analytics + AI summary
+```
+
+The frontend calls the API when `VITE_API_BASE_URL` is set; otherwise (or if the
+API is unreachable) it uses local Turf.js analysis and marks the engine as
+`turf-local` / `turf-fallback`. The web app's layers/search still read static
+GeoJSON directly.
 
 ## Future data flow
 
 ```
-Frontend AOI polygon
-  → Fastify POST /api/analyze-area
-  → PostGIS spatial SQL (ST_Intersects, ST_DWithin, aggregates)
-  → Redis cache
-  → frontend analytics
+… → PostGIS spatial SQL → Redis cache → frontend analytics
 ```
 
 ## Spatial schema
@@ -51,5 +61,5 @@ Frontend AOI polygon
 
 ## Roadmap
 
-- Step 10: connect frontend AOI analysis to backend PostGIS.
-- Later: Redis caching, authentication, Stripe, Azure deployment.
+- Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
+- Later: Redis caching, backend planning summary, authentication, Stripe, Azure deployment.
