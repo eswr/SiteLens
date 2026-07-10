@@ -35,7 +35,14 @@ image `postgis/postgis:16-3.4`, host port `54329`). The DB is NOT part of the
 dependency update script — bring it up explicitly when working on the API.
 
 - Full backend setup: `npm run db:up` → `npm run db:migrate` →
-  `npm run ingest:geojson` → `npm run dev:api`.
+  `npm run ingest:geojson` → `npm run dev:api`. `db:up` starts **both**
+  PostgreSQL/PostGIS (`54329`) and **Redis** (`6389`).
+- Redis caching is optional: it's enabled only when `REDIS_URL` is set (e.g. via
+  `apps/api/.env`, gitignored). With no Redis the API returns `cache:"disabled"`;
+  when Redis is down it returns DB results with `cache:"error"` (never hangs —
+  the client uses `enableOfflineQueue:false` and auto-reconnects). Default
+  `npm run test` needs neither Docker nor Redis; `npm run test:redis` (needs
+  `REDIS_URL` + Redis up) and `npm run test:db` cover live integration.
 - **Docker is required and may not be preinstalled.** If `docker` is missing,
   install Docker Engine (docker-in-docker), and because this is Docker 29 with
   fuse-overlayfs, set `/etc/docker/daemon.json` to
