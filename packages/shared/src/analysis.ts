@@ -64,21 +64,3 @@ export interface AnalyzeAreaResponse {
   result: SpatialAnalysisResult;
   engine: 'postgis';
 }
-
-/** Request body for `POST /api/planning-summary`. */
-export interface PlanningSummaryRequest {
-  /** Optional identifier of a previously analyzed area. */
-  areaId?: string;
-  /** Optional metrics the client already computed. */
-  metrics?: Record<string, unknown>;
-}
-
-/**
- * Response for `POST /api/planning-summary`.
- *
- * Placeholder — backend summary wiring arrives in a later step.
- */
-export interface PlanningSummaryResponse {
-  status: 'not_implemented';
-  message: string;
-}

@@ -16,6 +16,10 @@ I designed and implemented the full stack: the frontend workflow (dashboard layo
 
 SiteLens models enterprise access patterns for a geospatial product: role-based access control (viewer / planner / admin), subscription-tier entitlements (free / pro / enterprise), capability-gated endpoints (analysis and summary require a paid plan; ingestion is admin-only), entitlement-limited responses (free tiers get capped search/parcels), and entitlement-scoped caching so lower tiers can't receive higher-tier data from the cache. It's a demo API-key implementation with a clear production path to OAuth/SSO, JWT/session cookies, and org/team membership.
 
+## Backend-Owned Planning Summary
+
+SiteLens includes a backend-owned deterministic planning summary service. The frontend sends spatial analysis metrics to a Fastify API, the API enforces Pro/Enterprise entitlements, applies usage metering, caches summaries in Redis, and returns a source-transparent planning summary. The frontend preserves a local fallback so the demo remains usable without backend access.
+
 ## Stripe-Style Billing
 
 SiteLens includes a Stripe-style entitlement layer with Free, Pro, and Enterprise plans. Backend routes enforce feature access for spatial analysis and summaries, search/parcel limits are plan-aware, cache keys are entitlement-scoped to avoid cross-plan data leakage, and the API includes a webhook-ready billing module that can be connected to Stripe Checkout/Portal in production.

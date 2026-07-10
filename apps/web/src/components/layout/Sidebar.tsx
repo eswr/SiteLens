@@ -218,6 +218,7 @@ function AnalysisSection() {
   const setDetailsTab = useUiStore((state) => state.setDetailsTab);
   const aiSummary = useAiSummaryStore((state) => state.summary);
   const generateSummary = useAiSummaryStore((state) => state.generateSummary);
+  const analysisEngine = useAnalysisStore((state) => state.analysisEngine);
   const canRunAnalysis = useAuthStore(
     (state) => state.capabilities.canRunAnalysis,
   );
@@ -227,10 +228,16 @@ function AnalysisSection() {
   const analysisBlocked = isApiConfigured() && !canRunAnalysis;
   const summaryBlocked = isApiConfigured() && !canGenerateSummary;
 
+  const summaryButtonLabel = !isApiConfigured()
+    ? 'Generate AI summary'
+    : canGenerateSummary
+      ? 'Generate backend summary'
+      : 'Generate local demo summary';
+
   const handleGenerateAi = () => {
     setDetailsTab('aiSummary');
     if (!aiSummary) {
-      generateSummary(analysisResult);
+      generateSummary(analysisResult, analysisEngine ?? undefined);
     }
   };
 
@@ -310,12 +317,12 @@ function AnalysisSection() {
             startIcon={<AutoAwesomeIcon fontSize="small" />}
             onClick={handleGenerateAi}
           >
-            Generate AI summary
+            {summaryButtonLabel}
           </Button>
           {summaryBlocked && (
             <Typography variant="caption" color="text.secondary">
-              Backend AI summaries require the Pro or Enterprise plan; this demo
-              generates them locally.
+              Backend summary requires Pro or Enterprise; Free mode uses a local
+              demo summary.
             </Typography>
           )}
         </Stack>

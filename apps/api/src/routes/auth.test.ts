@@ -166,23 +166,38 @@ describe('POST /api/analyze-area entitlement gate', () => {
 });
 
 describe('POST /api/planning-summary entitlement gate', () => {
+  const summaryBody = {
+    analysisResult: {
+      areaSqm: 1,
+      areaHectares: 0,
+      parcelCount: 0,
+      averageDevelopmentScore: null,
+      zoningBreakdown: [],
+      intersectingConstraints: [],
+      nearbyTransit: [],
+      developmentActivityCount: 0,
+      developmentActivityByStatus: [],
+    },
+  };
+
   it('anonymous → 403', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/planning-summary',
-      payload: { areaId: 'demo' },
+      payload: summaryBody,
     });
     expect(res.statusCode).toBe(403);
   });
 
-  it('planner → 501 placeholder', async () => {
+  it('planner → 200 deterministic backend summary', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/planning-summary',
       headers: withKey('demo-planner-key'),
-      payload: { areaId: 'demo' },
+      payload: summaryBody,
     });
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.engine).toBe('deterministic-backend');
   });
 });
 

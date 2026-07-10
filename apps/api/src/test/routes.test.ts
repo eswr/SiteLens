@@ -171,14 +171,27 @@ describe('POST /api/analyze-area', () => {
 });
 
 describe('POST /api/planning-summary', () => {
-  it('returns 501 for a valid minimal body (planner placeholder)', async () => {
+  it('returns a deterministic backend summary for a planner', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/planning-summary',
       headers: { 'x-api-key': 'demo-planner-key' },
-      payload: { areaId: 'demo' },
+      payload: {
+        analysisResult: {
+          areaSqm: 1000,
+          areaHectares: 0.1,
+          parcelCount: 0,
+          averageDevelopmentScore: null,
+          zoningBreakdown: [],
+          intersectingConstraints: [],
+          nearbyTransit: [],
+          developmentActivityCount: 0,
+          developmentActivityByStatus: [],
+        },
+      },
     });
-    expect(res.statusCode).toBe(501);
-    expect(res.json().error.code).toBe('NOT_IMPLEMENTED');
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.engine).toBe('deterministic-backend');
+    expect(res.json().data.summary.sections).toHaveLength(5);
   });
 });

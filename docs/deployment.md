@@ -71,8 +71,19 @@ Configuration is read from `apps/api/.env` (see `apps/api/.env.example`):
 - Production: Stripe Checkout + Customer Portal, webhook verification via the
   Stripe SDK using the raw request body, and org/team billing.
 
+## Planning summary (deterministic, backend-owned)
+
+- `POST /api/planning-summary` generates a deterministic summary from analysis
+  metrics — no external LLM. Gated by `summary:generate`, metered in
+  `usage_counters`, and Redis-cached with a plan-scoped key.
+- Production: swap the deterministic generator for an LLM call (keeping source
+  metrics + caveats), add evals + prompt/version logging, and human review for
+  high-risk outputs.
+
 ## Roadmap
 
 - Done: PostGIS spatial storage + backend AOI analysis; Redis response caching;
-  demo auth/RBAC; Stripe-style billing + entitlements.
-- Real Stripe Checkout/Portal, OAuth/SSO, and Azure deployment are future steps.
+  demo auth/RBAC; Stripe-style billing + entitlements; backend-owned
+  deterministic planning summary.
+- Real Stripe Checkout/Portal, OAuth/SSO, real LLM summary, and Azure deployment
+  are future steps.

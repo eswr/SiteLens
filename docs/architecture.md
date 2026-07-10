@@ -89,10 +89,22 @@ Stripe-compatible webhook maps subscription events; `POST /api/billing/demo-plan
 switches the demo plan. Production swaps this for Stripe Checkout/Portal +
 signed webhooks.
 
+## Planning summary (backend-owned, deterministic)
+
+`POST /api/planning-summary` is a Fastify-owned deterministic summary service:
+source metrics → entitlement check (`summary:generate`) → usage limit → Redis
+cache (plan-scoped) → typed response (`engine: "deterministic-backend"`). No LLM
+is called. The frontend uses it when the API + plan allow and falls back to an
+identical local deterministic summary on `403` / failure / no API, surfacing the
+engine, cache status, and source metrics. Production would swap the generator
+for an LLM (keeping metrics + caveats, evals, prompt/version logging, human
+review) without changing the surrounding architecture.
+
 ## Roadmap
 
 - Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
-- Done: Redis caching for layers/parcels/search/analysis with cache metadata.
+- Done: Redis caching for layers/parcels/search/analysis/summary with cache metadata.
 - Done: demo API-key auth, RBAC roles, and plan-based entitlement gates.
 - Done: Stripe-style billing catalog, DB subscriptions, usage metering, webhook.
-- Later: real Stripe Checkout/Portal + OAuth/SSO, backend planning summary, Azure deployment.
+- Done: backend-owned deterministic planning summary (gated, metered, cached).
+- Later: real Stripe Checkout/Portal + OAuth/SSO, real LLM summary, Azure deployment.

@@ -38,6 +38,20 @@ Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):
 4. Mention `GET /api/billing/plans`, `POST /api/billing/demo-plan`, the
    Stripe-compatible webhook, and that usage is metered in `usage_counters`.
 
+## Backend Planning Summary Demo
+
+1. As Planner/Pro, run an AOI analysis, then open the **AI Summary** tab and
+   click **Generate backend summary**. The panel shows a `Backend deterministic
+   summary` chip and a `cache miss` chip.
+2. Regenerate the same summary: the chip now shows `cache hit` (Redis-cached,
+   plan-scoped) — no recompute.
+3. Switch **Plan** to **Free** and generate again: the backend returns `403` and
+   the panel falls back to a `Local fallback summary` with the warning "Backend
+   planning summary requires Pro or Enterprise; using local demo summary."
+4. Clearing the AOI (or drawing a new one) clears the summary + its metadata.
+5. Note it is deterministic (no LLM), gated by `summary:generate`, metered, and
+   Redis-cached; production would swap in an LLM behind the same interface.
+
 ## Talking Points
 
 - React + TypeScript architecture

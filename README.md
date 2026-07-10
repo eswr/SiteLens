@@ -266,8 +266,10 @@ with `npm run db:seed:billing`.
 - **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's
   layer rendering + search still read static GeoJSON directly; only AOI analysis
   calls the API (with a Turf fallback).
-- `planning-summary` remains a typed/validated `501` placeholder; the AI summary
-  is still generated locally from the analysis result.
+- `planning-summary` is a **backend-owned deterministic** summary service
+  (gated by `summary:generate`, metered, Redis-cached); the frontend uses it
+  when the API + plan allow and falls back to a local deterministic summary on
+  `403`, API failure, or no API. No real LLM is called.
 - If the database is unavailable, DB-backed routes return `503` (no silent
   fallback); the frontend's AOI analysis falls back to Turf and shows a warning.
 - **Redis** caching, auth, Stripe, and Azure deployment are future steps.
@@ -330,19 +332,23 @@ Spatial analysis and charts are derived from this mock data, not official record
 
 ## AI Summary Design
 
-The "AI Summary" is a **deterministic, on-device** generator — there is **no LLM
-and no network call**. `generateMockPlanningSummary` maps the spatial-analysis
-metrics (average development score, constraint count/risk, nearby transit,
-development activity, zoning mix) to professional, cautious planning-style text
-with severity-tagged sections and recommended next checks. The panel always
-shows the **exact source metrics** used, so the output is transparent and
-reproducible rather than a black box. A short delay is simulated purely for UX.
+The planning summary is a **deterministic** generator with **no LLM**. It is now
+**backend-owned**: the frontend POSTs the spatial-analysis metrics to
+`/api/planning-summary`, which enforces the `summary:generate` entitlement,
+meters usage, caches in Redis (plan-scoped), and returns source-transparent
+planning text with severity-tagged sections and recommended next checks. The
+frontend keeps an identical **local fallback** (`generateMockPlanningSummary`)
+for `403` / API failure / no-API, and the panel shows the summary engine, cache
+status, and the **exact source metrics** used. **Production path:** swap the
+deterministic generator for an LLM call while keeping source metrics + caveats,
+add evals + prompt/version logging, and human review for high-risk outputs.
 
 ## Limitations
 
 - Mock GeoJSON only; not connected to authoritative planning/cadastral sources.
 - Spatial analysis uses simple intersection and centroid-distance heuristics.
-- The AI summary is deterministic template logic, not a real language model.
+- The planning summary is deterministic template logic (backend-owned with a
+  local fallback), not a real language model.
 - No persistence, backend, authentication, or multi-user support.
 - Basemap is the public MapLibre demo style (no paid token).
 

@@ -6,8 +6,9 @@ Fastify + TypeScript API foundation for SiteLens.
 
 Provides a production-shaped HTTP API for the SiteLens platform, backed by
 **PostgreSQL + PostGIS** with an optional **Redis cache**. Layers, parcels,
-search, and AOI analysis are served from spatial tables and cached in Redis;
-`planning-summary` remains a typed, validated placeholder.
+search, and AOI analysis are served from spatial tables and cached in Redis.
+`planning-summary` is a backend-owned **deterministic** summary service (no
+external LLM), gated by plan features, metered, and Redis-cached.
 
 ## Endpoints
 
@@ -20,7 +21,7 @@ search, and AOI analysis are served from spatial tables and cached in Redis;
 | GET | `/api/parcels/:id` | One parcel by `id` / `parcel_id` (404 if missing). |
 | GET | `/api/search?q=` | Search across spatial tables with `ILIKE` (top 8, incl. bbox). |
 | POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (area, parcels, zoning, constraints, transit, development activity). |
-| POST | `/api/planning-summary` | Validated placeholder → `501`. |
+| POST | `/api/planning-summary` | **Deterministic planning summary** from analysis metrics (gated by `summary:generate`, metered, cached). |
 
 All responses use a consistent envelope: `{ data, meta? }` on success and
 `{ error: { code, message, details? } }` on error. Every response includes an
@@ -75,8 +76,21 @@ Endpoints:
 
 Route gates use plan **features**: `analyze-area` → `analysis:run`,
 `planning-summary` → `summary:generate`; search/parcels use plan **limits**;
-successful backend analyses are metered via `usage_counters`. Cache keys are
-scoped by plan (`free`/`pro`/`enterprise`).
+successful backend analyses and summaries are metered via `usage_counters`.
+Cache keys are scoped by plan (`free`/`pro`/`enterprise`).
+
+## Planning summary (deterministic, backend-owned)
+
+`POST /api/planning-summary` accepts a `{ analysisResult, context? }` body,
+validates it, checks the `summary:generate` entitlement + monthly usage limit,
+then returns a deterministic planning summary (`generatePlanningSummary`) with
+`engine: "deterministic-backend"`. Summaries are Redis-cached with a plan-scoped
+key (`sitelens:summary:v1:<plan>:<hash>` — the raw analysis is never embedded in
+the key). Redis failures still return a freshly generated summary
+(`meta.cache: "error"`). No external LLM is called. **Production extension
+path:** swap the deterministic generator for an LLM call while keeping the
+source metrics + caveats, add evals + prompt/version logging, and add human
+review for high-risk outputs.
 
 DB: `demo_accounts`, `billing_customers`, `subscriptions`, `usage_counters`
 (migration `004`). Seed with `npm run db:seed:billing`. If the billing DB is
@@ -178,7 +192,8 @@ Configuration (env vars, with defaults — see `.env.example`):
 
 ## Current limitations
 
-- `planning-summary` is still a typed/validated placeholder (`501`).
+- `planning-summary` is deterministic (no real LLM yet); production would swap
+  in an LLM call while keeping source metrics + caveats.
 - Search uses `ILIKE`, not ranked full-text search yet.
 - No authentication or external services.
 - The API is run directly with `tsx`; there is no compiled build artifact yet.

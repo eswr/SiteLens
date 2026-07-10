@@ -8,8 +8,10 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { useAiSummaryStore } from '../../store/aiSummaryStore';
+import { useAiSummaryStore, type SummaryEngine } from '../../store/aiSummaryStore';
 import { useAnalysisStore } from '../../store/analysisStore';
+import { useAuthStore } from '../../store/authStore';
+import { isApiConfigured, type CacheStatus } from '../../api/client';
 import AnalysisEngineChip from './AnalysisEngineChip';
 import type {
   PlanningSummary,
@@ -24,7 +26,20 @@ const SEVERITY_COLOR: Record<PlanningSummarySeverity, string> = {
 };
 
 const DEMO_CAVEAT =
-  'This is a deterministic mock AI summary generated from portfolio GeoJSON data. It is not official planning advice.';
+  'This is a deterministic summary generated from portfolio GeoJSON metrics. It is not official planning advice.';
+
+const ENGINE_LABEL: Record<Exclude<SummaryEngine, null>, string> = {
+  'deterministic-backend': 'Backend deterministic summary',
+  local: 'Local deterministic summary',
+  'local-fallback': 'Local fallback summary',
+};
+
+const CACHE_LABEL: Partial<Record<CacheStatus, string>> = {
+  hit: 'cache hit',
+  miss: 'cache miss',
+  error: 'cache error',
+  disabled: 'cache disabled',
+};
 
 function Card({
   children,
@@ -52,11 +67,27 @@ function Card({
 function SummaryContent({ summary }: { summary: PlanningSummary }) {
   const clearSummary = useAiSummaryStore((state) => state.clearSummary);
   const generateSummary = useAiSummaryStore((state) => state.generateSummary);
+  const summaryEngine = useAiSummaryStore((state) => state.summaryEngine);
+  const summaryCacheStatus = useAiSummaryStore(
+    (state) => state.summaryCacheStatus,
+  );
+  const summaryComputedAt = useAiSummaryStore(
+    (state) => state.summaryComputedAt,
+  );
+  const summaryWarning = useAiSummaryStore((state) => state.summaryWarning);
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
-  const generatedAt = new Date(summary.generatedAt).toLocaleTimeString('en-AU', {
+  const analysisEngine = useAnalysisStore((state) => state.analysisEngine);
+  const generatedAt = new Date(
+    summaryComputedAt ?? summary.generatedAt,
+  ).toLocaleTimeString('en-AU', {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const cacheLabel =
+    summaryEngine === 'deterministic-backend' && summaryCacheStatus
+      ? CACHE_LABEL[summaryCacheStatus]
+      : undefined;
 
   const metrics: { label: string; value: string }[] = [
     { label: 'Area (ha)', value: `${summary.sourceMetrics.areaHectares}` },
@@ -92,11 +123,19 @@ function SummaryContent({ summary }: { summary: PlanningSummary }) {
         <Chip
           icon={<AutoAwesomeIcon />}
           size="small"
-          color="primary"
+          color={summaryEngine === 'deterministic-backend' ? 'primary' : 'default'}
           variant="outlined"
-          label="AI-assisted summary"
+          label={summaryEngine ? ENGINE_LABEL[summaryEngine] : 'Planning summary'}
           sx={{ fontWeight: 600 }}
         />
+        {cacheLabel && (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={cacheLabel}
+            sx={{ height: 20, textTransform: 'capitalize' }}
+          />
+        )}
         <Typography variant="caption" color="text.secondary">
           Generated {generatedAt}
         </Typography>
@@ -106,11 +145,15 @@ function SummaryContent({ summary }: { summary: PlanningSummary }) {
           size="small"
           variant="text"
           startIcon={<RefreshIcon fontSize="small" />}
-          onClick={() => generateSummary(analysisResult)}
+          onClick={() =>
+            generateSummary(analysisResult, analysisEngine ?? undefined)
+          }
         >
           Regenerate
         </Button>
       </Box>
+
+      {summaryWarning && <Alert severity="warning">{summaryWarning}</Alert>}
 
       <Card sx={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
         <Typography variant="overline" sx={{ display: 'block', mb: 0.5 }}>
@@ -260,7 +303,17 @@ export default function PlanningSummaryPanel() {
   const error = useAiSummaryStore((state) => state.error);
   const generateSummary = useAiSummaryStore((state) => state.generateSummary);
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
+  const analysisEngine = useAnalysisStore((state) => state.analysisEngine);
   const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
+  const canGenerateSummary = useAuthStore(
+    (state) => state.capabilities.canGenerateSummary,
+  );
+  const summaryGated = isApiConfigured() && !canGenerateSummary;
+  const generateLabel = !isApiConfigured()
+    ? 'Generate planning summary'
+    : canGenerateSummary
+      ? 'Generate backend summary'
+      : 'Generate local demo summary';
 
   if (isGenerating) {
     return (
@@ -298,8 +351,8 @@ export default function PlanningSummaryPanel() {
       <Card sx={{ textAlign: 'center' }}>
         <AutoAwesomeIcon color="primary" sx={{ mb: 0.5 }} />
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          Generate a deterministic, on-device planning summary from this area's
-          analysis metrics.
+          Generate a deterministic planning summary from this area's analysis
+          metrics{isApiConfigured() ? ' via the backend service' : ''}.
         </Typography>
         <Button
           fullWidth
@@ -307,10 +360,22 @@ export default function PlanningSummaryPanel() {
           size="small"
           startIcon={<AutoAwesomeIcon fontSize="small" />}
           disabled={isAnalyzing}
-          onClick={() => generateSummary(analysisResult)}
+          onClick={() =>
+            generateSummary(analysisResult, analysisEngine ?? undefined)
+          }
         >
-          Generate planning summary
+          {generateLabel}
         </Button>
+        {summaryGated && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 1 }}
+          >
+            Backend summary requires Pro or Enterprise. Free mode will use a
+            local demo summary.
+          </Typography>
+        )}
       </Card>
       <Typography variant="caption" color="text.secondary">
         {DEMO_CAVEAT}
