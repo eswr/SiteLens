@@ -81,6 +81,7 @@ export default function DevelopmentScoreCard({
       <LinearProgress
         variant="determinate"
         value={Math.min(100, Math.max(0, averageDevelopmentScore))}
+        aria-label={`Average development score ${averageDevelopmentScore} out of 100 (${band.label})`}
         sx={{
           my: 1,
           height: 8,

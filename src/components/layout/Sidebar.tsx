@@ -129,6 +129,7 @@ function SearchSection() {
               </InputAdornment>
             ),
           },
+          htmlInput: { 'aria-label': 'Search planning features' },
         }}
       />
 
@@ -433,6 +434,19 @@ export default function Sidebar() {
       <Typography variant="overline">Planning Layers</Typography>
       <LayerToggles />
       <Legend />
+
+      <Divider sx={{ my: 0.5 }} />
+
+      <Box component="footer" sx={{ flexShrink: 0, pb: 1 }}>
+        <Typography variant="overline" sx={{ display: 'block' }}>
+          About
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          SiteLens is a portfolio demo using mock GeoJSON data. It demonstrates
+          geospatial frontend engineering, spatial analysis, analytics
+          dashboards, and deterministic AI-assisted planning summaries.
+        </Typography>
+      </Box>
     </Box>
   );
 }

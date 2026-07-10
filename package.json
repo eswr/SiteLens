@@ -2,6 +2,7 @@
   "name": "sitelens",
   "private": true,
   "version": "0.0.0",
+  "description": "Geospatial planning intelligence demo built with React, TypeScript, MapLibre, Turf, Material UI, and Recharts",
   "type": "module",
   "scripts": {
     "dev": "vite",
