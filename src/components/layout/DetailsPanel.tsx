@@ -234,11 +234,22 @@ function AoiPanel() {
         value={detailsTab}
         onChange={(_, value) => setDetailsTab(value)}
         variant="fullWidth"
-        sx={{ mb: 1.5, minHeight: 40 }}
+        sx={{
+          mb: 1.5,
+          minHeight: 40,
+          '& .MuiTab-root': {
+            minHeight: 40,
+            minWidth: 0,
+            px: 0.75,
+            fontSize: '0.78rem',
+            textTransform: 'none',
+            whiteSpace: 'nowrap',
+          },
+        }}
       >
-        <Tab value="summary" label="Summary" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
-        <Tab value="analytics" label="Analytics" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
-        <Tab value="aiSummary" label="AI Summary" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
+        <Tab value="summary" label="Summary" />
+        <Tab value="analytics" label="Analytics" />
+        <Tab value="aiSummary" label="AI Summary" />
       </Tabs>
       {detailsTab === 'summary' && <AnalysisSummary />}
       {detailsTab === 'analytics' && (
