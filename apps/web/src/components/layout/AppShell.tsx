@@ -7,6 +7,7 @@ import DetailsPanel from './DetailsPanel';
 import SiteMap from '../map/SiteMap';
 import MapStatusBadge from '../map/MapStatusBadge';
 import { useAuthStore } from '../../store/authStore';
+import { useBillingStore } from '../../store/billingStore';
 
 /**
  * Top-level dashboard layout.
@@ -18,10 +19,12 @@ import { useAuthStore } from '../../store/authStore';
  */
 export default function AppShell() {
   const initializeAuth = useAuthStore((state) => state.initialize);
+  const initializeBilling = useBillingStore((state) => state.initialize);
 
   useEffect(() => {
     void initializeAuth();
-  }, [initializeAuth]);
+    void initializeBilling();
+  }, [initializeAuth, initializeBilling]);
 
   return (
     <Box

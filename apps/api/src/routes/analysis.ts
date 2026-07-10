@@ -12,8 +12,13 @@ import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
 import { cached } from '../cache/cacheJson';
 import { analysisKey, CACHE_TTL } from '../cache/cacheKeys';
-import { accessScope, getCapabilities } from '../auth/capabilities';
-import { requireCapability } from '../auth/requireCapability';
+import { accessScope } from '../auth/capabilities';
+import {
+  assertFeature,
+  assertUsageWithinLimit,
+  resolveBilling,
+} from '../billing/billingService';
+import { recordUsage } from '../billing/billingRepository';
 
 /**
  * Validated body: a GeoJSON Polygon or MultiPolygon. Coordinates are validated
@@ -33,11 +38,18 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
     '/analyze-area',
     { schema: { body: analyzeAreaBody } },
     async (request, reply) => {
-      // Entitlement gate — planner/enterprise only (throws 403 otherwise).
-      requireCapability(request, 'canRunAnalysis');
+      // Entitlement gate driven by the billing plan (throws 403 otherwise).
+      const { user, billing } = await resolveBilling(request);
+      assertFeature(billing, 'analysis:run');
+      if (user) {
+        await assertUsageWithinLimit(
+          user.id,
+          'analysis:run',
+          billing.plan.limits.analysisRunsPerMonth,
+        );
+      }
 
-      const capabilities = getCapabilities(request.auth?.user ?? null);
-      const scope = accessScope(capabilities);
+      const scope = accessScope(billing);
       const geometry = request.body.geometry as
         | GeoJsonPolygon
         | GeoJsonMultiPolygon;
@@ -47,6 +59,10 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
           ttlSeconds: CACHE_TTL.analysis,
           compute: () => analyzeArea(geometry),
         });
+        // Meter successful backend analyses (never for Turf fallback).
+        if (user) {
+          await recordUsage(user.id, 'analysis:run');
+        }
         const body: ApiEnvelope<AnalyzeAreaResponse> = {
           data: { result, engine: 'postgis' },
           meta: {
@@ -55,8 +71,8 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
             cacheKey: analysisKey(geometry, scope),
             computedAt,
             access: {
-              role: request.auth?.user?.role,
-              plan: request.auth?.user?.plan,
+              role: user?.role,
+              plan: billing.plan.id,
             },
           },
         };

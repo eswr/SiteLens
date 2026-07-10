@@ -11,6 +11,9 @@ export interface AppConfig {
   redisUrl: string;
   cacheEnabled: boolean;
   cacheDefaultTtlSeconds: number;
+  stripeSecretKey: string;
+  stripeWebhookSecret: string;
+  enableDemoBilling: boolean;
 }
 
 const DEFAULT_DATABASE_URL =
@@ -37,6 +40,12 @@ export function loadConfig(): AppConfig {
       ? parsedTtl
       : DEFAULT_CACHE_TTL_SECONDS;
 
+  const stripeSecretKey = (process.env.STRIPE_SECRET_KEY ?? '').trim();
+  const stripeWebhookSecret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+  // Demo plan switching is on by default in dev; must be opted-in for prod.
+  const enableDemoBilling =
+    (process.env.ENABLE_DEMO_BILLING ?? 'true').toLowerCase() === 'true';
+
   return {
     port,
     nodeEnv,
@@ -47,5 +56,8 @@ export function loadConfig(): AppConfig {
     redisUrl,
     cacheEnabled,
     cacheDefaultTtlSeconds,
+    stripeSecretKey,
+    stripeWebhookSecret,
+    enableDemoBilling,
   };
 }

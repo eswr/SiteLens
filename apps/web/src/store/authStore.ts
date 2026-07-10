@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { getDemoApiKey, isApiConfigured, setDemoApiKey } from '../api/client';
 import { fetchMe } from '../api/meApi';
-import type { CapabilityFlags, DemoUser } from '../api/meApi';
+import type { CapabilityFlags, DemoUser, PlanTier } from '../api/meApi';
 
 export type AuthMode =
   | 'local'
@@ -35,6 +35,8 @@ function modeForUser(user: DemoUser | null): AuthMode {
 interface AuthState {
   user: DemoUser | null;
   capabilities: CapabilityFlags;
+  /** Current billing plan (from `/api/me`); `null` in local mode. */
+  plan: PlanTier | null;
   isLoading: boolean;
   error: string | null;
   authMode: AuthMode;
@@ -51,6 +53,7 @@ async function refresh(
     set({
       user: null,
       capabilities: LOCAL_CAPABILITIES,
+      plan: null,
       authMode: 'local',
       isLoading: false,
       error: null,
@@ -63,6 +66,7 @@ async function refresh(
     set({
       user: me.user,
       capabilities: me.capabilities,
+      plan: me.billing?.plan?.id ?? null,
       authMode: modeForUser(me.user),
       isLoading: false,
       error: null,
@@ -78,6 +82,7 @@ async function refresh(
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   capabilities: LOCAL_CAPABILITIES,
+  plan: null,
   isLoading: false,
   error: null,
   authMode: isApiConfigured() ? 'anonymous' : 'local',
@@ -90,6 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({
         user: null,
         capabilities: LOCAL_CAPABILITIES,
+        plan: null,
         authMode: 'local',
       });
       return;
@@ -98,6 +104,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     await refresh(set);
   },
 }));
+
+/** Refresh `/api/me` (used after a billing plan change). */
+export async function refreshAuth(): Promise<void> {
+  await useAuthStore.getState().initialize();
+}
 
 /** The current demo mode inferred from the stored key (before /api/me loads). */
 export function currentModeFromKey(): AuthMode {

@@ -33,3 +33,13 @@ export function getUserForApiKey(key: string | undefined): DemoUser | null {
   }
   return demoApiKeys[key] ?? null;
 }
+
+/** Resolve a demo user by their user id, or `null` if unknown. */
+export function getUserById(userId: string | undefined): DemoUser | null {
+  if (!userId) {
+    return null;
+  }
+  return (
+    Object.values(demoApiKeys).find((user) => user.id === userId) ?? null
+  );
+}

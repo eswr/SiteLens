@@ -10,12 +10,13 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "test:db": "RUN_DB_TESTS=true vitest run src/db",
+    "test:db": "RUN_DB_TESTS=true vitest run src/db src/billing",
     "test:redis": "RUN_REDIS_TESTS=true vitest run src/cache",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:reset": "tsx src/db/reset.ts",
     "ingest:geojson": "tsx src/db/ingestGeojson.ts",
-    "db:seed": "npm run ingest:geojson",
+    "db:seed:billing": "tsx src/db/seedBilling.ts",
+    "db:seed": "npm run ingest:geojson && npm run db:seed:billing",
     "cache:clear": "tsx src/cache/clearCache.ts"
   },
   "dependencies": {

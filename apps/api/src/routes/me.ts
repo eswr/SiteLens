@@ -1,24 +1,42 @@
 import type { FastifyInstance } from 'fastify';
-import type { ApiEnvelope, CapabilityFlags, DemoUser } from '@sitelens/shared';
-import { getCapabilities } from '../auth/capabilities';
+import type {
+  ApiEnvelope,
+  BillingContext,
+  CapabilityFlags,
+  DemoUser,
+} from '@sitelens/shared';
+import { resolveBilling } from '../billing/billingService';
 
 interface MeResponse {
   user: DemoUser | null;
   capabilities: CapabilityFlags;
+  billing: {
+    plan: BillingContext['plan'];
+    subscription: BillingContext['subscription'];
+    features: BillingContext['features'];
+  };
 }
 
-/** `GET /api/me` — current demo user (or anonymous) and their capabilities. */
+/** `GET /api/me` — current demo user, capabilities, and billing context. */
 export async function meRoutes(app: FastifyInstance): Promise<void> {
   app.get('/me', async (request) => {
-    const user = request.auth?.user ?? null;
-    const capabilities = getCapabilities(user);
+    const { user, billing, capabilities } = await resolveBilling(request);
     const body: ApiEnvelope<MeResponse> = {
-      data: { user, capabilities },
+      data: {
+        user,
+        capabilities,
+        billing: {
+          plan: billing.plan,
+          subscription: billing.subscription,
+          features: billing.features,
+        },
+      },
       meta: {
         requestId: request.id,
-        access: user
-          ? { role: user.role, plan: user.plan }
-          : undefined,
+        access: {
+          role: user?.role,
+          plan: billing.plan.id,
+        },
       },
     };
     return body;

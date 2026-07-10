@@ -7,8 +7,8 @@ function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
-/** Coarse entitlement scope used to segment cached responses by access tier. */
-export type AccessScope = 'free' | 'pro';
+/** Entitlement scope (billing plan) used to segment cached responses by tier. */
+export type AccessScope = 'free' | 'pro' | 'enterprise';
 
 export function layersKey(): string {
   return `${NAMESPACE}:layers:${VERSION}`;

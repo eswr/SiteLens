@@ -19,7 +19,7 @@ export type AnalysisEngine = 'postgis' | 'turf-local' | 'turf-fallback' | null;
 const FALLBACK_WARNING =
   'Backend analysis unavailable; using local Turf.js demo analysis.';
 const ENTITLEMENT_WARNING =
-  'PostGIS analysis requires planner access; using local Turf.js demo analysis.';
+  'Backend PostGIS analysis is gated by the Pro plan; using local demo analysis.';
 
 interface AnalysisState {
   isDrawing: boolean;

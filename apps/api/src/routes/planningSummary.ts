@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import type { ApiErrorEnvelope } from '@sitelens/shared';
-import { requireCapability } from '../auth/requireCapability';
+import { assertFeature, resolveBilling } from '../billing/billingService';
 
 /** Validated minimal body: optional area id and/or precomputed metrics. */
 const planningSummaryBody = Type.Object({
@@ -20,8 +20,9 @@ export async function planningSummaryRoutes(
     '/planning-summary',
     { schema: { body: planningSummaryBody } },
     async (request, reply) => {
-      // Entitlement gate — planner/enterprise only (throws 403 otherwise).
-      requireCapability(request, 'canGenerateSummary');
+      // Entitlement gate driven by the billing plan (throws 403 otherwise).
+      const { billing } = await resolveBilling(request);
+      assertFeature(billing, 'summary:generate');
       const body: ApiErrorEnvelope = {
         error: {
           code: 'NOT_IMPLEMENTED',

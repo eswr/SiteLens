@@ -62,7 +62,17 @@ Configuration is read from `apps/api/.env` (see `apps/api/.env.example`):
   if Redis is down. Ingestion clears the planning cache keys.
 - The Azure equivalent is **Azure Cache for Redis**.
 
+## Billing (Stripe-style, demo-safe)
+
+- Plans (Free/Pro/Enterprise) + `subscriptions`/`usage_counters` live in Postgres
+  (migration `004`; seed with `npm run db:seed:billing`).
+- `POST /api/billing/webhook` verifies `STRIPE_WEBHOOK_SECRET` when set; the demo
+  runs without real Stripe secrets.
+- Production: Stripe Checkout + Customer Portal, webhook verification via the
+  Stripe SDK using the raw request body, and org/team billing.
+
 ## Roadmap
 
-- Done: PostGIS spatial storage + backend AOI analysis; Redis response caching.
-- Authentication, Stripe, and Azure deployment are future steps.
+- Done: PostGIS spatial storage + backend AOI analysis; Redis response caching;
+  demo auth/RBAC; Stripe-style billing + entitlements.
+- Real Stripe Checkout/Portal, OAuth/SSO, and Azure deployment are future steps.

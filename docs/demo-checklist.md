@@ -26,6 +26,18 @@ and plans:
 4. Point out the header chip (e.g. "Demo Planner · Pro") and that cache keys are
    scoped by entitlement so lower tiers can't receive higher-tier cached data.
 
+## Billing / Plan Demo
+
+Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):
+
+1. As Planner, keep **Pro**: AOI analysis runs on the backend (PostGIS).
+2. Switch **Plan** to **Free**: the header chip and capabilities update; drawing
+   an AOI now returns `403` and falls back to local Turf with a "gated by the
+   Pro plan" warning — showing entitlements are billing-driven, not just role.
+3. Switch back to **Pro** (or **Enterprise**): backend analysis works again.
+4. Mention `GET /api/billing/plans`, `POST /api/billing/demo-plan`, the
+   Stripe-compatible webhook, and that usage is metered in `usage_counters`.
+
 ## Talking Points
 
 - React + TypeScript architecture

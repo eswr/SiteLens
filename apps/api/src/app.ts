@@ -7,6 +7,7 @@ import { registerErrorHandler } from './plugins/errorHandler';
 import { registerAuth } from './auth/authPlugin';
 import { healthRoutes } from './routes/health';
 import { meRoutes } from './routes/me';
+import { billingRoutes } from './routes/billing';
 import { layersRoutes } from './routes/layers';
 import { parcelsRoutes } from './routes/parcels';
 import { searchRoutes } from './routes/search';
@@ -46,6 +47,7 @@ export async function buildApp(
     async (api) => {
       await api.register(healthRoutes);
       await api.register(meRoutes);
+      await api.register(billingRoutes);
       await api.register(layersRoutes);
       await api.register(parcelsRoutes);
       await api.register(searchRoutes);

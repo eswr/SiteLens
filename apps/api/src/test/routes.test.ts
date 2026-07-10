@@ -51,6 +51,19 @@ vi.mock('../db/spatialRepository', () => {
   };
 });
 
+// Resolve billing from demo-user defaults (no DB) for deterministic gating.
+vi.mock('../billing/billingRepository', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../billing/billingRepository')>();
+  return {
+    ...actual,
+    getBillingContextForUser: async (userId: string | null) =>
+      actual.demoFallbackContext(userId ?? null),
+    recordUsage: async () => {},
+    getUsage: async () => 0,
+  };
+});
+
 const { buildApp } = await import('../app');
 
 let app: FastifyInstance;

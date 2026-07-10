@@ -16,6 +16,10 @@ I designed and implemented the full stack: the frontend workflow (dashboard layo
 
 SiteLens models enterprise access patterns for a geospatial product: role-based access control (viewer / planner / admin), subscription-tier entitlements (free / pro / enterprise), capability-gated endpoints (analysis and summary require a paid plan; ingestion is admin-only), entitlement-limited responses (free tiers get capped search/parcels), and entitlement-scoped caching so lower tiers can't receive higher-tier data from the cache. It's a demo API-key implementation with a clear production path to OAuth/SSO, JWT/session cookies, and org/team membership.
 
+## Stripe-Style Billing
+
+SiteLens includes a Stripe-style entitlement layer with Free, Pro, and Enterprise plans. Backend routes enforce feature access for spatial analysis and summaries, search/parcel limits are plan-aware, cache keys are entitlement-scoped to avoid cross-plan data leakage, and the API includes a webhook-ready billing module that can be connected to Stripe Checkout/Portal in production.
+
 ## Full-Stack Spatial Engineering
 
 SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest polygon is sent to a Fastify endpoint, looked up in a Redis cache, analyzed in PostGIS on a miss with `ST_Intersects`/`ST_DWithin`/`ST_Area(::geography)` against parcels, zoning, constraints, transit, and development activity, cached with a TTL, and returned as a typed result (with cache metadata) that the frontend renders as analytics and a planning summary — with a client-side Turf.js fallback for robustness. It reflects real performance/scalability thinking for geospatial products: expensive spatial queries are cached, cache status is surfaced to the UI, and the system degrades gracefully when the cache or backend is unavailable.

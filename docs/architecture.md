@@ -78,9 +78,21 @@ admin-only; search/parcels are limited for free/anonymous. Cache keys are scoped
 by entitlement so lower tiers never receive higher-tier data. Production would
 swap API keys for OAuth/SSO + JWT/session cookies + org membership.
 
+## Billing & entitlements (Stripe-style)
+
+A plan catalog (Free / Pro / Enterprise) plus DB-backed `subscriptions` and
+`usage_counters` drive entitlements. Capabilities are derived from **plan
+features** (product access) and **role** (admin gating). Route gates check
+features (`analysis:run`, `summary:generate`), search/parcels use plan limits,
+cache keys are plan-scoped, and successful analyses are metered. A
+Stripe-compatible webhook maps subscription events; `POST /api/billing/demo-plan`
+switches the demo plan. Production swaps this for Stripe Checkout/Portal +
+signed webhooks.
+
 ## Roadmap
 
 - Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
 - Done: Redis caching for layers/parcels/search/analysis with cache metadata.
 - Done: demo API-key auth, RBAC roles, and plan-based entitlement gates.
-- Later: real OAuth/SSO + JWT, backend planning summary, Stripe, Azure deployment.
+- Done: Stripe-style billing catalog, DB subscriptions, usage metering, webhook.
+- Later: real Stripe Checkout/Portal + OAuth/SSO, backend planning summary, Azure deployment.

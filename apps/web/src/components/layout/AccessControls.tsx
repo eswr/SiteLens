@@ -1,11 +1,14 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import PersonIcon from '@mui/icons-material/Person';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import { isApiConfigured } from '../../api/client';
 import { useAuthStore, type AuthMode } from '../../store/authStore';
+import { useBillingStore } from '../../store/billingStore';
 import type { PlanTier } from '../../api/meApi';
 
 const PLAN_LABEL: Record<PlanTier, string> = {
@@ -18,16 +21,18 @@ const PLAN_LABEL: Record<PlanTier, string> = {
 export function AccessStatusChip() {
   const authMode = useAuthStore((state) => state.authMode);
   const user = useAuthStore((state) => state.user);
+  const plan = useAuthStore((state) => state.plan);
 
   let label: string;
   let color: 'default' | 'primary' | 'success' = 'default';
   if (authMode === 'local') {
     label = 'Local demo mode';
   } else if (!user) {
-    label = 'Anonymous · limited';
+    label = `Anonymous · ${PLAN_LABEL[plan ?? 'free']}`;
   } else {
-    label = `${user.name} · ${PLAN_LABEL[user.plan]}`;
-    color = user.plan === 'free' ? 'default' : 'success';
+    const effectivePlan = plan ?? user.plan;
+    label = `${user.name} · ${PLAN_LABEL[effectivePlan]}`;
+    color = effectivePlan === 'free' ? 'default' : 'success';
   }
 
   return (
@@ -42,17 +47,22 @@ export function AccessStatusChip() {
   );
 }
 
-const SWITCHER_OPTIONS: { value: AuthMode; label: string }[] = [
+const ROLE_OPTIONS: { value: AuthMode; label: string }[] = [
   { value: 'anonymous', label: 'Anonymous' },
-  { value: 'viewer', label: 'Viewer · Free' },
-  { value: 'planner', label: 'Planner · Pro' },
-  { value: 'admin', label: 'Admin · Enterprise' },
+  { value: 'viewer', label: 'Viewer' },
+  { value: 'planner', label: 'Planner' },
+  { value: 'admin', label: 'Admin' },
 ];
 
-/** Demo access switcher (for the sidebar footer). */
+const PLAN_OPTIONS: PlanTier[] = ['free', 'pro', 'enterprise'];
+
+/** Demo identity + plan switchers (for the sidebar footer). */
 export function DemoAccessSwitcher() {
   const authMode = useAuthStore((state) => state.authMode);
   const setMode = useAuthStore((state) => state.setMode);
+  const user = useAuthStore((state) => state.user);
+  const plan = useAuthStore((state) => state.plan);
+  const setDemoPlan = useBillingStore((state) => state.setDemoPlan);
 
   if (!isApiConfigured()) {
     return (
@@ -62,30 +72,70 @@ export function DemoAccessSwitcher() {
         </Typography>
         <Typography variant="caption" color="text.secondary">
           Local demo mode — set <code>VITE_API_BASE_URL</code> to demo
-          role/entitlement behavior against the API.
+          role/plan entitlement behavior against the API.
         </Typography>
       </Box>
     );
   }
 
-  const value = authMode === 'local' ? 'anonymous' : authMode;
+  const roleValue = authMode === 'local' ? 'anonymous' : authMode;
 
   return (
-    <TextField
-      select
+    <Stack spacing={1}>
+      <Typography variant="overline">Demo access</Typography>
+      <TextField
+        select
+        size="small"
+        fullWidth
+        label="Identity"
+        value={roleValue}
+        onChange={(event) => {
+          void setMode(event.target.value as AuthMode);
+        }}
+      >
+        {ROLE_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </TextField>
+      <TextField
+        select
+        size="small"
+        fullWidth
+        label="Plan"
+        value={plan ?? 'free'}
+        disabled={!user}
+        helperText={!user ? 'Sign in as a demo user to change plan' : undefined}
+        onChange={(event) => {
+          void setDemoPlan(event.target.value as PlanTier);
+        }}
+      >
+        {PLAN_OPTIONS.map((option) => (
+          <MenuItem key={option} value={option}>
+            {PLAN_LABEL[option]}
+          </MenuItem>
+        ))}
+      </TextField>
+    </Stack>
+  );
+}
+
+/** Plan badge for compact display (e.g. near analysis controls). */
+export function PlanBadge() {
+  const plan = useAuthStore((state) => state.plan);
+  const authMode = useAuthStore((state) => state.authMode);
+  if (authMode === 'local' || !plan) {
+    return null;
+  }
+  return (
+    <Chip
+      icon={<WorkspacePremiumIcon />}
       size="small"
-      fullWidth
-      label="Demo access"
-      value={value}
-      onChange={(event) => {
-        void setMode(event.target.value as AuthMode);
-      }}
-    >
-      {SWITCHER_OPTIONS.map((option) => (
-        <MenuItem key={option.value} value={option.value}>
-          {option.label}
-        </MenuItem>
-      ))}
-    </TextField>
+      variant="outlined"
+      color={plan === 'free' ? undefined : 'success'}
+      label={PLAN_LABEL[plan]}
+      sx={{ fontWeight: 600 }}
+    />
   );
 }

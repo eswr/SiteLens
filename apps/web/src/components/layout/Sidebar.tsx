@@ -221,7 +221,11 @@ function AnalysisSection() {
   const canRunAnalysis = useAuthStore(
     (state) => state.capabilities.canRunAnalysis,
   );
+  const canGenerateSummary = useAuthStore(
+    (state) => state.capabilities.canGenerateSummary,
+  );
   const analysisBlocked = isApiConfigured() && !canRunAnalysis;
+  const summaryBlocked = isApiConfigured() && !canGenerateSummary;
 
   const handleGenerateAi = () => {
     setDetailsTab('aiSummary');
@@ -308,6 +312,12 @@ function AnalysisSection() {
           >
             Generate AI summary
           </Button>
+          {summaryBlocked && (
+            <Typography variant="caption" color="text.secondary">
+              Backend AI summaries require the Pro or Enterprise plan; this demo
+              generates them locally.
+            </Typography>
+          )}
         </Stack>
       ) : (
         <>
@@ -330,8 +340,8 @@ function AnalysisSection() {
               color="warning.main"
               sx={{ display: 'block', mt: 1 }}
             >
-              Backend PostGIS analysis requires planner access; local Turf.js
-              will be used for this demo access level.
+              Backend PostGIS analysis requires the Pro or Enterprise plan;
+              local Turf.js will be used at this plan level.
             </Typography>
           )}
         </>

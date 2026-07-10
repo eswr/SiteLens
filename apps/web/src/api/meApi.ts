@@ -19,12 +19,33 @@ export interface CapabilityFlags {
   canViewAllLayers: boolean;
 }
 
+export interface BillingPlanSummary {
+  id: PlanTier;
+  name: string;
+  description: string;
+  priceCents: number | null;
+  features: string[];
+}
+
+export interface BillingSubscription {
+  plan: PlanTier;
+  status: string;
+  currentPeriodEnd?: string | null;
+}
+
+export interface BillingContext {
+  plan: BillingPlanSummary;
+  subscription: BillingSubscription;
+  features: string[];
+}
+
 export interface MeResponse {
   user: DemoUser | null;
   capabilities: CapabilityFlags;
+  billing: BillingContext;
 }
 
-/** Fetch the current demo user + capabilities from `GET /api/me`. */
+/** Fetch the current demo user + capabilities + billing from `GET /api/me`. */
 export async function fetchMe(): Promise<MeResponse> {
   const { data } = await apiGetWithMeta<MeResponse>('/api/me');
   return data;

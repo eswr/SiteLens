@@ -242,6 +242,25 @@ falls back to local Turf.js with a clear entitlement warning.
 > OAuth/SSO, JWT/session cookies, Passport-style strategies, and org/team
 > membership.
 
+### Stripe-style billing & plans
+
+Capabilities are driven by a **billing plan catalog** — **Free** (limited
+search/parcels), **Pro** (PostGIS analysis + AI summaries), **Enterprise**
+(ingestion/admin) — persisted in DB (`demo_accounts`, `subscriptions`,
+`usage_counters`). `GET /api/billing/plans` and `GET /api/billing/current`
+expose it; `POST /api/billing/demo-plan` switches the demo plan; and a
+Stripe-compatible `POST /api/billing/webhook` maps subscription events (safe
+without real Stripe secrets). Successful backend analyses are metered.
+
+The sidebar footer has a **Demo access** control to switch identity (role) and
+plan at runtime; downgrading a planner to Free blocks backend analysis (`403`)
+and the app falls back to local Turf with a plan-gated warning. Seed billing
+with `npm run db:seed:billing`.
+
+> Demo billing only — no live checkout. Production path: Stripe Checkout +
+> Customer Portal, webhook signature verification via the Stripe SDK, and
+> org/team billing.
+
 ### Current boundaries
 
 - **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's

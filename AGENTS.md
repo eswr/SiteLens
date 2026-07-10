@@ -35,8 +35,14 @@ image `postgis/postgis:16-3.4`, host port `54329`). The DB is NOT part of the
 dependency update script — bring it up explicitly when working on the API.
 
 - Full backend setup: `npm run db:up` → `npm run db:migrate` →
-  `npm run ingest:geojson` → `npm run dev:api`. `db:up` starts **both**
-  PostgreSQL/PostGIS (`54329`) and **Redis** (`6389`).
+  `npm run ingest:geojson` → `npm run db:seed:billing` → `npm run dev:api`.
+  `db:up` starts **both** PostgreSQL/PostGIS (`54329`) and **Redis** (`6389`).
+  (`npm run db:seed` runs ingestion + billing seed together.)
+- Billing/entitlements are DB-backed (migration `004`, plans Free/Pro/Enterprise);
+  capabilities derive from the billing plan + role. If the billing DB is
+  unavailable the API falls back to the demo user's default plan. Demo plan
+  switching: `POST /api/billing/demo-plan` (needs auth; prod-gated by
+  `ENABLE_DEMO_BILLING`). The Stripe webhook runs without real secrets.
 - Redis caching is optional: it's enabled only when `REDIS_URL` is set (e.g. via
   `apps/api/.env`, gitignored). With no Redis the API returns `cache:"disabled"`;
   when Redis is down it returns DB results with `cache:"error"` (never hangs —

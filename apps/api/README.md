@@ -55,6 +55,37 @@ lower tiers can't receive higher-tier data from the cache.
 **Production extension path:** OAuth/SSO, JWT/session cookies, Passport
 strategies, and organization/team membership — never hard-coded keys.
 
+## Billing & entitlements (Stripe-style, demo-safe)
+
+Plans (`packages/shared/planCatalog.ts`): **Free** (search 5, parcels 5, no
+analysis), **Pro** (search 8, full parcels, analysis + summaries), **Enterprise**
+(search 20, unlimited, ingestion/admin). Capabilities now derive from **billing
+plan features** (product access) plus **role** (admin gating), stored in DB.
+
+Endpoints:
+
+- `GET /api/billing/plans` — plan catalog (public).
+- `GET /api/billing/current` — current billing context + capabilities.
+- `POST /api/billing/demo-plan` — switch the demo user's plan (auth required;
+  disabled in production unless `ENABLE_DEMO_BILLING=true`).
+- `POST /api/billing/webhook` — Stripe-compatible webhook. Verifies the
+  `stripe-signature` (`t=…,v1=…` HMAC over `${t}.${payload}`) when
+  `STRIPE_WEBHOOK_SECRET` is set; in non-production without a secret it accepts
+  demo payloads. Maps `customer.subscription.*` / `invoice.payment_failed`.
+
+Route gates use plan **features**: `analyze-area` → `analysis:run`,
+`planning-summary` → `summary:generate`; search/parcels use plan **limits**;
+successful backend analyses are metered via `usage_counters`. Cache keys are
+scoped by plan (`free`/`pro`/`enterprise`).
+
+DB: `demo_accounts`, `billing_customers`, `subscriptions`, `usage_counters`
+(migration `004`). Seed with `npm run db:seed:billing`. If the billing DB is
+unavailable, the API falls back to the demo user's default plan (logged).
+
+**Production extension path:** Stripe Checkout + Customer Portal, real webhook
+signature verification via the Stripe SDK with the raw body, org/team billing,
+and usage metering.
+
 ## Caching (Redis)
 
 Layers, parcels, parcel detail, search, and `analyze-area` are cached in Redis
@@ -142,6 +173,8 @@ Configuration (env vars, with defaults — see `.env.example`):
 - `REDIS_URL` (e.g. `redis://localhost:6389`) — caching is disabled when unset.
 - `CACHE_ENABLED` (default `true` when `REDIS_URL` is set)
 - `CACHE_DEFAULT_TTL_SECONDS` (default `300`)
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` (empty in demo)
+- `ENABLE_DEMO_BILLING` (default `true`; required to allow demo plan switching in production)
 
 ## Current limitations
 

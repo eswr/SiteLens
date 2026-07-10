@@ -1,28 +1,36 @@
-import type { CapabilityFlags, DemoUser } from '@sitelens/shared';
+import type {
+  BillingContext,
+  BillingPlanId,
+  CapabilityFlags,
+  DemoUser,
+} from '@sitelens/shared';
 
 /**
- * Derive capability flags from a user's role and plan.
+ * Derive capability flags from billing plan features + the user's role.
  *
- * - Entitlement (plan): analysis, summary, and full-data access require a
- *   `pro`/`enterprise` plan.
- * - Access control (role): data ingestion requires the `admin` role.
- * - Anonymous users get read-only, limited access.
+ * - Product access (analysis, summary, full data) comes from **billing plan
+ *   features**.
+ * - Administrative access (ingestion/admin) also requires the **admin role**,
+ *   so a lower-role user on an enterprise plan still can't manage ingestion.
  */
-export function getCapabilities(user: DemoUser | null): CapabilityFlags {
-  const paidPlan = user?.plan === 'pro' || user?.plan === 'enterprise';
+export function getCapabilities(
+  user: DemoUser | null,
+  billing: BillingContext,
+): CapabilityFlags {
+  const has = (feature: string): boolean => billing.features.includes(feature as never);
   const isAdmin = user?.role === 'admin';
 
   return {
-    canReadLayers: true,
-    canReadParcels: true,
-    canRunAnalysis: paidPlan,
-    canGenerateSummary: paidPlan,
-    canIngestData: isAdmin,
-    canViewAllLayers: paidPlan,
+    canReadLayers: has('layers:read'),
+    canReadParcels: has('parcels:read'),
+    canRunAnalysis: has('analysis:run'),
+    canGenerateSummary: has('summary:generate'),
+    canIngestData: isAdmin && has('ingestion:manage'),
+    canViewAllLayers: has('parcels:full'),
   };
 }
 
-/** Coarse cache scope for entitlement-limited responses (`free` vs `pro`). */
-export function accessScope(capabilities: CapabilityFlags): 'free' | 'pro' {
-  return capabilities.canViewAllLayers ? 'pro' : 'free';
+/** Cache scope derived from the billing plan (`free` / `pro` / `enterprise`). */
+export function accessScope(billing: BillingContext): BillingPlanId {
+  return billing.plan.id;
 }
