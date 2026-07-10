@@ -1,0 +1,71 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "transit-001",
+      "properties": {
+        "id": "transit-001",
+        "name": "Market Street Station",
+        "mode": "Train",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2070, -33.8730] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-002",
+      "properties": {
+        "id": "transit-002",
+        "name": "Exchange Metro",
+        "mode": "Metro",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2100, -33.8690] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-003",
+      "properties": {
+        "id": "transit-003",
+        "name": "Foundry Light Rail",
+        "mode": "Light Rail",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2050, -33.8660] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-004",
+      "properties": {
+        "id": "transit-004",
+        "name": "Parkside Interchange",
+        "mode": "Bus",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2150, -33.8670] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-005",
+      "properties": {
+        "id": "transit-005",
+        "name": "Crown Street Wharf",
+        "mode": "Ferry",
+        "distanceCategory": "Moderate"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2120, -33.8630] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-006",
+      "properties": {
+        "id": "transit-006",
+        "name": "George Street Stop",
+        "mode": "Bus",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2030, -33.8710] }
+    }
+  ]
+}

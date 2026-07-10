@@ -1,0 +1,185 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "parcel-001",
+      "properties": {
+        "id": "parcel-001",
+        "name": "12 George Street",
+        "parcelId": "LOT-1-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 82,
+        "areaSqm": 1420,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8750], [151.2040, -33.8750], [151.2040, -33.8712], [151.2000, -33.8712], [151.2000, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-002",
+      "properties": {
+        "id": "parcel-002",
+        "name": "48 Market Lane",
+        "parcelId": "LOT-2-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Retail",
+        "developmentScore": 74,
+        "areaSqm": 1180,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8750], [151.2090, -33.8750], [151.2090, -33.8712], [151.2050, -33.8712], [151.2050, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-003",
+      "properties": {
+        "id": "parcel-003",
+        "name": "3 Harbour View Terrace",
+        "parcelId": "LOT-3-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 61,
+        "areaSqm": 2050,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8750], [151.2140, -33.8750], [151.2140, -33.8712], [151.2100, -33.8712], [151.2100, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-004",
+      "properties": {
+        "id": "parcel-004",
+        "name": "215 Riley Street",
+        "parcelId": "LOT-4-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Townhouses",
+        "developmentScore": 55,
+        "areaSqm": 1760,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8750], [151.2190, -33.8750], [151.2190, -33.8712], [151.2150, -33.8712], [151.2150, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-005",
+      "properties": {
+        "id": "parcel-005",
+        "name": "9 Foundry Yard",
+        "parcelId": "LOT-5-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Warehouse",
+        "developmentScore": 88,
+        "areaSqm": 3120,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8700], [151.2040, -33.8700], [151.2040, -33.8662], [151.2000, -33.8662], [151.2000, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-006",
+      "properties": {
+        "id": "parcel-006",
+        "name": "77 Exchange Place",
+        "parcelId": "LOT-6-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Vacant",
+        "developmentScore": 91,
+        "areaSqm": 2480,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8700], [151.2090, -33.8700], [151.2090, -33.8662], [151.2050, -33.8662], [151.2050, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-007",
+      "properties": {
+        "id": "parcel-007",
+        "name": "140 Elizabeth Street",
+        "parcelId": "LOT-7-DP1004",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 69,
+        "areaSqm": 1990,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8700], [151.2140, -33.8700], [151.2140, -33.8662], [151.2100, -33.8662], [151.2100, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-008",
+      "properties": {
+        "id": "parcel-008",
+        "name": "5 Parkside Grove",
+        "parcelId": "LOT-8-DP1004",
+        "zoning": "RE1 Recreation",
+        "currentUse": "Open Space",
+        "developmentScore": 34,
+        "areaSqm": 4210,
+        "status": "Protected"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8700], [151.2190, -33.8700], [151.2190, -33.8662], [151.2150, -33.8662], [151.2150, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-009",
+      "properties": {
+        "id": "parcel-009",
+        "name": "22 Lofthouse Way",
+        "parcelId": "LOT-9-DP1005",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Light Industrial",
+        "developmentScore": 79,
+        "areaSqm": 2870,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8650], [151.2090, -33.8650], [151.2090, -33.8612], [151.2050, -33.8612], [151.2050, -33.8650]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-010",
+      "properties": {
+        "id": "parcel-010",
+        "name": "301 Crown Street",
+        "parcelId": "LOT-10-DP1005",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 47,
+        "areaSqm": 1630,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8650], [151.2140, -33.8650], [151.2140, -33.8612], [151.2100, -33.8612], [151.2100, -33.8650]]]
+      }
+    }
+  ]
+}

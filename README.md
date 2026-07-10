@@ -1,12 +1,38 @@
-# SiteLens — Geospatial Planning Intelligence Demo
+# SiteLens — Geospatial Planning Intelligence Platform
 
 ## Overview
 
-SiteLens is a React + TypeScript single-page app for exploring planning data on
-an interactive map. Users can toggle planning layers, search spatial features,
+SiteLens is a React + TypeScript geospatial planning app for exploring planning
+data on an interactive map: toggle planning layers, search spatial features,
 inspect a feature's metadata, draw an area of interest, run Turf.js spatial
 analysis, view Recharts analytics, and generate a deterministic AI-assisted
-planning summary — all in the browser against mock GeoJSON, with no backend.
+planning summary.
+
+It is organized as an **npm-workspaces monorepo** with a React/Vite web app, a
+Fastify + TypeScript API foundation, and a shared types package. In the current
+step the **frontend still runs entirely on static mock GeoJSON**; the API
+exposes mock-data endpoints and typed placeholders for future backend analysis.
+
+## Monorepo Structure
+
+```txt
+sitelens/
+  apps/
+    web/        # React + Vite frontend (the dashboard)
+    api/        # Fastify + TypeScript API (mock-data endpoints + placeholders)
+  packages/
+    shared/     # @sitelens/shared — shared API/domain types
+  docs/         # portfolio + backend docs
+  package.json  # npm workspaces root
+```
+
+- **`apps/web`** (`@sitelens/web`) — the existing dashboard; unchanged behavior,
+  still loads static GeoJSON from `apps/web/public/data`.
+- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000` with health,
+  layers, parcels, search, and typed/validated placeholder analysis endpoints.
+  See [`apps/api/README.md`](apps/api/README.md).
+- **`packages/shared`** (`@sitelens/shared`) — shared TypeScript types (API
+  envelopes, planning layer types, analysis request/response contracts).
 
 ## Live Demo
 
@@ -101,42 +127,62 @@ A recording checklist and talking points live in [`docs/demo-checklist.md`](docs
 
 ## Local Development
 
-Requires Node.js 20+.
+Requires Node.js 20+. Install once at the repo root (npm workspaces):
 
 ```bash
-npm install       # install dependencies
-npm run dev       # start the dev server (http://localhost:5173)
-npm run typecheck # TypeScript type checking (tsc -b)
-npm run lint      # lint with oxlint
-npm run build     # production build
-npm run preview   # preview the production build
+npm install        # install all workspaces
+npm run dev:web    # web app  → http://localhost:5173
+npm run dev:api    # API      → http://localhost:4000
+npm run typecheck  # typecheck all workspaces
+npm run lint       # lint all workspaces (oxlint)
+npm run test       # run workspace tests (Vitest — API)
+npm run build      # build all workspaces
 ```
+
+`npm run dev` is a shortcut for `dev:web`. Web and API run independently.
+
+### Current boundaries
+
+- The **frontend still uses static mock GeoJSON** in this step — it does not yet
+  call the API.
+- The **API exposes mock-data endpoints** plus typed/validated placeholders for
+  `analyze-area` and `planning-summary` (both return `501` for now).
+- **PostgreSQL/PostGIS** is the next backend step; **Redis** caching comes later.
+- No real LLM API and no paid map token are used anywhere.
 
 ## Project Structure
 
 ```txt
-public/
-  data/                  # mock planning GeoJSON (parcels, zoning, etc.)
-  favicon.svg
+apps/
+  web/                   # @sitelens/web — React + Vite dashboard
+    public/data/         # mock planning GeoJSON (parcels, zoning, etc.)
+    public/favicon.svg
+    src/
+      app/               # App root (theme + shell)
+      components/        # layout, map, analysis, charts
+      data/              # layer config + display helpers
+      store/             # Zustand stores (map, layer, search, analysis, aiSummary, ui)
+      utils/             # featureIndex, spatialAnalysis, mockPlanningSummary
+      types/             # frontend TypeScript types
+      theme/             # Material UI theme
+  api/                   # @sitelens/api — Fastify + TypeScript API
+    data/                # mock GeoJSON served by the API
+    src/
+      app.ts             # Fastify app factory (testable)
+      server.ts          # startup (port 4000)
+      config.ts          # env config + API version
+      plugins/           # requestLogger, errorHandler
+      routes/            # health, layers, parcels, search, analysis, planningSummary
+      lib/               # loadMockGeojson, layerConfig, featureText
+      test/              # Vitest API tests
+packages/
+  shared/                # @sitelens/shared — shared types (api, planning, analysis)
 docs/
   demo-checklist.md      # recording walkthrough + talking points
   application-snippets.md# paste-ready job-application text
   deployment.md          # Vercel deployment notes
   portfolio-blurb.md     # short portfolio description
   screenshots/           # README screenshot assets
-src/
-  app/                   # App root (theme + shell)
-  components/
-    layout/              # AppShell, HeaderBar, Sidebar, DetailsPanel
-    map/                 # SiteMap, MapStatusBadge
-    analysis/            # AnalysisSummary, AnalyticsDashboard, PlanningSummaryPanel
-    charts/              # Recharts chart components
-  data/                  # layer config + display helpers
-  store/                 # Zustand stores (map, layer, search, analysis, aiSummary, ui)
-  utils/                 # featureIndex, spatialAnalysis, mockPlanningSummary
-  types/                 # shared TypeScript types
-  theme/                 # Material UI theme
-  main.tsx               # entry point
 ```
 
 ## Data Model / Mock Data

@@ -1,0 +1,61 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "zone-b1",
+      "properties": {
+        "id": "zone-b1",
+        "zoneCode": "B1",
+        "zoneName": "Commercial Core",
+        "description": "Business and commercial premises supporting office and retail uses."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8760], [151.2095, -33.8760], [151.2095, -33.8680], [151.1990, -33.8680], [151.1990, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-r3",
+      "properties": {
+        "id": "zone-r3",
+        "zoneCode": "R3",
+        "zoneName": "Medium Density Residential",
+        "description": "Townhouses and apartments with supporting local services."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8760], [151.2200, -33.8760], [151.2200, -33.8680], [151.2095, -33.8680], [151.2095, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-mu1",
+      "properties": {
+        "id": "zone-mu1",
+        "zoneCode": "MU1",
+        "zoneName": "Mixed Use Precinct",
+        "description": "Combined residential, commercial and light-industrial activity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8680], [151.2095, -33.8680], [151.2095, -33.8600], [151.1990, -33.8600], [151.1990, -33.8680]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-re1",
+      "properties": {
+        "id": "zone-re1",
+        "zoneCode": "RE1",
+        "zoneName": "Public Recreation",
+        "description": "Public open space, parks and community recreation land."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8680], [151.2200, -33.8680], [151.2200, -33.8600], [151.2095, -33.8600], [151.2095, -33.8680]]]
+      }
+    }
+  ]
+}

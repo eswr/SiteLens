@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "constraint-flood",
+      "properties": {
+        "id": "constraint-flood",
+        "constraintType": "Flood Planning",
+        "riskLevel": "High",
+        "description": "1-in-100-year flood planning area affecting low-lying parcels."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2080, -33.8740], [151.2160, -33.8740], [151.2160, -33.8700], [151.2080, -33.8700], [151.2080, -33.8740]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-heritage",
+      "properties": {
+        "id": "constraint-heritage",
+        "constraintType": "Heritage Conservation",
+        "riskLevel": "Medium",
+        "description": "Heritage conservation area with controls on facade alterations."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2010, -33.8670], [151.2060, -33.8670], [151.2060, -33.8630], [151.2010, -33.8630], [151.2010, -33.8670]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-acid-sulfate",
+      "properties": {
+        "id": "constraint-acid-sulfate",
+        "constraintType": "Acid Sulfate Soils",
+        "riskLevel": "Low",
+        "description": "Class 3 acid sulfate soils requiring management for deep excavation."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2130, -33.8640], [151.2190, -33.8640], [151.2190, -33.8600], [151.2130, -33.8600], [151.2130, -33.8640]]]
+      }
+    }
+  ]
+}
