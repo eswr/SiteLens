@@ -24,6 +24,7 @@
     "db:seed": "npm run db:seed -w apps/api",
     "db:seed:billing": "npm run db:seed:billing -w apps/api",
     "ingest:geojson": "npm run ingest:geojson -w apps/api",
-    "cache:clear": "npm run cache:clear -w apps/api"
+    "cache:clear": "npm run cache:clear -w apps/api",
+    "smoke:fullstack": "bash scripts/smoke-fullstack.sh"
   }
 }

@@ -31,3 +31,9 @@ SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest p
 ## Relevant To Geospatial Roles
 
 SiteLens demonstrates the kind of frontend engineering needed for urban analytics, planning, property intelligence, logistics, and spatial decision-support tools. It focuses on turning complex spatial data into an intuitive map-based product that non-technical users can understand quickly.
+
+## Full-Stack Geospatial Project Answer
+
+SiteLens is a full-stack geospatial planning intelligence platform I built as a public portfolio project. The frontend uses React, TypeScript, MapLibre, Material UI, Recharts, and Turf-style interactions for spatial layers, feature inspection, search, AOI drawing, and analytics. The backend uses Fastify, PostgreSQL/PostGIS, Redis, GeoJSON ingestion scripts, role/plan-based entitlements, Stripe-style billing gates, and a backend-owned deterministic planning summary service.
+
+The project demonstrates both frontend and backend ownership: map-centric UX, spatial data modeling, spatial SQL, API design, caching, ingestion pipelines, access control, billing-aware feature gates, and source-transparent AI-assisted summaries.

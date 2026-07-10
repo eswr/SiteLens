@@ -1,5 +1,58 @@
 # SiteLens — Geospatial Planning Intelligence Platform
 
+## Reviewer Quickstart
+
+Frontend-only demo (no backend needed):
+
+```bash
+npm install
+npm run dev:web
+```
+
+Full-stack demo (PostGIS + Redis via Docker):
+
+```bash
+npm install
+npm run db:up
+npm run db:migrate
+npm run db:seed:billing
+npm run ingest:geojson
+npm run dev:api
+npm run dev:web
+```
+
+Quality checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+Full-stack smoke test (while the API is running):
+
+```bash
+npm run smoke:fullstack
+```
+
+See [`docs/environment.md`](docs/environment.md) for env vars,
+[`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
+[`docs/case-study.md`](docs/case-study.md) for the employer-facing overview.
+
+## What This Proves
+
+- React + TypeScript geospatial frontend engineering
+- MapLibre/Mapbox-style map layer UX
+- AOI drawing and spatial analysis workflows
+- Fastify backend API design
+- PostgreSQL/PostGIS spatial queries and indexes
+- GeoJSON ingestion pipeline
+- Redis caching and cache-safe entitlement scopes
+- Demo auth, roles, plans, and billing gates
+- Backend-owned deterministic AI summary service
+- CI/CD and deployment-readiness
+
 ## Overview
 
 SiteLens is a React + TypeScript geospatial planning app for exploring planning

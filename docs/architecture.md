@@ -2,6 +2,50 @@
 
 SiteLens is an npm-workspaces monorepo.
 
+## System diagram
+
+```txt
+React / MapLibre / MUI / Recharts
+        |
+        | VITE_API_BASE_URL
+        v
+Fastify API
+        |
+        | Auth + billing gates
+        |
+        +--> Redis cache
+        |
+        +--> PostgreSQL + PostGIS
+        |
+        +--> Deterministic planning summary service
+```
+
+## Data flow diagrams
+
+### Spatial analysis
+
+```txt
+AOI polygon
+  -> /api/analyze-area
+  -> entitlement check
+  -> Redis analysis cache
+  -> PostGIS spatial SQL
+  -> typed SpatialAnalysisResult
+  -> frontend charts + AI summary source metrics
+```
+
+### Planning summary
+
+```txt
+SpatialAnalysisResult
+  -> /api/planning-summary
+  -> entitlement + usage check
+  -> Redis summary cache
+  -> deterministic backend generator
+  -> source-transparent PlanningSummary
+  -> frontend summary panel
+```
+
 ## Stack
 
 **Frontend** (`apps/web`)
@@ -107,4 +151,14 @@ review) without changing the surrounding architecture.
 - Done: demo API-key auth, RBAC roles, and plan-based entitlement gates.
 - Done: Stripe-style billing catalog, DB subscriptions, usage metering, webhook.
 - Done: backend-owned deterministic planning summary (gated, metered, cached).
-- Later: real Stripe Checkout/Portal + OAuth/SSO, real LLM summary, Azure deployment.
+- Done: GitHub Actions CI (quality + PostGIS/Redis integration), deployment docs.
+
+## Future improvements
+
+- OpenAPI/Swagger generation for the API
+- Vector tiles for large spatial datasets
+- Production SSO (OAuth/OIDC) + org/team membership
+- Real Stripe Checkout / Customer Portal
+- Azure deployment (App Service / Container Apps + managed Postgres/Redis)
+- Observability stack (structured logs, metrics, tracing, error tracking)
+- Real LLM planning summary with prompt/version logging + eval set
