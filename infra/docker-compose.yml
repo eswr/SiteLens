@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sitelens-postgres
+    environment:
+      POSTGRES_DB: sitelens
+      POSTGRES_USER: sitelens
+      POSTGRES_PASSWORD: sitelens
+    ports:
+      - "54329:5432"
+    volumes:
+      - sitelens_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sitelens -d sitelens"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sitelens_postgres_data:

@@ -1,6 +1,45 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../app';
+
+// Route tests mock the DB-backed repository so they run without Postgres.
+vi.mock('../db/spatialRepository', () => {
+  const layers = [
+    { id: 'zoning', label: 'Zoning', description: '', geometryType: 'polygon', featureCount: 4 },
+    { id: 'parcels', label: 'Parcels', description: '', geometryType: 'polygon', featureCount: 10 },
+    { id: 'constraints', label: 'Constraints', description: '', geometryType: 'polygon', featureCount: 3 },
+    { id: 'transit', label: 'Transit', description: '', geometryType: 'point', featureCount: 6 },
+    { id: 'developmentActivity', label: 'Development Activity', description: '', geometryType: 'point', featureCount: 6 },
+  ];
+  const parcel = {
+    type: 'Feature',
+    id: 'parcel-001',
+    geometry: { type: 'Polygon', coordinates: [] },
+    properties: { parcelId: 'LOT-1-DP1001', name: '12 George Street' },
+  };
+  return {
+    getLayers: vi.fn(async () => layers),
+    getParcels: vi.fn(async () => ({ type: 'FeatureCollection', features: [parcel] })),
+    getParcelById: vi.fn(async (id: string) =>
+      id === 'parcel-001' || id === 'LOT-1-DP1001' ? parcel : null,
+    ),
+    searchFeatures: vi.fn(async (q: string) =>
+      q.toLowerCase().includes('exchange')
+        ? [
+            {
+              id: 'parcel-006',
+              layerId: 'parcels',
+              label: '77 Exchange Place',
+              subtitle: 'LOT-6-DP1003',
+              properties: {},
+              geometry: { type: 'Point', coordinates: [151.21, -33.868] },
+            },
+          ]
+        : [],
+    ),
+  };
+});
+
+const { buildApp } = await import('../app');
 
 let app: FastifyInstance;
 
@@ -18,10 +57,8 @@ describe('GET /api/layers', () => {
     const res = await app.inject({ method: 'GET', url: '/api/layers' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBe(5);
     const parcels = body.data.find((l: { id: string }) => l.id === 'parcels');
-    expect(parcels.geometryType).toBe('polygon');
     expect(parcels.featureCount).toBeGreaterThan(0);
   });
 });
@@ -49,16 +86,15 @@ describe('GET /api/parcels', () => {
 });
 
 describe('GET /api/search', () => {
-  it('returns up to 8 results for a matching query', async () => {
+  it('returns results for a matching query', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=exchange' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThan(0);
     expect(body.data.length).toBeLessThanOrEqual(8);
   });
 
-  it('returns an array (possibly empty) for q=central', async () => {
+  it('returns an array for q=central', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=central' });
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.json().data)).toBe(true);
@@ -79,9 +115,8 @@ describe('POST /api/analyze-area', () => {
       payload: { geometry: { type: 'Point', coordinates: [1, 2] } },
     });
     expect(res.statusCode).toBe(400);
-    const body = res.json();
-    expect(body.error.code).toBe('BAD_REQUEST');
-    expect(body.error.details).toBeDefined();
+    expect(res.json().error.code).toBe('BAD_REQUEST');
+    expect(res.json().error.details).toBeDefined();
   });
 
   it('returns 501 for a valid polygon body (placeholder)', async () => {

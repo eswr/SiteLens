@@ -46,11 +46,3 @@ export function getFeatureSubtitle(
       return '';
   }
 }
-
-/** Build a lowercased haystack from a feature's properties for search. */
-export function buildHaystack(label: string, subtitle: string, props: Props): string {
-  const propValues = Object.values(props)
-    .filter((value) => typeof value === 'string' || typeof value === 'number')
-    .join(' ');
-  return `${label} ${subtitle} ${propValues}`.toLowerCase();
-}

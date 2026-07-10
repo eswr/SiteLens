@@ -25,4 +25,6 @@ export interface SearchResultItem {
   subtitle: string;
   properties: Record<string, unknown>;
   geometry: unknown;
+  /** Bounding box `[minX, minY, maxX, maxY]`, when available. */
+  bbox?: [number, number, number, number];
 }

@@ -2,36 +2,30 @@ import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import type { Static } from '@sinclair/typebox';
 import type { ApiEnvelope, ApiErrorEnvelope } from '@sitelens/shared';
-import {
-  loadMockGeojson,
-  type GeoFeature,
-  type GeoFeatureCollection,
-} from '../lib/loadMockGeojson';
+import { getParcelById, getParcels } from '../db/spatialRepository';
+import type { GeoFeature } from '../db/sql';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
 
 const parcelParams = Type.Object({ id: Type.String() });
 type ParcelParams = Static<typeof parcelParams>;
 
-function matchesId(feature: GeoFeature, id: string): boolean {
-  const props = feature.properties ?? {};
-  return (
-    String(feature.id ?? '') === id ||
-    String(props.parcelId ?? '') === id ||
-    String(props.id ?? '') === id
-  );
-}
-
-/** `GET /api/parcels` and `GET /api/parcels/:id`. */
+/** `GET /api/parcels` and `GET /api/parcels/:id`, from PostGIS. */
 export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/parcels', async () => {
-    const collection = await loadMockGeojson('parcels');
-    const body: ApiEnvelope<GeoFeatureCollection> = {
-      data: collection,
-      meta: {
-        computedAt: new Date().toISOString(),
-        count: collection.features.length,
-      },
-    };
-    return body;
+  app.get('/parcels', async (_request, reply) => {
+    try {
+      const collection = await getParcels();
+      const body: ApiEnvelope<typeof collection> = {
+        data: collection,
+        meta: {
+          computedAt: new Date().toISOString(),
+          count: collection.features.length,
+        },
+      };
+      return body;
+    } catch (error) {
+      sendDatabaseUnavailable(reply, error);
+      return reply;
+    }
   });
 
   app.get<{ Params: ParcelParams }>(
@@ -39,19 +33,21 @@ export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
     { schema: { params: parcelParams } },
     async (request, reply) => {
       const { id } = request.params;
-      const collection = await loadMockGeojson('parcels');
-      const feature = collection.features.find((item) => matchesId(item, id));
-
-      if (!feature) {
-        const body: ApiErrorEnvelope = {
-          error: { code: 'NOT_FOUND', message: `Parcel not found: ${id}` },
-        };
-        reply.code(404);
+      try {
+        const feature = await getParcelById(id);
+        if (!feature) {
+          const body: ApiErrorEnvelope = {
+            error: { code: 'NOT_FOUND', message: `Parcel not found: ${id}` },
+          };
+          reply.code(404);
+          return body;
+        }
+        const body: ApiEnvelope<GeoFeature> = { data: feature };
         return body;
+      } catch (error) {
+        sendDatabaseUnavailable(reply, error);
+        return reply;
       }
-
-      const body: ApiEnvelope<GeoFeature> = { data: feature };
-      return body;
     },
   );
 }

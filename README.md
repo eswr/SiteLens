@@ -9,9 +9,10 @@ analysis, view Recharts analytics, and generate a deterministic AI-assisted
 planning summary.
 
 It is organized as an **npm-workspaces monorepo** with a React/Vite web app, a
-Fastify + TypeScript API foundation, and a shared types package. In the current
-step the **frontend still runs entirely on static mock GeoJSON**; the API
-exposes mock-data endpoints and typed placeholders for future backend analysis.
+Fastify + TypeScript API, and a shared types package. The API is backed by
+**PostgreSQL + PostGIS** (layers, parcels, and search come from spatial tables).
+In the current step the **frontend still runs entirely on static mock GeoJSON**;
+connecting it to the backend arrives in the next step.
 
 ## Monorepo Structure
 
@@ -28,9 +29,10 @@ sitelens/
 
 - **`apps/web`** (`@sitelens/web`) — the existing dashboard; unchanged behavior,
   still loads static GeoJSON from `apps/web/public/data`.
-- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000` with health,
-  layers, parcels, search, and typed/validated placeholder analysis endpoints.
-  See [`apps/api/README.md`](apps/api/README.md).
+- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000`, backed by
+  PostgreSQL + PostGIS, with health, layers, parcels, and search routes plus
+  typed/validated placeholder analysis endpoints. See
+  [`apps/api/README.md`](apps/api/README.md).
 - **`packages/shared`** (`@sitelens/shared`) — shared TypeScript types (API
   envelopes, planning layer types, analysis request/response contracts).
 
@@ -141,13 +143,39 @@ npm run build      # build all workspaces
 
 `npm run dev` is a shortcut for `dev:web`. Web and API run independently.
 
+### Backend database (PostgreSQL + PostGIS)
+
+The API is backed by PostGIS via Docker Compose. Full backend setup:
+
+```bash
+npm install
+npm run db:up          # start PostgreSQL + PostGIS (host port 54329)
+npm run db:migrate     # apply SQL migrations
+npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS
+npm run dev:api        # start the API on :4000
+```
+
+Smoke tests:
+
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/layers
+curl http://localhost:4000/api/parcels
+curl "http://localhost:4000/api/search?q=central"
+```
+
+See [`docs/architecture.md`](docs/architecture.md) and
+[`apps/api/README.md`](apps/api/README.md) for schema and details.
+
 ### Current boundaries
 
 - The **frontend still uses static mock GeoJSON** in this step — it does not yet
-  call the API.
-- The **API exposes mock-data endpoints** plus typed/validated placeholders for
-  `analyze-area` and `planning-summary` (both return `501` for now).
-- **PostgreSQL/PostGIS** is the next backend step; **Redis** caching comes later.
+  call the API. Step 10 will connect the AOI analysis to backend PostGIS.
+- The **API reads layers/parcels/search from PostGIS**; `analyze-area` and
+  `planning-summary` remain typed/validated `501` placeholders.
+- If the database is unavailable, DB-backed routes return `503` (no silent
+  fallback).
+- **Redis** caching, auth, Stripe, and Azure deployment are future steps.
 - No real LLM API and no paid map token are used anywhere.
 
 ## Project Structure
@@ -165,15 +193,19 @@ apps/
       utils/             # featureIndex, spatialAnalysis, mockPlanningSummary
       types/             # frontend TypeScript types
       theme/             # Material UI theme
-  api/                   # @sitelens/api — Fastify + TypeScript API
-    data/                # mock GeoJSON served by the API
+  api/                   # @sitelens/api — Fastify + TypeScript API (PostGIS)
+    data/                # source GeoJSON ingested into PostGIS
+    db/
+      migrations/        # 001 enable postgis, 002 tables, 003 indexes
+      seeds/             # seed docs
     src/
       app.ts             # Fastify app factory (testable)
       server.ts          # startup (port 4000)
-      config.ts          # env config + API version
+      config.ts          # env config (DATABASE_URL, DB_SSL) + API version
       plugins/           # requestLogger, errorHandler
       routes/            # health, layers, parcels, search, analysis, planningSummary
-      lib/               # loadMockGeojson, layerConfig, featureText
+      lib/               # layerConfig, featureText, httpErrors
+      db/                # pool, sql, migrate, reset, ingestGeojson, seed, spatialRepository
       test/              # Vitest API tests
 packages/
   shared/                # @sitelens/shared — shared types (api, planning, analysis)

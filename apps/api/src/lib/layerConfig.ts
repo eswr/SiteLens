@@ -10,6 +10,8 @@ export interface LayerDef {
   geometryType: PlanningLayerGeometryType;
   /** Base filename (without extension) under `apps/api/data`. */
   file: string;
+  defaultVisible: boolean;
+  sortOrder: number;
 }
 
 /** Layer metadata, mirroring the frontend planning layers. */
@@ -20,6 +22,8 @@ export const LAYER_DEFS: LayerDef[] = [
     description: 'Land-use zones such as commercial, residential and mixed use.',
     geometryType: 'polygon',
     file: 'zoning',
+    defaultVisible: true,
+    sortOrder: 0,
   },
   {
     id: 'parcels',
@@ -27,6 +31,8 @@ export const LAYER_DEFS: LayerDef[] = [
     description: 'Individual property parcels with development metrics.',
     geometryType: 'polygon',
     file: 'parcels',
+    defaultVisible: true,
+    sortOrder: 1,
   },
   {
     id: 'constraints',
@@ -34,6 +40,8 @@ export const LAYER_DEFS: LayerDef[] = [
     description: 'Planning constraints like flood, heritage and soils.',
     geometryType: 'polygon',
     file: 'constraints',
+    defaultVisible: false,
+    sortOrder: 2,
   },
   {
     id: 'transit',
@@ -41,6 +49,8 @@ export const LAYER_DEFS: LayerDef[] = [
     description: 'Nearby train, metro, light rail, bus and ferry stops.',
     geometryType: 'point',
     file: 'transit',
+    defaultVisible: true,
+    sortOrder: 3,
   },
   {
     id: 'developmentActivity',
@@ -48,5 +58,7 @@ export const LAYER_DEFS: LayerDef[] = [
     description: 'Recent development applications and their status.',
     geometryType: 'point',
     file: 'development-activity',
+    defaultVisible: false,
+    sortOrder: 4,
   },
 ];
