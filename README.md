@@ -210,6 +210,38 @@ if Redis is down the API still returns DB results (`cache: "error"`) and the app
 keeps working. Ingestion clears the planning cache; `npm run cache:clear` clears
 all keys.
 
+### Demo auth & entitlements
+
+The API supports **API-key demo auth** with roles (`viewer`, `planner`, `admin`)
+and plans (`free`, `pro`, `enterprise`). Capabilities are derived from role/plan
+and gate the API:
+
+- Public: `GET /api/health`, `GET /api/layers`.
+- Entitlement-limited: `GET /api/search` (5 results for free/anonymous, 8 for
+  pro/enterprise) and `GET /api/parcels` (first 5 for free, full for pro+).
+- Gated (`403` otherwise): `POST /api/analyze-area` and `POST /api/planning-summary`
+  require a `planner`/`enterprise` account. Ingestion is `admin`-only.
+
+`GET /api/me` returns the current user + capabilities. Cached responses are
+scoped by entitlement (`…:free:` vs `…:pro:`) so lower tiers never receive
+higher-tier data.
+
+Run the web app in different demo roles (or use the **Demo access** switcher in
+the sidebar footer at runtime):
+
+```bash
+VITE_DEMO_API_KEY=demo-planner-key npm run dev:web   # Planner · Pro
+VITE_DEMO_API_KEY=demo-viewer-key  npm run dev:web   # Viewer · Free
+VITE_DEMO_API_KEY=demo-admin-key   npm run dev:web   # Admin · Enterprise
+```
+
+If a viewer/free user runs analysis, the backend returns `403` and the frontend
+falls back to local Turf.js with a clear entitlement warning.
+
+> **Not production auth.** This is a portfolio demo. Production would use
+> OAuth/SSO, JWT/session cookies, Passport-style strategies, and org/team
+> membership.
+
 ### Current boundaries
 
 - **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's

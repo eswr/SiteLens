@@ -12,6 +12,8 @@ import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
 import { cached } from '../cache/cacheJson';
 import { analysisKey, CACHE_TTL } from '../cache/cacheKeys';
+import { accessScope, getCapabilities } from '../auth/capabilities';
+import { requireCapability } from '../auth/requireCapability';
 
 /**
  * Validated body: a GeoJSON Polygon or MultiPolygon. Coordinates are validated
@@ -31,12 +33,17 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
     '/analyze-area',
     { schema: { body: analyzeAreaBody } },
     async (request, reply) => {
+      // Entitlement gate — planner/enterprise only (throws 403 otherwise).
+      requireCapability(request, 'canRunAnalysis');
+
+      const capabilities = getCapabilities(request.auth?.user ?? null);
+      const scope = accessScope(capabilities);
       const geometry = request.body.geometry as
         | GeoJsonPolygon
         | GeoJsonMultiPolygon;
       try {
         const { data: result, cache, computedAt } = await cached({
-          key: analysisKey(geometry),
+          key: analysisKey(geometry, scope),
           ttlSeconds: CACHE_TTL.analysis,
           compute: () => analyzeArea(geometry),
         });
@@ -45,8 +52,12 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
           meta: {
             requestId: request.id,
             cache,
-            cacheKey: analysisKey(geometry),
+            cacheKey: analysisKey(geometry, scope),
             computedAt,
+            access: {
+              role: request.auth?.user?.role,
+              plan: request.auth?.user?.plan,
+            },
           },
         };
         return body;

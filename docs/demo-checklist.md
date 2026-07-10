@@ -12,6 +12,20 @@
 8. Generate the deterministic AI Summary.
 9. Point out source metrics and demo-data caveats.
 
+## Access / Entitlement Demo
+
+Use the sidebar **Demo access** switcher (or `VITE_DEMO_API_KEY`) to show roles
+and plans:
+
+1. Switch to **Viewer · Free**: search is capped at 5 results; drawing an AOI
+   falls back to local Turf with an entitlement warning (backend returns 403).
+2. Switch to **Planner · Pro**: AOI analysis runs on the backend (PostGIS API),
+   search returns up to 8 results.
+3. Switch to **Admin · Enterprise**: same as planner, plus admin-only ingestion
+   capability (`/api/me` shows `canIngestData`).
+4. Point out the header chip (e.g. "Demo Planner · Pro") and that cache keys are
+   scoped by entitlement so lower tiers can't receive higher-tier cached data.
+
 ## Talking Points
 
 - React + TypeScript architecture

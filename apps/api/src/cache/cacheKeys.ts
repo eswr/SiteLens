@@ -7,25 +7,28 @@ function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
+/** Coarse entitlement scope used to segment cached responses by access tier. */
+export type AccessScope = 'free' | 'pro';
+
 export function layersKey(): string {
   return `${NAMESPACE}:layers:${VERSION}`;
 }
 
-export function parcelsKey(): string {
-  return `${NAMESPACE}:parcels:${VERSION}`;
+export function parcelsKey(scope: AccessScope): string {
+  return `${NAMESPACE}:parcels:${VERSION}:${scope}`;
 }
 
 export function parcelDetailKey(id: string): string {
   return `${NAMESPACE}:parcel:${VERSION}:${id}`;
 }
 
-export function searchKey(query: string): string {
-  return `${NAMESPACE}:search:${VERSION}:${sha256(query.trim().toLowerCase())}`;
+export function searchKey(query: string, scope: AccessScope): string {
+  return `${NAMESPACE}:search:${VERSION}:${scope}:${sha256(query.trim().toLowerCase())}`;
 }
 
 /** Hash the geometry so the key never contains raw coordinates. */
-export function analysisKey(geometry: unknown): string {
-  return `${NAMESPACE}:analysis:${VERSION}:${sha256(JSON.stringify(geometry))}`;
+export function analysisKey(geometry: unknown, scope: AccessScope): string {
+  return `${NAMESPACE}:analysis:${VERSION}:${scope}:${sha256(JSON.stringify(geometry))}`;
 }
 
 /** TTLs (seconds) per cached resource. */

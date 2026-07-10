@@ -7,27 +7,48 @@ import type { GeoFeature } from '../db/sql';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
 import { cached } from '../cache/cacheJson';
 import { CACHE_TTL, parcelDetailKey, parcelsKey } from '../cache/cacheKeys';
+import { accessScope, getCapabilities } from '../auth/capabilities';
+
+/** Non-paid tiers see at most this many parcels in the list. */
+const LIMITED_PARCEL_COUNT = 5;
 
 const parcelParams = Type.Object({ id: Type.String() });
 type ParcelParams = Static<typeof parcelParams>;
 
-/** `GET /api/parcels` and `GET /api/parcels/:id`, from PostGIS (cached). */
+/** `GET /api/parcels` and `GET /api/parcels/:id`, from PostGIS (cached, gated). */
 export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
   app.get('/parcels', async (request, reply) => {
+    const capabilities = getCapabilities(request.auth?.user ?? null);
+    const scope = accessScope(capabilities);
+    const limited = !capabilities.canViewAllLayers;
     try {
       const { data: collection, cache, computedAt } = await cached({
-        key: parcelsKey(),
+        key: parcelsKey(scope),
         ttlSeconds: CACHE_TTL.parcels,
-        compute: getParcels,
+        compute: async () => {
+          const full = await getParcels();
+          if (!limited) {
+            return full;
+          }
+          return {
+            type: 'FeatureCollection' as const,
+            features: full.features.slice(0, LIMITED_PARCEL_COUNT),
+          };
+        },
       });
       const body: ApiEnvelope<typeof collection> = {
         data: collection,
         meta: {
           requestId: request.id,
           cache,
-          cacheKey: parcelsKey(),
+          cacheKey: parcelsKey(scope),
           computedAt,
           count: collection.features.length,
+          access: {
+            role: request.auth?.user?.role,
+            plan: request.auth?.user?.plan,
+            limited,
+          },
         },
       };
       return body;

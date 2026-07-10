@@ -131,10 +131,11 @@ describe('POST /api/analyze-area', () => {
     expect(res.json().error.details).toBeDefined();
   });
 
-  it('returns 200 with a PostGIS result for a valid polygon body', async () => {
+  it('returns 200 with a PostGIS result for a valid polygon body (planner)', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: {
         geometry: {
           type: 'Polygon',
@@ -157,10 +158,11 @@ describe('POST /api/analyze-area', () => {
 });
 
 describe('POST /api/planning-summary', () => {
-  it('returns 501 for a valid minimal body (placeholder)', async () => {
+  it('returns 501 for a valid minimal body (planner placeholder)', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/planning-summary',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { areaId: 'demo' },
     });
     expect(res.statusCode).toBe(501);

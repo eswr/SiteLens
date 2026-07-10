@@ -6,7 +6,7 @@ import type {
 } from '../types/analysis';
 import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
 import { analyzeAreaWithApi } from '../api/analysisApi';
-import { isApiConfigured, type CacheStatus } from '../api/client';
+import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
 import { useAiSummaryStore } from './aiSummaryStore';
 import { useMapStore } from './mapStore';
 
@@ -18,6 +18,8 @@ export type AnalysisEngine = 'postgis' | 'turf-local' | 'turf-fallback' | null;
 
 const FALLBACK_WARNING =
   'Backend analysis unavailable; using local Turf.js demo analysis.';
+const ENTITLEMENT_WARNING =
+  'PostGIS analysis requires planner access; using local Turf.js demo analysis.';
 
 interface AnalysisState {
   isDrawing: boolean;
@@ -114,7 +116,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             analysisComputedAt: api.computedAt ?? null,
             analysisWarning: undefined,
           });
-        } catch {
+        } catch (apiError) {
+          const forbidden =
+            apiError instanceof ApiError && apiError.status === 403;
           const result = await analyzeArea(areaOfInterest.polygon);
           set({
             analysisResult: result,
@@ -122,7 +126,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             analysisEngine: 'turf-fallback',
             analysisCacheStatus: 'none',
             analysisComputedAt: new Date().toISOString(),
-            analysisWarning: FALLBACK_WARNING,
+            analysisWarning: forbidden ? ENTITLEMENT_WARNING : FALLBACK_WARNING,
           });
         }
       } else {

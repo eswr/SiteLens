@@ -7,6 +7,14 @@ export type CacheStatus =
   | 'error'
   | 'none';
 
+/** Access/entitlement metadata attached to some responses. */
+export interface AccessMeta {
+  role?: 'viewer' | 'planner' | 'admin';
+  plan?: 'free' | 'pro' | 'enterprise';
+  /** True when results were capped/simplified by the caller's entitlement. */
+  limited?: boolean;
+}
+
 /** Standard success envelope returned by the SiteLens API. */
 export interface ApiEnvelope<T> {
   data: T;
@@ -18,6 +26,7 @@ export interface ApiEnvelope<T> {
     computedAt?: string;
     /** Item count, when the payload is a collection. */
     count?: number;
+    access?: AccessMeta;
   };
 }
 

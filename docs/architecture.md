@@ -69,8 +69,18 @@ GeoJSON directly.
 | `transit_points` | `Point, 4326` | GIST + btree(mode) |
 | `development_activity` | `Point, 4326` | GIST + FTS + btree(status) |
 
+## Auth & entitlements (demo)
+
+API-key demo auth attaches an `AuthContext` to each request. Capabilities are
+derived from role (`viewer`/`planner`/`admin`) + plan (`free`/`pro`/`enterprise`)
+and enforced per route: analysis/summary require a paid plan; ingestion is
+admin-only; search/parcels are limited for free/anonymous. Cache keys are scoped
+by entitlement so lower tiers never receive higher-tier data. Production would
+swap API keys for OAuth/SSO + JWT/session cookies + org membership.
+
 ## Roadmap
 
 - Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
 - Done: Redis caching for layers/parcels/search/analysis with cache metadata.
-- Later: backend planning summary, authentication, Stripe, Azure deployment.
+- Done: demo API-key auth, RBAC roles, and plan-based entitlement gates.
+- Later: real OAuth/SSO + JWT, backend planning summary, Stripe, Azure deployment.

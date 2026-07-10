@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import HeaderBar from './HeaderBar';
@@ -5,6 +6,7 @@ import Sidebar from './Sidebar';
 import DetailsPanel from './DetailsPanel';
 import SiteMap from '../map/SiteMap';
 import MapStatusBadge from '../map/MapStatusBadge';
+import { useAuthStore } from '../../store/authStore';
 
 /**
  * Top-level dashboard layout.
@@ -15,6 +17,12 @@ import MapStatusBadge from '../map/MapStatusBadge';
  * the browser window.
  */
 export default function AppShell() {
+  const initializeAuth = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    void initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <Box
       sx={{

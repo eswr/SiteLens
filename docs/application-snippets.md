@@ -12,6 +12,10 @@ I built SiteLens as a public portfolio project because my production map-based a
 
 I designed and implemented the full stack: the frontend workflow (dashboard layout, MapLibre integration, GeoJSON layers, layer visibility controls, search, feature inspection, custom AOI drawing, Recharts analytics, deterministic AI summary) and the backend (a Fastify + TypeScript API over PostgreSQL/PostGIS with SQL migrations, GeoJSON ingestion, spatial indexes, and a real AOI spatial-analysis endpoint). The frontend runs analysis through the PostGIS API when configured and falls back to local Turf.js otherwise.
 
+## Enterprise SaaS Design
+
+SiteLens models enterprise access patterns for a geospatial product: role-based access control (viewer / planner / admin), subscription-tier entitlements (free / pro / enterprise), capability-gated endpoints (analysis and summary require a paid plan; ingestion is admin-only), entitlement-limited responses (free tiers get capped search/parcels), and entitlement-scoped caching so lower tiers can't receive higher-tier data from the cache. It's a demo API-key implementation with a clear production path to OAuth/SSO, JWT/session cookies, and org/team membership.
+
 ## Full-Stack Spatial Engineering
 
 SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest polygon is sent to a Fastify endpoint, looked up in a Redis cache, analyzed in PostGIS on a miss with `ST_Intersects`/`ST_DWithin`/`ST_Area(::geography)` against parcels, zoning, constraints, transit, and development activity, cached with a TTL, and returned as a typed result (with cache metadata) that the frontend renders as analytics and a planning summary — with a client-side Turf.js fallback for robustness. It reflects real performance/scalability thinking for geospatial products: expensive spatial queries are cached, cache status is surfaced to the UI, and the system degrades gracefully when the cache or backend is unavailable.

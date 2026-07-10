@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import type { ApiErrorEnvelope } from '@sitelens/shared';
+import { requireCapability } from '../auth/requireCapability';
 
 /** Validated minimal body: optional area id and/or precomputed metrics. */
 const planningSummaryBody = Type.Object({
@@ -9,7 +10,7 @@ const planningSummaryBody = Type.Object({
 });
 
 /**
- * `POST /api/planning-summary` — typed + validated placeholder.
+ * `POST /api/planning-summary` — planner/enterprise-gated, typed placeholder.
  * Backend summary wiring (no external LLM) arrives in a later step.
  */
 export async function planningSummaryRoutes(
@@ -18,7 +19,9 @@ export async function planningSummaryRoutes(
   app.post(
     '/planning-summary',
     { schema: { body: planningSummaryBody } },
-    async (_request, reply) => {
+    async (request, reply) => {
+      // Entitlement gate — planner/enterprise only (throws 403 otherwise).
+      requireCapability(request, 'canGenerateSummary');
       const body: ApiErrorEnvelope = {
         error: {
           code: 'NOT_IMPLEMENTED',

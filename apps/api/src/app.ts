@@ -4,7 +4,9 @@ import type { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { registerRequestLogger } from './plugins/requestLogger';
 import { registerErrorHandler } from './plugins/errorHandler';
+import { registerAuth } from './auth/authPlugin';
 import { healthRoutes } from './routes/health';
+import { meRoutes } from './routes/me';
 import { layersRoutes } from './routes/layers';
 import { parcelsRoutes } from './routes/parcels';
 import { searchRoutes } from './routes/search';
@@ -34,6 +36,7 @@ export async function buildApp(
   await app.register(cors, { origin: options.webOrigin ?? true });
 
   registerRequestLogger(app);
+  registerAuth(app);
   registerErrorHandler(app, { isProduction: options.isProduction ?? false });
 
   // Health is available at both /health and /api/health.
@@ -42,6 +45,7 @@ export async function buildApp(
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
+      await api.register(meRoutes);
       await api.register(layersRoutes);
       await api.register(parcelsRoutes);
       await api.register(searchRoutes);

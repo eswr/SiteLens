@@ -123,6 +123,7 @@ describe('POST /api/analyze-area caching', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { geometry: validPolygon },
     });
     expect(res.statusCode).toBe(200);
@@ -140,6 +141,7 @@ describe('POST /api/analyze-area caching', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { geometry: validPolygon },
     });
     expect(res.statusCode).toBe(200);

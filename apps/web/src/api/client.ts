@@ -6,6 +6,22 @@
  * attempted.
  */
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
+const DEMO_KEY_STORAGE = 'sitelens.demoApiKey';
+
+function readStoredKey(): string | null {
+  try {
+    return localStorage.getItem(DEMO_KEY_STORAGE);
+  } catch {
+    return null;
+  }
+}
+
+// Current demo API key: localStorage override, else the build-time env default.
+let currentApiKey = (
+  readStoredKey() ??
+  import.meta.env.VITE_DEMO_API_KEY ??
+  ''
+).trim();
 
 /** Whether an API base URL is configured. */
 export function isApiConfigured(): boolean {
@@ -15,6 +31,33 @@ export function isApiConfigured(): boolean {
 /** The configured API base URL (may be an empty string). */
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
+}
+
+/** The demo API key currently sent with requests (may be empty = anonymous). */
+export function getDemoApiKey(): string {
+  return currentApiKey;
+}
+
+/** Set (or clear) the demo API key; persisted to localStorage. */
+export function setDemoApiKey(key: string): void {
+  currentApiKey = key.trim();
+  try {
+    if (currentApiKey) {
+      localStorage.setItem(DEMO_KEY_STORAGE, currentApiKey);
+    } else {
+      localStorage.removeItem(DEMO_KEY_STORAGE);
+    }
+  } catch {
+    // Ignore storage errors (e.g. privacy mode).
+  }
+}
+
+function buildHeaders(base: Record<string, string> = {}): Record<string, string> {
+  const headers = { ...base };
+  if (currentApiKey) {
+    headers['x-api-key'] = currentApiKey;
+  }
+  return headers;
 }
 
 /** Error thrown for failed API requests, carrying status/code when available. */
@@ -69,8 +112,51 @@ export async function apiPostWithMeta<T>(
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: buildHeaders({ 'content-type': 'application/json' }),
       body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new ApiError(
+      error instanceof Error ? error.message : 'Network request failed',
+    );
+  }
+
+  let json: unknown = null;
+  try {
+    json = await response.json();
+  } catch {
+    // Leave json as null; handled below.
+  }
+
+  if (!response.ok) {
+    const errorBody = (json ?? {}) as ApiErrorBody;
+    throw new ApiError(
+      errorBody.error?.message ?? `Request failed (${response.status})`,
+      { status: response.status, code: errorBody.error?.code },
+    );
+  }
+
+  if (!json || typeof json !== 'object' || !('data' in json)) {
+    throw new ApiError('Malformed API response');
+  }
+
+  const envelope = json as ApiEnvelope<T>;
+  return { data: envelope.data, meta: envelope.meta };
+}
+
+/** GET `path` and return both the unwrapped `data` and `meta`. */
+export async function apiGetWithMeta<T>(
+  path: string,
+): Promise<{ data: T; meta?: ApiMeta }> {
+  if (!isApiConfigured()) {
+    throw new ApiError('API base URL is not configured');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'GET',
+      headers: buildHeaders(),
     });
   } catch (error) {
     throw new ApiError(

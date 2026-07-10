@@ -27,6 +27,34 @@ All responses use a consistent envelope: `{ data, meta? }` on success and
 `x-request-id` header. When the database is unavailable, DB-backed routes return
 `503 SERVICE_UNAVAILABLE` (never a silent fallback).
 
+## Auth & entitlements (demo)
+
+Demo **API-key** auth (not production). Provide a key via `x-api-key` or
+`Authorization: Bearer <key>`; missing/unknown keys are treated as anonymous.
+
+| Key | Role | Plan |
+| --- | ---- | ---- |
+| `demo-viewer-key` | viewer | free |
+| `demo-planner-key` | planner | pro |
+| `demo-admin-key` | admin | enterprise |
+
+Capabilities (role + plan) gate the API:
+
+- `GET /api/me` — current user + capabilities.
+- `GET /api/layers` / `GET /api/health` — public.
+- `GET /api/search` — 5 results for free/anonymous, 8 for pro/enterprise (`meta.access.limited`).
+- `GET /api/parcels` — first 5 for free/anonymous, full FeatureCollection for pro+.
+- `POST /api/analyze-area`, `POST /api/planning-summary` — require a paid plan
+  (`planner`/`enterprise`), else `403 FORBIDDEN`. `401` is used only when auth is
+  required but missing.
+
+Cache keys are scoped by entitlement (`sitelens:parcels:v1:free` vs `…:pro`,
+`sitelens:search:v1:<scope>:<hash>`, `sitelens:analysis:v1:<scope>:<hash>`) so
+lower tiers can't receive higher-tier data from the cache.
+
+**Production extension path:** OAuth/SSO, JWT/session cookies, Passport
+strategies, and organization/team membership — never hard-coded keys.
+
 ## Caching (Redis)
 
 Layers, parcels, parcel detail, search, and `analyze-area` are cached in Redis

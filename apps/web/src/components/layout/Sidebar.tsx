@@ -22,7 +22,10 @@ import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
 import { useUiStore } from '../../store/uiStore';
 import { useAiSummaryStore } from '../../store/aiSummaryStore';
+import { useAuthStore } from '../../store/authStore';
+import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
+import { DemoAccessSwitcher } from './AccessControls';
 import type { IndexedFeature } from '../../utils/featureIndex';
 import type { PlanningLayerId } from '../../types/planning';
 
@@ -215,6 +218,10 @@ function AnalysisSection() {
   const setDetailsTab = useUiStore((state) => state.setDetailsTab);
   const aiSummary = useAiSummaryStore((state) => state.summary);
   const generateSummary = useAiSummaryStore((state) => state.generateSummary);
+  const canRunAnalysis = useAuthStore(
+    (state) => state.capabilities.canRunAnalysis,
+  );
+  const analysisBlocked = isApiConfigured() && !canRunAnalysis;
 
   const handleGenerateAi = () => {
     setDetailsTab('aiSummary');
@@ -317,6 +324,16 @@ function AnalysisSection() {
           >
             Draw area
           </Button>
+          {analysisBlocked && (
+            <Typography
+              variant="caption"
+              color="warning.main"
+              sx={{ display: 'block', mt: 1 }}
+            >
+              Backend PostGIS analysis requires planner access; local Turf.js
+              will be used for this demo access level.
+            </Typography>
+          )}
         </>
       )}
     </SectionCard>
@@ -436,6 +453,10 @@ export default function Sidebar() {
       <Legend />
 
       <Divider sx={{ my: 0.5 }} />
+
+      <Box sx={{ flexShrink: 0 }}>
+        <DemoAccessSwitcher />
+      </Box>
 
       <Box component="footer" sx={{ flexShrink: 0, pb: 1 }}>
         <Typography variant="overline" sx={{ display: 'block' }}>

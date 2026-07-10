@@ -80,12 +80,13 @@ describe('POST /api/analyze-area', () => {
     await app.close();
   });
 
-  it('returns 200 with a PostGIS result for a valid polygon', async () => {
+  it('returns 200 with a PostGIS result for a valid polygon (planner)', async () => {
     analyzeAreaMock.mockResolvedValueOnce(sampleResult);
     app = await makeApp();
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { geometry: validPolygon },
     });
     expect(res.statusCode).toBe(200);
@@ -102,6 +103,7 @@ describe('POST /api/analyze-area', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { geometry: validPolygon },
     });
     expect(res.statusCode).toBe(400);
@@ -115,6 +117,7 @@ describe('POST /api/analyze-area', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/analyze-area',
+      headers: { 'x-api-key': 'demo-planner-key' },
       payload: { geometry: validPolygon },
     });
     expect(res.statusCode).toBe(503);
