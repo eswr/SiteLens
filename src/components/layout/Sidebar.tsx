@@ -14,11 +14,14 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import SearchIcon from '@mui/icons-material/Search';
 import GestureIcon from '@mui/icons-material/Gesture';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { PLANNING_LAYERS, LAYER_COLORS, LAYER_BY_ID } from '../../data/layers';
 import { useLayerStore } from '../../store/layerStore';
 import { useSearchStore } from '../../store/searchStore';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
+import { useUiStore } from '../../store/uiStore';
+import { useAiSummaryStore } from '../../store/aiSummaryStore';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import type { IndexedFeature } from '../../utils/featureIndex';
 import type { PlanningLayerId } from '../../types/planning';
@@ -201,11 +204,23 @@ function AnalysisSection() {
   const isDrawing = useAnalysisStore((state) => state.isDrawing);
   const draftPoints = useAnalysisStore((state) => state.draftPoints);
   const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
+  const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const startDrawing = useAnalysisStore((state) => state.startDrawing);
   const completeDrawing = useAnalysisStore((state) => state.completeDrawing);
   const undoLastPoint = useAnalysisStore((state) => state.undoLastPoint);
   const cancelDrawing = useAnalysisStore((state) => state.cancelDrawing);
   const clearAnalysis = useAnalysisStore((state) => state.clearAnalysis);
+
+  const setDetailsTab = useUiStore((state) => state.setDetailsTab);
+  const aiSummary = useAiSummaryStore((state) => state.summary);
+  const generateSummary = useAiSummaryStore((state) => state.generateSummary);
+
+  const handleGenerateAi = () => {
+    setDetailsTab('aiSummary');
+    if (!aiSummary) {
+      generateSummary(analysisResult);
+    }
+  };
 
   const pointCount = draftPoints.length;
 
@@ -276,6 +291,15 @@ function AnalysisSection() {
             </Button>
           </Stack>
           <AnalysisSummaryCompact />
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            startIcon={<AutoAwesomeIcon fontSize="small" />}
+            onClick={handleGenerateAi}
+          >
+            Generate AI summary
+          </Button>
         </Stack>
       ) : (
         <>

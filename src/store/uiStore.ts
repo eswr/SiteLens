@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type DetailsTab = 'summary' | 'analytics';
+export type DetailsTab = 'summary' | 'analytics' | 'aiSummary';
 
 interface UiState {
   /** Active tab in the AOI section of the details panel. */

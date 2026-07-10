@@ -15,6 +15,7 @@ import { useAnalysisStore } from '../../store/analysisStore';
 import { useUiStore } from '../../store/uiStore';
 import AnalysisSummary from '../analysis/AnalysisSummary';
 import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
+import PlanningSummaryPanel from '../analysis/PlanningSummaryPanel';
 import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
 import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
 import type { SelectedFeature } from '../../types/map';
@@ -235,14 +236,15 @@ function AoiPanel() {
         variant="fullWidth"
         sx={{ mb: 1.5, minHeight: 40 }}
       >
-        <Tab value="summary" label="Summary" sx={{ minHeight: 40 }} />
-        <Tab value="analytics" label="Analytics" sx={{ minHeight: 40 }} />
+        <Tab value="summary" label="Summary" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
+        <Tab value="analytics" label="Analytics" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
+        <Tab value="aiSummary" label="AI Summary" sx={{ minHeight: 40, minWidth: 0, px: 1 }} />
       </Tabs>
-      {detailsTab === 'summary' ? (
-        <AnalysisSummary />
-      ) : (
+      {detailsTab === 'summary' && <AnalysisSummary />}
+      {detailsTab === 'analytics' && (
         <AnalyticsDashboard result={analysisResult} isLoading={isAnalyzing} />
       )}
+      {detailsTab === 'aiSummary' && <PlanningSummaryPanel />}
     </Box>
   );
 }

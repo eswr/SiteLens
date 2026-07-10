@@ -5,6 +5,8 @@ import type {
   SpatialAnalysisResult,
 } from '../types/analysis';
 import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
+import { useAiSummaryStore } from './aiSummaryStore';
+import { useMapStore } from './mapStore';
 
 /** Minimum vertices required to close a polygon. */
 export const MIN_AOI_POINTS = 3;
@@ -36,14 +38,17 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   isAnalyzing: false,
   error: null,
 
-  startDrawing: () =>
+  startDrawing: () => {
+    // A new drawing invalidates any previous AI summary.
+    useAiSummaryStore.getState().clearSummary();
     set({
       isDrawing: true,
       draftPoints: [],
       areaOfInterest: null,
       analysisResult: null,
       error: null,
-    }),
+    });
+  },
 
   addDraftPoint: (point) =>
     set((state) => ({ draftPoints: [...state.draftPoints, point] })),
@@ -84,7 +89,10 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
   cancelDrawing: () => set({ isDrawing: false, draftPoints: [], error: null }),
 
-  clearAnalysis: () =>
+  clearAnalysis: () => {
+    // Clearing the AOI also clears the derived AI summary and any selection.
+    useAiSummaryStore.getState().clearSummary();
+    useMapStore.getState().setSelectedFeature(null);
     set({
       isDrawing: false,
       draftPoints: [],
@@ -92,7 +100,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       analysisResult: null,
       isAnalyzing: false,
       error: null,
-    }),
+    });
+  },
 
   setAnalysisResult: (result) => set({ analysisResult: result }),
   setError: (error) => set({ error }),
