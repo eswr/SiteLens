@@ -1,10 +1,12 @@
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import PublicIcon from '@mui/icons-material/Public';
 import PlaceIcon from '@mui/icons-material/Place';
+import { Link as RouterLink } from 'react-router-dom';
 import { useMapStore } from '../../store/mapStore';
 import { usePlanningContextStore } from '../../store/planningContextStore';
 import { getFeatureTitle } from '../../data/featureDisplay';
@@ -89,6 +91,15 @@ export default function HeaderBar() {
               }}
             />
           )}
+          <Button
+            component={RouterLink}
+            to="/about"
+            color="inherit"
+            size="small"
+            sx={{ fontWeight: 600, textTransform: 'none' }}
+          >
+            About
+          </Button>
           <AccessStatusChip />
         </Box>
       </Toolbar>

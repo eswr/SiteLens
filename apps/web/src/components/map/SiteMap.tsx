@@ -456,8 +456,9 @@ export default function SiteMap() {
     if (!map || !ready || !flyToFeatureRequest) {
       return;
     }
-    const { bbox, center, geometryType } = flyToFeatureRequest;
+    const { bbox, center, geometryType, duration } = flyToFeatureRequest;
     const padding = { top: 60, bottom: 60, left: 60, right: 360 };
+    const animationDuration = duration ?? 800;
     const isPoint =
       geometryType === 'Point' || geometryType === 'MultiPoint';
 
@@ -467,10 +468,15 @@ export default function SiteMap() {
           [bbox[0], bbox[1]],
           [bbox[2], bbox[3]],
         ],
-        { padding, maxZoom: 16, duration: 800 },
+        { padding, maxZoom: 16, duration: animationDuration },
       );
     } else {
-      map.flyTo({ center, zoom: 15, padding, duration: 800 });
+      map.flyTo({
+        center,
+        zoom: 15,
+        padding,
+        duration: animationDuration,
+      });
     }
     clearFlyToFeatureRequest();
   }, [flyToFeatureRequest, ready, clearFlyToFeatureRequest]);

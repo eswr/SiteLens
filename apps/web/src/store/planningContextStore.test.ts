@@ -51,6 +51,7 @@ const {
   EMPTY_BUILD_NOTICE,
   usePlanningContextStore,
 } = await import('./planningContextStore');
+const { useMapStore } = await import('./mapStore');
 
 const sydney: PlanningContext = {
   id: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
@@ -434,5 +435,62 @@ describe('planningContextStore async build jobs', () => {
     expect(state.buildNotice).toBe(EMPTY_BUILD_NOTICE);
     expect(state.lastBuildReused).toBe(true);
     expect(state.selectedContextId).toBe(readyContext.id);
+  });
+});
+
+describe('planningContextStore loadContexts camera', () => {
+  beforeEach(() => {
+    resetStore();
+    useMapStore.setState({ flyToFeatureRequest: null });
+    isApiConfigured.mockReturnValue(true);
+    listPlanningContexts.mockReset();
+    getPlanningContextDetail.mockReset();
+  });
+
+  it('fits Sydney Demo instantly when the API is not configured', async () => {
+    isApiConfigured.mockReturnValue(false);
+
+    await usePlanningContextStore.getState().loadContexts();
+
+    const flyTo = useMapStore.getState().flyToFeatureRequest;
+    expect(flyTo).toMatchObject({
+      center: sydney.center,
+      bbox: sydney.bbox,
+      geometryType: 'Polygon',
+      duration: 0,
+    });
+  });
+
+  it('fits the selected ready context instantly after a successful list load', async () => {
+    listPlanningContexts.mockResolvedValue([sydney, readyContext]);
+    getPlanningContextDetail.mockResolvedValue({
+      context: readyContext,
+      counts: readyCounts,
+    });
+    usePlanningContextStore.setState({ selectedContextId: readyContext.id });
+
+    await usePlanningContextStore.getState().loadContexts();
+
+    const flyTo = useMapStore.getState().flyToFeatureRequest;
+    expect(flyTo).toMatchObject({
+      center: readyContext.center,
+      bbox: readyContext.bbox,
+      geometryType: 'Polygon',
+      duration: 0,
+    });
+  });
+
+  it('fits Sydney Demo instantly when list load fails', async () => {
+    listPlanningContexts.mockRejectedValue(new Error('network down'));
+
+    await usePlanningContextStore.getState().loadContexts();
+
+    const flyTo = useMapStore.getState().flyToFeatureRequest;
+    expect(flyTo).toMatchObject({
+      center: sydney.center,
+      bbox: sydney.bbox,
+      geometryType: 'Polygon',
+      duration: 0,
+    });
   });
 });

@@ -43,6 +43,19 @@ function isEmptyBuildCounts(counts: PlanningContextFeatureCounts): boolean {
   );
 }
 
+/** Fit the map to a planning context extent (optional instant duration for cold start). */
+function flyToPlanningContext(
+  context: PlanningContext,
+  duration?: number,
+): void {
+  useMapStore.getState().requestFlyToFeature({
+    center: context.center,
+    bbox: context.bbox,
+    geometryType: 'Polygon',
+    ...(duration !== undefined ? { duration } : {}),
+  });
+}
+
 function optimisticBuildingContext(
   contextId: string,
   place: PlaceSearchResult,
@@ -264,11 +277,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
         : [detail.context, ...contexts];
       persistId(detail.context.id);
       clearTransientUi();
-      useMapStore.getState().requestFlyToFeature({
-        center: detail.context.center,
-        bbox: detail.context.bbox,
-        geometryType: 'Polygon',
-      });
+      flyToPlanningContext(detail.context);
       set((state) => ({
         contexts: merged,
         selectedContextId: detail.context.id,
@@ -321,6 +330,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
             countsLoading: false,
             lastBuildReused: null,
           });
+          flyToPlanningContext(SYDNEY_FALLBACK, 0);
           return;
         }
         set({ isLoading: true, countsLoading: true });
@@ -355,6 +365,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
               c.id === detail.context.id ? detail.context : c,
             ),
           });
+          flyToPlanningContext(detail.context, 0);
         } catch {
           set({
             contexts: [SYDNEY_FALLBACK],
@@ -365,6 +376,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
             isLoading: false,
             lastBuildReused: null,
           });
+          flyToPlanningContext(SYDNEY_FALLBACK, 0);
         }
       },
 
@@ -379,11 +391,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
         }
         persistId(context.id);
         clearTransientUi();
-        useMapStore.getState().requestFlyToFeature({
-          center: context.center,
-          bbox: context.bbox,
-          geometryType: 'Polygon',
-        });
+        flyToPlanningContext(context);
         set((state) => ({
           selectedContextId: context.id,
           selectedContext: context,

@@ -46,5 +46,7 @@ export interface FlyToRequest {
   center: [number, number];
   bbox?: [number, number, number, number];
   geometryType: string;
+  /** Camera animation duration in ms. Defaults to 800 when omitted. */
+  duration?: number;
   nonce: number;
 }

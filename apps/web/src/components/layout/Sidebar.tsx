@@ -19,6 +19,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import PublicIcon from '@mui/icons-material/Public';
 import GestureIcon from '@mui/icons-material/Gesture';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   PLANNING_LAYERS,
   LAYER_COLORS,
@@ -1115,13 +1116,34 @@ export default function Sidebar() {
       </Box>
 
       <Box component="footer" sx={{ flexShrink: 0, pb: 1 }}>
-        <Typography variant="overline" sx={{ display: 'block' }}>
+        <Typography
+          component={RouterLink}
+          to="/about"
+          variant="overline"
+          sx={{
+            display: 'block',
+            color: 'inherit',
+            textDecoration: 'none',
+            '&:hover': { color: 'primary.main' },
+          }}
+        >
           About
         </Typography>
-        <Typography variant="caption" color="text.secondary">
+        <Typography variant="caption" color="text.secondary" component="div">
           SiteLens can use the bundled Sydney Demo or build open-map planning
           context for a selected worldwide place. External contexts are not
-          official zoning, cadastre, or development-application data.
+          official zoning, cadastre, or development-application data.{' '}
+          <Box
+            component={RouterLink}
+            to="/about"
+            sx={{
+              color: 'primary.main',
+              fontWeight: 600,
+              textDecoration: 'underline',
+            }}
+          >
+            Learn more
+          </Box>
         </Typography>
       </Box>
     </Box>

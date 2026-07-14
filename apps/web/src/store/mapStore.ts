@@ -8,7 +8,7 @@ import type {
 
 /** Default camera position: Sydney, Australia. */
 export const INITIAL_CENTER: LngLat = { lng: 151.2093, lat: -33.8688 };
-export const INITIAL_ZOOM = 11;
+export const INITIAL_ZOOM = 14;
 
 /** Payload accepted by `requestFlyToFeature` (nonce is managed internally). */
 type FlyToTarget = Omit<FlyToRequest, 'nonce'>;
