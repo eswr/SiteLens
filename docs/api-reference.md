@@ -93,15 +93,18 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 
 ### `POST /api/planning-contexts/build`
 
-- **Purpose:** explicitly build an **external OSM** planning context for a
-  selected worldwide place (backend Overpass proxy → normalize → PostGIS).
+- **Purpose:** enqueue an **external OSM** planning context build for a
+  selected worldwide place (async job → Overpass proxy → normalize → PostGIS).
 - **Auth + plan:** requires `external-context:build` (Pro/Enterprise) → `403`
   otherwise. Free/Viewer cannot build. Builds are metered: Free `0` / Pro monthly
-  quota / Enterprise unlimited. Quota is checked only before a live Overpass
-  fetch; usage is recorded only after a successful **new** build (not fresh reuse).
-- **Important:** live Overpass fetch happens only on this explicit action — never
-  on keystrokes or map moves. Fresh contexts are reused from PostGIS. Concurrent
-  builds for the same context use a per-context advisory lock (`409 BUILD_IN_PROGRESS`).
+  quota / Enterprise unlimited. Quota is checked only before enqueueing a live
+  Overpass job; usage is recorded by the worker after a successful **new** build
+  (not fresh reuse).
+- **Important:** live Overpass fetch happens only via the in-process worker after
+  this explicit action — never on keystrokes or map moves, and never while holding
+  a DB pool client. Fresh contexts return `{ status: "succeeded", reused: true }`
+  immediately. Concurrent POSTs for the same context return the existing
+  `queued`/`running` job.
 - **Request:**
   ```json
   {
@@ -117,9 +120,16 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
     }
   }
   ```
-- **Response:** `{ data: { context: PlanningContext, counts: {...}, reused?: boolean } }`.
-- **Errors:** invalid place/bbox → `400`; build already in progress → `409`;
-  quota exceeded → `429`; Overpass unavailable → `503`/`429`.
+- **Response:** `{ data: { jobId, contextId, status: "queued"|"running"|"succeeded", reused?: boolean } }`.
+- **Errors:** invalid place/bbox → `400`; quota exceeded → `429`.
+
+### `GET /api/planning-contexts/jobs/:jobId`
+
+- **Purpose:** poll async build job status (`queued` / `running` / `succeeded` /
+  `failed`), including terminal `counts` / `errorMessage` / `reused`, plus
+  `attempts` for debugging reclaimed / stuck jobs.
+- **Response:** `{ data: { job: PlanningContextBuildJob } }`.
+- **Errors:** unknown id → `404`.
 
 ### `GET /api/layers/:layerId/geojson?planningContextId=`
 

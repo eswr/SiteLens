@@ -1,16 +1,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
-const { buildMock, recordUsageMock, listMock, getMock, countMock } = vi.hoisted(
+const { buildMock, listMock, getMock, countMock, getJobMock } = vi.hoisted(
   () => ({
     buildMock: vi.fn(),
-    recordUsageMock: vi.fn(async () => {}),
     listMock: vi.fn(),
     getMock: vi.fn(),
     countMock: vi.fn(),
+    getJobMock: vi.fn(),
   }),
 );
 vi.mock('../externalData/planningContextBuilder', () => ({
+  enqueuePlanningContextBuild: buildMock,
   buildExternalPlanningContext: buildMock,
   PlanningContextBuildError: class PlanningContextBuildError extends Error {
     code: string;
@@ -29,6 +30,10 @@ vi.mock('../externalData/planningContextRepository', () => ({
   countContextFeatures: countMock,
 }));
 
+vi.mock('../externalData/planningContextBuildJobRepository', () => ({
+  getBuildJob: getJobMock,
+}));
+
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('../billing/billingRepository')>();
@@ -36,7 +41,6 @@ vi.mock('../billing/billingRepository', async (importOriginal) => {
     ...actual,
     getBillingContextForUser: async (userId: string | null) =>
       actual.demoFallbackContext(userId ?? null),
-    recordUsage: recordUsageMock,
     getUsage: async () => 0,
   };
 });
@@ -121,6 +125,43 @@ describe('planning context routes', () => {
     expect(countMock).not.toHaveBeenCalled();
   });
 
+  it('returns build job status', async () => {
+    getJobMock.mockResolvedValueOnce({
+      id: '11111111-1111-1111-1111-111111111111',
+      planningContextId: 'external-osm:bengaluru:abc',
+      status: 'running',
+      place: {
+        id: 'static-demo-bengaluru',
+        label: 'Bengaluru',
+        displayName: 'Bengaluru, India',
+        latitude: 12.9716,
+        longitude: 77.5946,
+        provider: 'static-demo',
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/planning-contexts/jobs/11111111-1111-1111-1111-111111111111',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.job.status).toBe('running');
+    expect(getJobMock).toHaveBeenCalledWith(
+      '11111111-1111-1111-1111-111111111111',
+    );
+  });
+
+  it('returns 404 for unknown build job', async () => {
+    getJobMock.mockResolvedValueOnce(null);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/planning-contexts/jobs/22222222-2222-2222-2222-222222222222',
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+  });
+
   it('forbids Free/Viewer from building external context', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -140,28 +181,9 @@ describe('planning context routes', () => {
     expect(res.statusCode).toBe(403);
     expect(res.json().error.code).toBe('FORBIDDEN');
     expect(buildMock).not.toHaveBeenCalled();
-    expect(recordUsageMock).not.toHaveBeenCalled();
   });
 
-  it('records usage only for a successful new build, not for reuse', async () => {
-    const context = {
-      id: 'external-osm:bengaluru:abc123',
-      label: 'Bengaluru external context',
-      source: 'external-osm',
-      status: 'ready',
-      center: [77.5946, 12.9716],
-      bbox: [77.57, 12.95, 77.62, 12.99],
-      disclaimer: 'External context disclaimer',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const counts = {
-      sites: 8,
-      landUse: 3,
-      constraints: 2,
-      transit: 4,
-      developmentActivity: 1,
-    };
+  it('returns a job enqueue response for a new build', async () => {
     const place = {
       id: 'static-demo-bengaluru',
       label: 'Bengaluru',
@@ -174,10 +196,15 @@ describe('planning context routes', () => {
     buildMock.mockImplementationOnce(
       async (
         _req: unknown,
-        options?: { beforeLiveFetch?: () => Promise<void> },
+        options?: { beforeLiveFetch?: () => Promise<void>; userId?: string },
       ) => {
         await options?.beforeLiveFetch?.();
-        return { context, counts, reused: false };
+        expect(options?.userId).toBeTruthy();
+        return {
+          jobId: '11111111-1111-1111-1111-111111111111',
+          contextId: 'external-osm:bengaluru:abc123',
+          status: 'queued',
+        };
       },
     );
 
@@ -188,37 +215,22 @@ describe('planning context routes', () => {
       payload: { place, source: 'external-osm' },
     });
     expect(created.statusCode).toBe(200);
-    expect(recordUsageMock).toHaveBeenCalledWith(
-      expect.any(String),
-      'external-context:build',
-    );
-
-    recordUsageMock.mockClear();
-    buildMock.mockResolvedValueOnce({ context, counts, reused: true });
-
-    const reused = await app.inject({
-      method: 'POST',
-      url: '/api/planning-contexts/build',
-      headers: { 'x-api-key': 'demo-planner-key' },
-      payload: { place, source: 'external-osm' },
+    expect(created.json().data).toEqual({
+      jobId: '11111111-1111-1111-1111-111111111111',
+      contextId: 'external-osm:bengaluru:abc123',
+      status: 'queued',
     });
-    expect(reused.statusCode).toBe(200);
-    expect(reused.json().data.reused).toBe(true);
-    expect(recordUsageMock).not.toHaveBeenCalled();
   });
 
-  it('surfaces BUILD_IN_PROGRESS for concurrent builds', async () => {
-    const { PlanningContextBuildError } = await import(
-      '../externalData/planningContextBuilder'
-    );
-    buildMock.mockRejectedValueOnce(
-      new PlanningContextBuildError(
-        'already building',
-        'BUILD_IN_PROGRESS',
-        409,
-      ),
-    );
-    const res = await app.inject({
+  it('returns succeeded/reused without requiring a live job', async () => {
+    buildMock.mockResolvedValueOnce({
+      jobId: '11111111-1111-1111-1111-111111111111',
+      contextId: 'external-osm:bengaluru:abc123',
+      status: 'succeeded',
+      reused: true,
+    });
+
+    const reused = await app.inject({
       method: 'POST',
       url: '/api/planning-contexts/build',
       headers: { 'x-api-key': 'demo-planner-key' },
@@ -233,8 +245,8 @@ describe('planning context routes', () => {
         },
       },
     });
-    expect(res.statusCode).toBe(409);
-    expect(res.json().error.code).toBe('BUILD_IN_PROGRESS');
-    expect(recordUsageMock).not.toHaveBeenCalled();
+    expect(reused.statusCode).toBe(200);
+    expect(reused.json().data.reused).toBe(true);
+    expect(reused.json().data.status).toBe('succeeded');
   });
 });

@@ -34,6 +34,13 @@ export interface AppConfig {
   externalContextMaxBboxAreaDeg2: number;
   externalContextRebuildAfterDays: number;
   externalContextSyntheticFallbackEnabled: boolean;
+  /** In-process planning-context build worker (demo queue). */
+  planningContextWorkerEnabled: boolean;
+  planningContextWorkerPollMs: number;
+  /** Lease duration while a job is running (ms). */
+  planningContextJobLockMs: number;
+  /** Max claim/reclaim attempts before the job is marked failed. */
+  planningContextJobMaxAttempts: number;
 }
 
 /** Default (placeholder) Nominatim User-Agent; must be replaced for production. */
@@ -141,6 +148,27 @@ export function loadConfig(): AppConfig {
     (process.env.EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED ?? 'false')
       .toLowerCase() === 'true';
 
+  const planningContextWorkerEnabled =
+    (process.env.PLANNING_CONTEXT_WORKER_ENABLED ?? 'true').toLowerCase() !==
+    'false';
+  const parsedWorkerPoll = Number(process.env.PLANNING_CONTEXT_WORKER_POLL_MS);
+  const planningContextWorkerPollMs =
+    Number.isFinite(parsedWorkerPoll) && parsedWorkerPoll > 0
+      ? parsedWorkerPoll
+      : 750;
+  const parsedJobLock = Number(process.env.PLANNING_CONTEXT_JOB_LOCK_MS);
+  const planningContextJobLockMs =
+    Number.isFinite(parsedJobLock) && parsedJobLock > 0
+      ? parsedJobLock
+      : 300_000;
+  const parsedJobMaxAttempts = Number(
+    process.env.PLANNING_CONTEXT_JOB_MAX_ATTEMPTS,
+  );
+  const planningContextJobMaxAttempts =
+    Number.isFinite(parsedJobMaxAttempts) && parsedJobMaxAttempts > 0
+      ? Math.floor(parsedJobMaxAttempts)
+      : 3;
+
   return {
     port,
     nodeEnv,
@@ -171,5 +199,9 @@ export function loadConfig(): AppConfig {
     externalContextMaxBboxAreaDeg2,
     externalContextRebuildAfterDays,
     externalContextSyntheticFallbackEnabled,
+    planningContextWorkerEnabled,
+    planningContextWorkerPollMs,
+    planningContextJobLockMs,
+    planningContextJobMaxAttempts,
   };
 }

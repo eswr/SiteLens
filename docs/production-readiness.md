@@ -52,7 +52,7 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Keep clear attribution and disclaimers that open-map context is not official zoning/cadastre/DAs
 - [ ] Schedule freshness jobs (`EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` or equivalent)
 - [ ] Confirm licensing/attribution for any commercial geospatial providers
-- [ ] Monitor `external-context:build` metering (Free 0 / Pro monthly / Enterprise unlimited) and advisory-lock contention (`409 BUILD_IN_PROGRESS`)
+- [ ] Monitor `external-context:build` metering (Free 0 / Pro monthly / Enterprise unlimited) and `planning_context_build_jobs` queue depth / failures
 
 ## Geocoding (worldwide place search)
 

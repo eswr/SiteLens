@@ -152,6 +152,19 @@ export async function createOrUpdatePlanningContext(
   }
 }
 
+/** Mark a context failed using the caller's session client. */
+export async function markPlanningContextFailedOnClient(
+  client: PoolClient,
+  context: PlanningContext,
+  errorMessage: string,
+): Promise<void> {
+  await upsertContextRow(
+    client,
+    { ...context, status: 'failed', updatedAt: new Date().toISOString() },
+    errorMessage,
+  );
+}
+
 /** Mark a context failed in its own short transaction (never rolled back with feature writes). */
 export async function markPlanningContextFailed(
   context: PlanningContext,
@@ -161,11 +174,7 @@ export async function markPlanningContextFailed(
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await upsertContextRow(
-      client,
-      { ...context, status: 'failed', updatedAt: new Date().toISOString() },
-      errorMessage,
-    );
+    await markPlanningContextFailedOnClient(client, context, errorMessage);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -173,30 +182,6 @@ export async function markPlanningContextFailed(
   } finally {
     client.release();
   }
-}
-
-/**
- * Try to acquire a session-level advisory lock for a context build.
- * Caller must hold `client` until `releaseContextBuildLock`.
- */
-export async function tryAcquireContextBuildLock(
-  client: PoolClient,
-  contextId: string,
-): Promise<boolean> {
-  const result = await client.query<{ locked: boolean }>(
-    `SELECT pg_try_advisory_lock(hashtext($1), 918018) AS locked`,
-    [contextId],
-  );
-  return result.rows[0]?.locked === true;
-}
-
-export async function releaseContextBuildLock(
-  client: PoolClient,
-  contextId: string,
-): Promise<void> {
-  await client.query(`SELECT pg_advisory_unlock(hashtext($1), 918018)`, [
-    contextId,
-  ]);
 }
 
 const EXTERNAL_LAYER_LABELS: Record<
@@ -483,33 +468,43 @@ async function insertNormalizedFeatures(
 /**
  * Atomically replace context features and mark the context ready.
  * Redis cache must be invalidated by the caller only after this returns.
+ *
+ * When `manageTransaction` is false, the caller owns BEGIN/COMMIT so job
+ * updates can share the same short transaction.
  */
 export async function commitReadyExternalContext(input: {
   client: PoolClient;
   building: PlanningContext;
   normalized: NormalizedPlanningLayers;
+  manageTransaction?: boolean;
 }): Promise<PlanningContextFeatureCounts & { skipped: number; context: PlanningContext }> {
-  const { client, building, normalized } = input;
+  const { client, building, normalized, manageTransaction = true } = input;
   const ready: PlanningContext = {
     ...building,
     status: 'ready',
     updatedAt: new Date().toISOString(),
   };
 
-  await client.query('BEGIN');
+  if (manageTransaction) {
+    await client.query('BEGIN');
+  }
   try {
     await clearContextFeaturesOnClient(client, building.id);
     const counts = await insertNormalizedFeatures(client, building.id, normalized);
     await upsertContextRow(client, ready, null);
-    await client.query('COMMIT');
+    if (manageTransaction) {
+      await client.query('COMMIT');
+    }
     return { ...counts, context: ready };
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (manageTransaction) {
+      await client.query('ROLLBACK');
+    }
     throw error;
   }
 }
 
-/** Mark context as building (before Overpass). Uses the locked session client. */
+/** Mark context as building. Uses the caller's session client. */
 export async function markPlanningContextBuilding(
   client: PoolClient,
   context: PlanningContext,

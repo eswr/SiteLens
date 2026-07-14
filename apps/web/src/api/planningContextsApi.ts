@@ -1,6 +1,7 @@
 import type {
-  BuildPlanningContextResponse,
+  BuildPlanningContextJobResponse,
   PlanningContext,
+  PlanningContextBuildJobStatusResponse,
   PlanningContextDetailResponse,
 } from '@sitelens/shared';
 import type { PlaceSearchResult } from './geocodingApi';
@@ -20,14 +21,24 @@ export async function getPlanningContextDetail(
   );
 }
 
+/** Poll status for an async planning-context build job. */
+export async function getPlanningContextBuildJob(
+  jobId: string,
+): Promise<PlanningContextBuildJobStatusResponse> {
+  return apiGet<PlanningContextBuildJobStatusResponse>(
+    `/api/planning-contexts/jobs/${encodeURIComponent(jobId)}`,
+  );
+}
+
 /**
- * Explicitly build an external planning context for a selected worldwide place.
+ * Explicitly enqueue an external planning context build for a selected place.
  * Backend proxies Overpass — the browser never calls the provider.
+ * Returns a job id; poll GET /jobs/:jobId until terminal.
  */
 export async function buildPlanningContext(
   place: PlaceSearchResult,
-): Promise<BuildPlanningContextResponse> {
-  const { data } = await apiPostWithMeta<BuildPlanningContextResponse>(
+): Promise<BuildPlanningContextJobResponse> {
+  const { data } = await apiPostWithMeta<BuildPlanningContextJobResponse>(
     '/api/planning-contexts/build',
     {
       source: 'external-osm',

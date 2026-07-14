@@ -4,8 +4,9 @@ import type { Static } from '@sinclair/typebox';
 import type {
   ApiEnvelope,
   ApiErrorEnvelope,
-  BuildPlanningContextResponse,
+  BuildPlanningContextJobResponse,
   PlanningContext,
+  PlanningContextBuildJobStatusResponse,
   PlanningContextDetailResponse,
 } from '@sitelens/shared';
 import {
@@ -13,12 +14,12 @@ import {
   assertUsageWithinLimit,
   resolveBilling,
 } from '../billing/billingService';
-import { recordUsage } from '../billing/billingRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
 import {
-  buildExternalPlanningContext,
+  enqueuePlanningContextBuild,
   PlanningContextBuildError,
 } from '../externalData/planningContextBuilder';
+import { getBuildJob } from '../externalData/planningContextBuildJobRepository';
 import {
   countContextFeatures,
   getPlanningContext,
@@ -44,7 +45,10 @@ type BuildBody = Static<typeof buildBody>;
 const contextParams = Type.Object({ id: Type.String() });
 type ContextParams = Static<typeof contextParams>;
 
-/** Planning-context list / detail / build routes. */
+const jobParams = Type.Object({ jobId: Type.String({ minLength: 1 }) });
+type JobParams = Static<typeof jobParams>;
+
+/** Planning-context list / detail / build / job routes. */
 export async function planningContextsRoutes(
   app: FastifyInstance,
 ): Promise<void> {
@@ -61,6 +65,38 @@ export async function planningContextsRoutes(
       return reply;
     }
   });
+
+  // Must be registered before `/planning-contexts/:id`.
+  app.get<{ Params: JobParams }>(
+    '/planning-contexts/jobs/:jobId',
+    { schema: { params: jobParams } },
+    async (request, reply) => {
+      try {
+        const job = await getBuildJob(request.params.jobId);
+        if (!job) {
+          const body: ApiErrorEnvelope = {
+            error: {
+              code: 'NOT_FOUND',
+              message: `Build job not found: ${request.params.jobId}`,
+            },
+          };
+          reply.code(404);
+          return body;
+        }
+        const body: ApiEnvelope<PlanningContextBuildJobStatusResponse> = {
+          data: { job },
+          meta: {
+            requestId: request.id,
+            planningContextId: job.planningContextId,
+          },
+        };
+        return body;
+      } catch (error) {
+        sendDatabaseUnavailable(reply, error);
+        return reply;
+      }
+    },
+  );
 
   app.get<{ Params: ContextParams }>(
     '/planning-contexts/:id',
@@ -102,14 +138,15 @@ export async function planningContextsRoutes(
       assertFeature(billing, 'external-context:build');
 
       try {
-        const result = await buildExternalPlanningContext(
+        const result = await enqueuePlanningContextBuild(
           {
             place: request.body.place,
             source: request.body.source ?? 'external-osm',
           },
           {
+            userId: user?.id ?? null,
             beforeLiveFetch: async () => {
-              // Checked only before a live Overpass call (not for fresh reuse).
+              // Checked only before enqueueing a live Overpass job (not reuse).
               if (user) {
                 await assertUsageWithinLimit(
                   user.id,
@@ -121,15 +158,11 @@ export async function planningContextsRoutes(
           },
         );
 
-        if (user && result.reused !== true) {
-          await recordUsage(user.id, 'external-context:build');
-        }
-
-        const body: ApiEnvelope<BuildPlanningContextResponse> = {
+        const body: ApiEnvelope<BuildPlanningContextJobResponse> = {
           data: result,
           meta: {
             requestId: request.id,
-            planningContextId: result.context.id,
+            planningContextId: result.contextId,
             access: { role: user?.role, plan: billing.plan.id },
           },
         };

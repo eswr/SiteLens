@@ -1,6 +1,6 @@
 import type {
+  BuildPlanningContextJobResponse,
   BuildPlanningContextRequest,
-  BuildPlanningContextResponse,
   PlanningContext,
 } from '@sitelens/shared';
 import {
@@ -9,25 +9,19 @@ import {
 } from '@sitelens/shared';
 import { HttpError } from '../auth/requireCapability';
 import { loadConfig } from '../config';
-import { clearPlanningCache } from '../cache/clearCache';
-import { isCacheEnabled, waitForCacheReady } from '../cache/cacheClient';
 import { getPool } from '../db/pool';
 import { BboxTooLargeError, buildExternalContextId, deriveContextBbox } from './bbox';
 import {
-  fetchOverpassFeatures,
-  OverpassDisabledError,
-  OverpassRequestError,
-} from './osmOverpassClient';
-import { osmToPlanningContext } from './osmToPlanningContext';
+  findActiveBuildJob,
+  insertBuildJob,
+  isUniqueViolation,
+} from './planningContextBuildJobRepository';
 import {
-  commitReadyExternalContext,
   countContextFeatures,
   getPlanningContext,
   markPlanningContextBuilding,
-  markPlanningContextFailed,
-  releaseContextBuildLock,
-  tryAcquireContextBuildLock,
 } from './planningContextRepository';
+import { nudgePlanningContextBuildWorker } from './planningContextBuildWorker';
 
 export class PlanningContextBuildError extends Error {
   readonly code: string;
@@ -48,61 +42,38 @@ function isFresh(context: PlanningContext, rebuildAfterDays: number): boolean {
   return ageMs < rebuildAfterDays * 24 * 60 * 60 * 1000;
 }
 
-async function invalidatePlanningCache(): Promise<void> {
-  if (!isCacheEnabled()) return;
-  try {
-    await waitForCacheReady();
-    await clearPlanningCache();
-  } catch {
-    // Cache invalidation must never fail a successful build.
-  }
+function activeJobResponse(
+  contextId: string,
+  active: { id: string; status: string },
+): BuildPlanningContextJobResponse {
+  return {
+    jobId: active.id,
+    contextId,
+    status: active.status === 'running' ? 'running' : 'queued',
+  };
 }
 
-function toBuildError(error: unknown): PlanningContextBuildError {
-  if (error instanceof PlanningContextBuildError) {
-    return error;
-  }
-  if (error instanceof OverpassDisabledError) {
-    return new PlanningContextBuildError(error.message, error.code, 503);
-  }
-  if (error instanceof OverpassRequestError) {
-    return new PlanningContextBuildError(
-      error.message,
-      error.code,
-      error.status === 429 ? 429 : 503,
-    );
-  }
-  return new PlanningContextBuildError(
-    'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.',
-    'OVERPASS_ERROR',
-    503,
-  );
-}
-
-export interface BuildExternalPlanningContextOptions {
+export interface EnqueuePlanningContextBuildOptions {
   /**
-   * Called under the advisory lock after the freshness recheck, and before
-   * marking the context `building` / calling Overpass. Used for quota checks so
-   * entitlement failures never leave a failed context row behind.
+   * Called before marking the context `building` / enqueueing a live job.
+   * Used for quota checks so entitlement failures never leave a failed context.
    */
   beforeLiveFetch?: () => Promise<void>;
+  /** Optional user id stored on the job for usage metering after success. */
+  userId?: string | null;
 }
 
 /**
- * Build (or reuse) an external OSM planning context for a selected place.
+ * Enqueue (or reuse) an external OSM planning context build for a selected place.
  *
- * Live Overpass fetch happens only here — never on keystrokes or map moves.
- * Per-context advisory locks prevent concurrent Overpass calls for the same id.
- *
- * Demo note: the Postgres session (and advisory lock) is held for the duration
- * of the Overpass HTTP call. That gives simple singleflight semantics for a
- * portfolio demo; production should move to a job queue / distributed lock with
- * short DB transactions instead of pinning a pool client across the provider round-trip.
+ * Live Overpass fetch happens in the in-process worker — never on this request
+ * path, and never on keystrokes or map moves. Fresh contexts return a succeeded
+ * job immediately without calling Overpass.
  */
-export async function buildExternalPlanningContext(
+export async function enqueuePlanningContextBuild(
   request: BuildPlanningContextRequest,
-  options: BuildExternalPlanningContextOptions = {},
-): Promise<BuildPlanningContextResponse> {
+  options: EnqueuePlanningContextBuildOptions = {},
+): Promise<BuildPlanningContextJobResponse> {
   const place = request.place;
   if (
     !place ||
@@ -152,13 +123,33 @@ export async function buildExternalPlanningContext(
   const existing = await getPlanningContext(contextId);
   if (existing && isFresh(existing, config.externalContextRebuildAfterDays)) {
     const counts = await countContextFeatures(contextId);
-    return { context: existing, counts, reused: true };
+    const now = new Date().toISOString();
+    const job = await insertBuildJob({
+      planningContextId: contextId,
+      status: 'succeeded',
+      place,
+      counts,
+      reused: true,
+      userId: options.userId ?? null,
+      startedAt: now,
+      finishedAt: now,
+    });
+    return {
+      jobId: job.id,
+      contextId,
+      status: 'succeeded',
+      reused: true,
+    };
   }
 
-  const pool = getPool();
-  const client = await pool.connect();
-  let lockHeld = false;
+  const active = await findActiveBuildJob(contextId);
+  if (active) {
+    nudgePlanningContextBuildWorker();
+    return activeJobResponse(contextId, active);
+  }
 
+  // Fresh reuse may create a context; live enqueue requires the context row
+  // (FK on jobs). Ensure building row exists before inserting the job.
   const now = new Date().toISOString();
   const building: PlanningContext = {
     id: contextId,
@@ -178,102 +169,118 @@ export async function buildExternalPlanningContext(
     updatedAt: now,
   };
 
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    lockHeld = await tryAcquireContextBuildLock(client, contextId);
-    if (!lockHeld) {
-      const concurrent = await getPlanningContext(contextId);
-      if (concurrent?.status === 'building') {
-        throw new PlanningContextBuildError(
-          `Planning context "${contextId}" is already building. Try again shortly.`,
-          'BUILD_IN_PROGRESS',
-          409,
-        );
-      }
-      if (
-        concurrent &&
-        isFresh(concurrent, config.externalContextRebuildAfterDays)
-      ) {
-        const counts = await countContextFeatures(contextId);
-        return { context: concurrent, counts, reused: true };
-      }
-      throw new PlanningContextBuildError(
-        `Planning context "${contextId}" is already building. Try again shortly.`,
-        'BUILD_IN_PROGRESS',
-        409,
-      );
-    }
+    await client.query('BEGIN');
 
-    // Re-check freshness under the lock (another request may have finished).
-    const underLock = await getPlanningContext(contextId, client);
+    // Re-check freshness / active job under the transaction.
+    const underTxn = await getPlanningContext(contextId, client);
     if (
-      underLock &&
-      isFresh(underLock, config.externalContextRebuildAfterDays)
+      underTxn &&
+      isFresh(underTxn, config.externalContextRebuildAfterDays)
     ) {
       const counts = await countContextFeatures(contextId, client);
-      return { context: underLock, counts, reused: true };
+      const job = await insertBuildJob(
+        {
+          planningContextId: contextId,
+          status: 'succeeded',
+          place,
+          counts,
+          reused: true,
+          userId: options.userId ?? null,
+          startedAt: now,
+          finishedAt: now,
+        },
+        client,
+      );
+      await client.query('COMMIT');
+      return {
+        jobId: job.id,
+        contextId,
+        status: 'succeeded',
+        reused: true,
+      };
     }
 
-    // Quota / entitlement checks run under the lock but before status=building
-    // so a monthly limit does not leave a failed context behind.
+    const activeAgain = await findActiveBuildJob(contextId, client);
+    if (activeAgain) {
+      await client.query('COMMIT');
+      nudgePlanningContextBuildWorker();
+      return activeJobResponse(contextId, activeAgain);
+    }
+
+    // Quota / entitlement before status=building so limits leave no failed row.
     if (options.beforeLiveFetch) {
       await options.beforeLiveFetch();
     }
 
     await markPlanningContextBuilding(client, building);
-
-    // Overpass fetch happens while the session advisory lock is held so a
-    // concurrent request for the same contextId never starts a second provider call.
-    // (Acceptable for demo singleflight; production should use a job queue.)
-    const features = await fetchOverpassFeatures(bbox);
-    const normalized = osmToPlanningContext(features);
-    const committed = await commitReadyExternalContext({
+    const job = await insertBuildJob(
+      {
+        planningContextId: contextId,
+        status: 'queued',
+        place,
+        userId: options.userId ?? null,
+      },
       client,
-      building,
-      normalized,
-    });
+    );
+    await client.query('COMMIT');
 
-    await invalidatePlanningCache();
+    nudgePlanningContextBuildWorker();
 
     return {
-      context: committed.context,
-      counts: {
-        sites: committed.sites,
-        landUse: committed.landUse,
-        constraints: committed.constraints,
-        transit: committed.transit,
-        developmentActivity: committed.developmentActivity,
-      },
-      reused: false,
+      jobId: job.id,
+      contextId,
+      status: 'queued',
     };
   } catch (error) {
-    // Concurrent builders must not mark the other request's in-flight context failed.
-    if (
-      error instanceof PlanningContextBuildError &&
-      error.code === 'BUILD_IN_PROGRESS'
-    ) {
-      throw error;
-    }
-
-    // Entitlement / quota failures are request failures, not context builds.
-    if (error instanceof HttpError) {
-      throw error;
-    }
-
-    const buildError = toBuildError(error);
     try {
-      await markPlanningContextFailed(building, buildError.message);
+      await client.query('ROLLBACK');
     } catch {
-      // Best-effort failure marking.
+      // Ignore rollback errors.
     }
-    throw buildError;
-  } finally {
-    if (lockHeld) {
-      try {
-        await releaseContextBuildLock(client, contextId);
-      } catch {
-        // Ignore unlock errors on disconnect.
+
+    // Concurrent enqueue raced past findActiveBuildJob — return the winner.
+    // The winner may already have finished between 23505 and this lookup.
+    if (isUniqueViolation(error)) {
+      const winner = await findActiveBuildJob(contextId);
+      if (winner) {
+        nudgePlanningContextBuildWorker();
+        return activeJobResponse(contextId, winner);
+      }
+
+      const fresh = await getPlanningContext(contextId);
+      if (fresh && isFresh(fresh, config.externalContextRebuildAfterDays)) {
+        const counts = await countContextFeatures(contextId);
+        const reuseNow = new Date().toISOString();
+        const job = await insertBuildJob({
+          planningContextId: contextId,
+          status: 'succeeded',
+          place,
+          counts,
+          reused: true,
+          userId: options.userId ?? null,
+          startedAt: reuseNow,
+          finishedAt: reuseNow,
+        });
+        return {
+          jobId: job.id,
+          contextId,
+          status: 'succeeded',
+          reused: true,
+        };
       }
     }
+
+    if (error instanceof HttpError || error instanceof PlanningContextBuildError) {
+      throw error;
+    }
+    throw error;
+  } finally {
     client.release();
   }
 }
+
+/** @deprecated Use enqueuePlanningContextBuild — kept as alias for tests/migration. */
+export const buildExternalPlanningContext = enqueuePlanningContextBuild;

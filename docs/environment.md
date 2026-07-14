@@ -32,13 +32,20 @@ VITE_DEMO_API_KEY=demo-planner-key
   in local-only / frontend-only mode (Turf.js analysis + local deterministic
   summary, no backend calls). When set, the app calls the API and falls back
   locally on failure/403. Vite bakes this in at **build time**.
-- **`VITE_DEMO_API_KEY`** — demo API key sent as `x-api-key`. Use one of:
+- **`VITE_DEMO_API_KEY`** — canonical browser demo API key sent as `x-api-key`.
+  Use one of:
   - `demo-viewer-key` → Viewer role, Free plan
   - `demo-planner-key` → Planner role, Pro plan
   - `demo-admin-key` → Admin role, Enterprise plan
 
   The in-app **Demo access** control overrides this at runtime (persisted to
   `localStorage`).
+
+  Smoke / deployed verify scripts (`smoke:fullstack`, `verify:deployed:api`) use
+  the same Planner value via
+  `PLANNER_KEY` → else `VITE_DEMO_API_KEY` → else `demo-planner-key`.
+  Set `PLANNER_KEY` only when the script should differ from the web env.
+  Deployed API verification (`verify:deployed:api`) requires `curl` and `jq`.
 
 ## API (`apps/api`)
 
@@ -100,6 +107,10 @@ ENABLE_DEMO_BILLING=true
 | `EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2` | `0.01` | Max bbox area (deg²) accepted for Overpass extracts; larger place bboxes are clamped around the center. |
 | `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. |
 | `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | Optional synthetic fallback (off by default; never silent). |
+| `PLANNING_CONTEXT_WORKER_ENABLED` | `true` | Start the in-process build-job worker on API boot (`server.ts`). |
+| `PLANNING_CONTEXT_WORKER_POLL_MS` | `750` | Interval between worker ticks when scanning for claimable jobs. |
+| `PLANNING_CONTEXT_JOB_LOCK_MS` | `300000` | Lease duration (ms) while a job is `running` before it can be reclaimed. |
+| `PLANNING_CONTEXT_JOB_MAX_ATTEMPTS` | `3` | Max claim/reclaim attempts before the job and context are marked failed. |
 
 ### Worldwide place search (geocoding)
 
@@ -118,16 +129,23 @@ ENABLE_DEMO_BILLING=true
 ### External planning contexts (Overpass)
 
 - The browser never calls Overpass. Only `POST /api/planning-contexts/build`
-  (Planner/Pro+) triggers a live provider fetch.
+  (Planner/Pro+) enqueues a live provider fetch via `planning_context_build_jobs`.
+- An in-process demo worker (toggle via `PLANNING_CONTEXT_WORKER_ENABLED`) claims
+  queued jobs or running jobs whose lease is null/expired, calls Overpass
+  **without** holding a pool client, then commits features in a short
+  transaction. A partial unique index enforces one active job per context;
+  expired leases / max attempts recover stuck `running` jobs after a process
+  crash. Poll `GET /api/planning-contexts/jobs/:jobId` until terminal.
 - Overpass calls are process-local rate-spaced; production should use a
   distributed Redis-backed limiter/queue.
-- Generated contexts are stored in PostGIS and reused when still fresh.
-- Feature writes commit atomically (clear → insert → mark ready); Redis planning
-  cache is invalidated only after commit. Concurrent builds for the same context
-  take a PostgreSQL advisory lock (`409 BUILD_IN_PROGRESS`).
+- Generated contexts are stored in PostGIS and reused when still fresh
+  (`status: "succeeded", reused: true` with no Overpass call).
+- Feature writes commit atomically (clear → insert → mark ready + job succeeded);
+  Redis planning cache is invalidated only after commit. Concurrent POSTs for the
+  same context return the existing active job.
 - Builds are metered (`external-context:build`: Free `0` / Pro monthly /
-  Enterprise unlimited). Quota is checked before Overpass; usage is recorded
-  only after a successful new build (not fresh reuse).
+  Enterprise unlimited). Quota is checked before enqueueing a live job; usage is
+  recorded by the worker after a successful new build (not fresh reuse).
 - External layers are open-map-derived urban context (sites/land use/constraints/
   transit/activity proxies) — **not** official zoning, cadastre, or DAs.
 - The Places tab includes an autocomplete-style UX, but it does not call public

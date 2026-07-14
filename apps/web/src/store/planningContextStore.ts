@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import type {
-  BuildPlanningContextResponse,
   PlanningContext,
   PlanningContextFeatureCounts,
 } from '@sitelens/shared';
-import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
+import {
+  EXTERNAL_OSM_DISCLAIMER,
+  LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+} from '@sitelens/shared';
 import {
   buildPlanningContext,
+  getPlanningContextBuildJob,
   getPlanningContextDetail,
   listPlanningContexts,
 } from '../api/planningContextsApi';
@@ -18,13 +21,13 @@ import { useAiSummaryStore } from './aiSummaryStore';
 import { useSearchStore } from './searchStore';
 
 const STORAGE_KEY = 'sitelens:selected-planning-context:v1';
+const BUILD_POLL_MS = 1000;
+const BUILD_POLL_MAX_MS = 120_000;
 
 export const EMPTY_BUILD_NOTICE =
   'The context was built, but no usable planning features were found in this area. Try a different place or a smaller area.';
 
-function isEmptyBuildCounts(
-  counts: BuildPlanningContextResponse['counts'],
-): boolean {
+function isEmptyBuildCounts(counts: PlanningContextFeatureCounts): boolean {
   return (
     counts.sites +
       counts.landUse +
@@ -33,6 +36,52 @@ function isEmptyBuildCounts(
       counts.developmentActivity ===
     0
   );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function optimisticBuildingContext(
+  contextId: string,
+  place: PlaceSearchResult,
+): PlanningContext {
+  const now = new Date().toISOString();
+  const labelBase =
+    place.label.split(',')[0]?.trim() ||
+    place.displayName.split(',')[0]?.trim() ||
+    'Place';
+  return {
+    id: contextId,
+    label: `${labelBase} external context`,
+    source: 'external-osm',
+    status: 'building',
+    center: [place.longitude, place.latitude],
+    bbox: place.boundingBox
+      ? [
+          place.boundingBox[2],
+          place.boundingBox[0],
+          place.boundingBox[3],
+          place.boundingBox[1],
+        ]
+      : [
+          place.longitude - 0.02,
+          place.latitude - 0.02,
+          place.longitude + 0.02,
+          place.latitude + 0.02,
+        ],
+    place: {
+      id: place.id,
+      label: place.label,
+      displayName: place.displayName,
+      provider: place.provider,
+    },
+    disclaimer: EXTERNAL_OSM_DISCLAIMER,
+    createdAt: now,
+    updatedAt: now,
+  };
 }
 
 const SYDNEY_FALLBACK: PlanningContext = {
@@ -103,6 +152,8 @@ interface PlanningContextState {
   lastBuildReused: boolean | null;
   isLoading: boolean;
   isBuilding: boolean;
+  /** Job id for the in-flight build; stale polls must not overwrite selection. */
+  activeBuildJobId: string | null;
   buildError: string | null;
   /** Immediate post-build notice (e.g. empty feature counts). */
   buildNotice: string | null;
@@ -126,6 +177,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
     lastBuildReused: null,
     isLoading: false,
     isBuilding: false,
+    activeBuildJobId: null,
     buildError: null,
     buildNotice: null,
     dataRevision: 0,
@@ -209,6 +261,8 @@ export const usePlanningContextStore = create<PlanningContextState>(
         selectedCounts: null,
         countsLoading: true,
         lastBuildReused: null,
+        activeBuildJobId: null,
+        isBuilding: false,
         dataRevision: state.dataRevision + 1,
         buildError: null,
       }));
@@ -235,39 +289,146 @@ export const usePlanningContextStore = create<PlanningContextState>(
         });
         return;
       }
+
+      const prior = {
+        selectedContextId: get().selectedContextId,
+        selectedContext: get().selectedContext,
+        selectedCounts: get().selectedCounts,
+      };
+
       set({
         isBuilding: true,
         buildError: null,
         buildNotice: null,
         lastBuildReused: null,
       });
+
+      let jobId: string | null = null;
+
       try {
-        const result = await buildPlanningContext(place);
+        const enqueued = await buildPlanningContext(place);
+        jobId = enqueued.jobId;
+        const stillActive = () => get().activeBuildJobId === jobId;
+
+        set({ activeBuildJobId: jobId });
+
+        const restorePrior = (buildError: string) => {
+          if (!stillActive()) return;
+          set({
+            selectedContextId: prior.selectedContextId,
+            selectedContext: prior.selectedContext,
+            selectedCounts: prior.selectedCounts,
+            countsLoading: false,
+            isBuilding: false,
+            activeBuildJobId: null,
+            buildError,
+            buildNotice: null,
+            lastBuildReused: null,
+          });
+        };
+
+        const buildingStub = optimisticBuildingContext(
+          enqueued.contextId,
+          place,
+        );
+
+        if (enqueued.status !== 'succeeded') {
+          if (!stillActive()) return;
+          set({
+            selectedContextId: enqueued.contextId,
+            selectedContext: buildingStub,
+            selectedCounts: null,
+            countsLoading: true,
+            isBuilding: true,
+          });
+        }
+
+        let terminalStatus: 'queued' | 'running' | 'succeeded' | 'failed' =
+          enqueued.status;
+        let terminalReused = enqueued.reused === true;
+        let terminalError: string | null = null;
+
+        if (enqueued.status === 'queued' || enqueued.status === 'running') {
+          const deadline = Date.now() + BUILD_POLL_MAX_MS;
+          while (Date.now() < deadline) {
+            await sleep(BUILD_POLL_MS);
+            if (!stillActive()) return;
+            const { job } = await getPlanningContextBuildJob(enqueued.jobId);
+            if (!stillActive()) return;
+            if (job.status === 'succeeded' || job.status === 'failed') {
+              terminalStatus = job.status;
+              terminalReused = job.reused === true;
+              terminalError = job.errorMessage ?? null;
+              break;
+            }
+            set({
+              selectedContextId: enqueued.contextId,
+              selectedContext: {
+                ...buildingStub,
+                status: 'building',
+                updatedAt: new Date().toISOString(),
+              },
+              selectedCounts: null,
+              countsLoading: true,
+              isBuilding: true,
+            });
+          }
+          if (!stillActive()) return;
+          if (terminalStatus === 'queued' || terminalStatus === 'running') {
+            restorePrior(
+              'Planning context build timed out. Try again shortly.',
+            );
+            return;
+          }
+        } else if (enqueued.status === 'succeeded') {
+          try {
+            const { job } = await getPlanningContextBuildJob(enqueued.jobId);
+            terminalReused = job.reused === true || enqueued.reused === true;
+          } catch {
+            terminalReused = enqueued.reused === true;
+          }
+        }
+
+        if (!stillActive()) return;
+
+        if (terminalStatus === 'failed') {
+          restorePrior(
+            terminalError ??
+              'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.',
+          );
+          return;
+        }
+
+        const detail = await getPlanningContextDetail(enqueued.contextId);
+        if (!stillActive()) return;
+
         const contexts = await listPlanningContexts().catch(
           () => get().contexts,
         );
-        const merged = contexts.some((c) => c.id === result.context.id)
+        if (!stillActive()) return;
+
+        const merged = contexts.some((c) => c.id === detail.context.id)
           ? contexts.map((c) =>
-              c.id === result.context.id ? result.context : c,
+              c.id === detail.context.id ? detail.context : c,
             )
-          : [result.context, ...contexts];
-        persistId(result.context.id);
+          : [detail.context, ...contexts];
+        persistId(detail.context.id);
         clearTransientUi();
-        // Keep place selected so build UI stays visible, but fly to context.
         useMapStore.getState().requestFlyToFeature({
-          center: result.context.center,
-          bbox: result.context.bbox,
+          center: detail.context.center,
+          bbox: detail.context.bbox,
           geometryType: 'Polygon',
         });
         set((state) => ({
           contexts: merged,
-          selectedContextId: result.context.id,
-          selectedContext: result.context,
-          selectedCounts: result.counts,
+          selectedContextId: detail.context.id,
+          selectedContext: detail.context,
+          selectedCounts: detail.counts,
           countsLoading: false,
-          lastBuildReused: result.reused === true,
+          lastBuildReused: terminalReused,
           isBuilding: false,
-          buildNotice: isEmptyBuildCounts(result.counts)
+          activeBuildJobId: null,
+          buildNotice: isEmptyBuildCounts(detail.counts)
             ? EMPTY_BUILD_NOTICE
             : null,
           dataRevision: state.dataRevision + 1,
@@ -277,11 +438,21 @@ export const usePlanningContextStore = create<PlanningContextState>(
           error instanceof ApiError
             ? error.message
             : 'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.';
-        set({
-          isBuilding: false,
-          buildError: message,
-          buildNotice: null,
-        });
+        // Ignore failures from superseded builds (user selected another context
+        // or started a newer build). Pre-enqueue failures have jobId == null.
+        if (jobId == null || get().activeBuildJobId === jobId) {
+          set({
+            selectedContextId: prior.selectedContextId,
+            selectedContext: prior.selectedContext,
+            selectedCounts: prior.selectedCounts,
+            countsLoading: false,
+            isBuilding: false,
+            activeBuildJobId: null,
+            buildError: message,
+            buildNotice: null,
+            lastBuildReused: null,
+          });
+        }
       }
     },
 

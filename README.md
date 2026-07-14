@@ -36,12 +36,16 @@ Full-stack smoke test (while the API is running):
 npm run smoke:fullstack
 # Optional geocoding check (Nominatim or static-demo fallback):
 SMOKE_GEOCODING=true SMOKE_GEOCODING_EXPECT_FALLBACK=true npm run smoke:fullstack
+# Optional async planning-context build (Overpass may rate-limit):
+SMOKE_CONTEXT_BUILD=true npm run smoke:fullstack
 ```
 
-Deployed API verification:
+Deployed API verification (requires `curl` and `jq`):
 
 ```bash
 API_BASE=https://<api-host> npm run verify:deployed:api
+# Optional async build path on the deployed API:
+SMOKE_CONTEXT_BUILD=true API_BASE=https://<api-host> npm run verify:deployed:api
 ```
 
 See [`docs/environment.md`](docs/environment.md) for env vars,

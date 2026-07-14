@@ -117,8 +117,6 @@ vi.mock('../externalData/planningContextRepository', () => ({
   })),
   markPlanningContextBuilding: vi.fn(async () => {}),
   markPlanningContextFailed: vi.fn(async () => {}),
-  tryAcquireContextBuildLock: vi.fn(async () => true),
-  releaseContextBuildLock: vi.fn(async () => {}),
   countContextFeatures: vi.fn(async () => ({
     sites: 0,
     landUse: 0,
@@ -126,6 +124,36 @@ vi.mock('../externalData/planningContextRepository', () => ({
     transit: 0,
     developmentActivity: 0,
   })),
+}));
+
+vi.mock('../externalData/planningContextBuildJobRepository', () => ({
+  getBuildJob: vi.fn(async () => null),
+  findActiveBuildJob: vi.fn(async () => null),
+  insertBuildJob: vi.fn(async () => ({
+    id: '11111111-1111-1111-1111-111111111111',
+    planningContextId: 'external-osm:x',
+    status: 'queued',
+    place: {
+      id: 'x',
+      label: 'x',
+      displayName: 'x',
+      latitude: 0,
+      longitude: 0,
+      provider: 'static-demo',
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })),
+  claimNextQueuedBuildJob: vi.fn(async () => null),
+  markBuildJobSucceeded: vi.fn(async () => ({})),
+  markBuildJobFailed: vi.fn(async () => null),
+}));
+
+vi.mock('../externalData/planningContextBuildWorker', () => ({
+  nudgePlanningContextBuildWorker: vi.fn(),
+  startPlanningContextBuildWorker: vi.fn(),
+  stopPlanningContextBuildWorker: vi.fn(),
+  runPlanningContextBuildWorkerTick: vi.fn(),
 }));
 
 // Resolve billing from demo-user defaults (no DB) for deterministic gating.

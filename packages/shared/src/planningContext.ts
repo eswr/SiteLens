@@ -62,15 +62,49 @@ export interface PlanningContextFeatureCounts {
   developmentActivity: number;
 }
 
-/** Detail payload for `GET /api/planning-contexts/:id` (and build without reuse). */
+/** Detail payload for `GET /api/planning-contexts/:id`. */
 export interface PlanningContextDetailResponse {
   context: PlanningContext;
   counts: PlanningContextFeatureCounts;
 }
 
-export interface BuildPlanningContextResponse extends PlanningContextDetailResponse {
+export type PlanningContextBuildJobStatus =
+  | 'queued'
+  | 'running'
+  | 'succeeded'
+  | 'failed';
+
+/** Full place payload stored on a build job (lat/lng/bbox for the worker). */
+export type PlanningContextBuildJobPlace = BuildPlanningContextRequest['place'];
+
+export interface PlanningContextBuildJob {
+  id: string;
+  planningContextId: string;
+  status: PlanningContextBuildJobStatus;
+  place: PlanningContextBuildJobPlace;
+  counts?: PlanningContextFeatureCounts | null;
+  reused?: boolean | null;
+  errorMessage?: string | null;
+  /** Claim/reclaim count — useful for debugging stuck or retried jobs. */
+  attempts?: number;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+/** Immediate response from `POST /api/planning-contexts/build`. */
+export interface BuildPlanningContextJobResponse {
+  jobId: string;
+  contextId: string;
+  status: 'queued' | 'running' | 'succeeded';
   /** True when a fresh ready context was returned without calling Overpass. */
   reused?: boolean;
+}
+
+/** Payload for `GET /api/planning-contexts/jobs/:jobId`. */
+export interface PlanningContextBuildJobStatusResponse {
+  job: PlanningContextBuildJob;
 }
 
 /** Bundled Sydney portfolio fixture — default / offline fallback context. */

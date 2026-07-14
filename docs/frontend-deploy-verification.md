@@ -39,6 +39,7 @@ From the browser Network tab, these requests must succeed against
 - `GET /api/planning-contexts`
 - `GET /api/planning-contexts/:id`
 - `POST /api/planning-contexts/build`
+- `GET /api/planning-contexts/jobs/:jobId`
 - `POST /api/analyze-area`
 - `POST /api/planning-summary`
 

@@ -4,68 +4,44 @@ import type { PlanningContext } from '@sitelens/shared';
 const {
   getPlanningContext,
   countContextFeatures,
-  tryAcquireContextBuildLock,
-  releaseContextBuildLock,
   markPlanningContextBuilding,
-  markPlanningContextFailed,
-  commitReadyExternalContext,
-  fetchOverpassFeatures,
-  osmToPlanningContext,
+  findActiveBuildJob,
+  insertBuildJob,
   getPool,
   loadConfig,
-  isCacheEnabled,
+  nudgePlanningContextBuildWorker,
 } = vi.hoisted(() => ({
   getPlanningContext: vi.fn(),
   countContextFeatures: vi.fn(),
-  tryAcquireContextBuildLock: vi.fn(),
-  releaseContextBuildLock: vi.fn(),
   markPlanningContextBuilding: vi.fn(),
-  markPlanningContextFailed: vi.fn(),
-  commitReadyExternalContext: vi.fn(),
-  fetchOverpassFeatures: vi.fn(),
-  osmToPlanningContext: vi.fn(),
+  findActiveBuildJob: vi.fn(),
+  insertBuildJob: vi.fn(),
   getPool: vi.fn(),
   loadConfig: vi.fn(),
-  isCacheEnabled: vi.fn(() => false),
+  nudgePlanningContextBuildWorker: vi.fn(),
 }));
 
 vi.mock('../config', () => ({ loadConfig }));
 vi.mock('../db/pool', () => ({ getPool }));
-vi.mock('../cache/cacheClient', () => ({
-  isCacheEnabled,
-  waitForCacheReady: vi.fn(async () => {}),
+vi.mock('./planningContextBuildWorker', () => ({
+  nudgePlanningContextBuildWorker,
 }));
-vi.mock('../cache/clearCache', () => ({
-  clearPlanningCache: vi.fn(async () => {}),
-}));
-vi.mock('./osmOverpassClient', () => ({
-  fetchOverpassFeatures,
-  OverpassDisabledError: class OverpassDisabledError extends Error {
-    code = 'OVERPASS_DISABLED';
-  },
-  OverpassRequestError: class OverpassRequestError extends Error {
-    code = 'OVERPASS_ERROR';
-    status?: number;
-    constructor(message: string, status?: number) {
-      super(message);
-      this.status = status;
-    }
-  },
-}));
-vi.mock('./osmToPlanningContext', () => ({ osmToPlanningContext }));
+vi.mock('./planningContextBuildJobRepository', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('./planningContextBuildJobRepository')>();
+  return {
+    ...actual,
+    findActiveBuildJob,
+    insertBuildJob,
+  };
+});
 vi.mock('./planningContextRepository', () => ({
   getPlanningContext,
   countContextFeatures,
-  tryAcquireContextBuildLock,
-  releaseContextBuildLock,
   markPlanningContextBuilding,
-  markPlanningContextFailed,
-  commitReadyExternalContext,
 }));
 
-const { buildExternalPlanningContext, PlanningContextBuildError } =
-  await import('./planningContextBuilder');
-const { OverpassRequestError } = await import('./osmOverpassClient');
+const { enqueuePlanningContextBuild } = await import('./planningContextBuilder');
 
 const place = {
   id: 'static-demo-bengaluru',
@@ -100,134 +76,116 @@ const emptyCounts = {
   developmentActivity: 0,
 };
 
-describe('buildExternalPlanningContext', () => {
+describe('enqueuePlanningContextBuild', () => {
+  const release = vi.fn();
+  const query = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     loadConfig.mockReturnValue({
       externalContextMaxBboxAreaDeg2: 0.25,
       externalContextRebuildAfterDays: 7,
     });
-    isCacheEnabled.mockReturnValue(false);
     countContextFeatures.mockResolvedValue(emptyCounts);
+    findActiveBuildJob.mockResolvedValue(null);
+    query.mockResolvedValue({ rows: [] });
     getPool.mockReturnValue({
       connect: async () => ({
-        release: vi.fn(),
+        query,
+        release,
       }),
     });
-    osmToPlanningContext.mockReturnValue({
-      sites: [],
-      landUse: [],
-      constraints: [],
-      transit: [],
-      developmentActivity: [],
-      skipped: 0,
-    });
   });
 
-  it('reuses a fresh ready context without calling Overpass', async () => {
-    const existing = readyContext();
-    getPlanningContext.mockResolvedValue(existing);
+  it('reuses a fresh ready context without enqueueing a live job', async () => {
+    getPlanningContext.mockImplementation(async (id: string) =>
+      readyContext({ id }),
+    );
     countContextFeatures.mockResolvedValue({ ...emptyCounts, sites: 12 });
+    insertBuildJob.mockImplementation(async (input: { planningContextId: string }) => ({
+      id: 'job-reuse',
+      planningContextId: input.planningContextId,
+      status: 'succeeded',
+      place,
+      counts: { ...emptyCounts, sites: 12 },
+      reused: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
 
-    const result = await buildExternalPlanningContext({ place });
+    const result = await enqueuePlanningContextBuild({ place });
 
-    expect(result.reused).toBe(true);
-    expect(result.counts.sites).toBe(12);
-    expect(fetchOverpassFeatures).not.toHaveBeenCalled();
-    expect(tryAcquireContextBuildLock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      jobId: 'job-reuse',
+      status: 'succeeded',
+      reused: true,
+    });
+    expect(result.contextId).toMatch(/^external-osm:/);
+    expect(insertBuildJob).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'succeeded', reused: true }),
+    );
     expect(markPlanningContextBuilding).not.toHaveBeenCalled();
+    expect(nudgePlanningContextBuildWorker).not.toHaveBeenCalled();
   });
 
-  it('returns BUILD_IN_PROGRESS without calling Overpass when lock is held', async () => {
-    getPlanningContext
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        ...readyContext(),
-        status: 'building',
-      });
-    tryAcquireContextBuildLock.mockResolvedValue(false);
-
-    await expect(buildExternalPlanningContext({ place })).rejects.toMatchObject({
-      name: 'PlanningContextBuildError',
-      code: 'BUILD_IN_PROGRESS',
-      statusCode: 409,
-    });
-    expect(fetchOverpassFeatures).not.toHaveBeenCalled();
-    expect(markPlanningContextFailed).not.toHaveBeenCalled();
-  });
-
-  it('does not call Overpass twice across a successful build then fresh reuse', async () => {
-    getPlanningContext.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    tryAcquireContextBuildLock.mockResolvedValue(true);
-    releaseContextBuildLock.mockResolvedValue(undefined);
-    markPlanningContextBuilding.mockResolvedValue(undefined);
-    fetchOverpassFeatures.mockResolvedValue([]);
-    const committed = readyContext({ status: 'ready' });
-    commitReadyExternalContext.mockResolvedValue({
-      ...emptyCounts,
-      sites: 3,
-      skipped: 0,
-      context: committed,
-    });
-
-    const first = await buildExternalPlanningContext({ place });
-    expect(first.reused).toBe(false);
-    expect(fetchOverpassFeatures).toHaveBeenCalledTimes(1);
-
-    getPlanningContext.mockResolvedValue(committed);
-    countContextFeatures.mockResolvedValue({ ...emptyCounts, sites: 3 });
-
-    const second = await buildExternalPlanningContext({ place });
-    expect(second.reused).toBe(true);
-    expect(fetchOverpassFeatures).toHaveBeenCalledTimes(1);
-  });
-
-  it('marks the context failed when Overpass errors', async () => {
+  it('returns an existing active job for the same context and nudges the worker', async () => {
     getPlanningContext.mockResolvedValue(null);
-    tryAcquireContextBuildLock.mockResolvedValue(true);
-    releaseContextBuildLock.mockResolvedValue(undefined);
-    markPlanningContextBuilding.mockResolvedValue(undefined);
-    fetchOverpassFeatures.mockRejectedValue(
-      new OverpassRequestError('upstream down', 503),
-    );
+    findActiveBuildJob.mockResolvedValue({
+      id: 'job-active',
+      planningContextId: 'external-osm:bengaluru:test',
+      status: 'running',
+      place,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
-    await expect(buildExternalPlanningContext({ place })).rejects.toBeInstanceOf(
-      PlanningContextBuildError,
-    );
-    expect(markPlanningContextFailed).toHaveBeenCalled();
-    expect(commitReadyExternalContext).not.toHaveBeenCalled();
+    const result = await enqueuePlanningContextBuild({ place });
+
+    expect(result).toEqual({
+      jobId: 'job-active',
+      contextId: expect.any(String),
+      status: 'running',
+    });
+    expect(markPlanningContextBuilding).not.toHaveBeenCalled();
+    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
   });
 
-  it('invokes beforeLiveFetch only when a live Overpass call is required', async () => {
+  it('enqueues a queued job and nudges the worker', async () => {
+    getPlanningContext.mockResolvedValue(null);
+    findActiveBuildJob.mockResolvedValue(null);
+    insertBuildJob.mockResolvedValue({
+      id: 'job-queued',
+      planningContextId: 'external-osm:bengaluru:test',
+      status: 'queued',
+      place,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     const beforeLiveFetch = vi.fn(async () => {});
-    getPlanningContext.mockResolvedValue(readyContext());
-
-    await buildExternalPlanningContext({ place }, { beforeLiveFetch });
-    expect(beforeLiveFetch).not.toHaveBeenCalled();
-
-    getPlanningContext.mockResolvedValue(null);
-    tryAcquireContextBuildLock.mockResolvedValue(true);
-    releaseContextBuildLock.mockResolvedValue(undefined);
-    markPlanningContextBuilding.mockResolvedValue(undefined);
-    fetchOverpassFeatures.mockResolvedValue([]);
-    commitReadyExternalContext.mockResolvedValue({
-      ...emptyCounts,
-      skipped: 0,
-      context: readyContext(),
-    });
-
-    await buildExternalPlanningContext({ place }, { beforeLiveFetch });
-    expect(beforeLiveFetch).toHaveBeenCalledTimes(1);
-    expect(beforeLiveFetch.mock.invocationCallOrder[0]).toBeLessThan(
-      markPlanningContextBuilding.mock.invocationCallOrder[0],
+    const result = await enqueuePlanningContextBuild(
+      { place },
+      { beforeLiveFetch, userId: 'user_planner' },
     );
+
+    expect(result.status).toBe('queued');
+    expect(result.jobId).toBe('job-queued');
+    expect(beforeLiveFetch).toHaveBeenCalledTimes(1);
+    expect(markPlanningContextBuilding).toHaveBeenCalled();
+    expect(insertBuildJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'queued',
+        userId: 'user_planner',
+      }),
+      expect.anything(),
+    );
+    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
   });
 
-  it('quota exceeded before live fetch does not create or mark a planning context as failed', async () => {
+  it('quota exceeded before live enqueue does not mark building', async () => {
     const { HttpError } = await import('../auth/requireCapability');
     getPlanningContext.mockResolvedValue(null);
-    tryAcquireContextBuildLock.mockResolvedValue(true);
-    releaseContextBuildLock.mockResolvedValue(undefined);
+    findActiveBuildJob.mockResolvedValue(null);
 
     const beforeLiveFetch = vi.fn(async () => {
       throw new HttpError(
@@ -238,7 +196,7 @@ describe('buildExternalPlanningContext', () => {
     });
 
     await expect(
-      buildExternalPlanningContext({ place }, { beforeLiveFetch }),
+      enqueuePlanningContextBuild({ place }, { beforeLiveFetch }),
     ).rejects.toMatchObject({
       name: 'HttpError',
       code: 'ENTITLEMENT_LIMIT_EXCEEDED',
@@ -247,8 +205,73 @@ describe('buildExternalPlanningContext', () => {
 
     expect(beforeLiveFetch).toHaveBeenCalledTimes(1);
     expect(markPlanningContextBuilding).not.toHaveBeenCalled();
-    expect(markPlanningContextFailed).not.toHaveBeenCalled();
-    expect(fetchOverpassFeatures).not.toHaveBeenCalled();
-    expect(commitReadyExternalContext).not.toHaveBeenCalled();
+    expect(nudgePlanningContextBuildWorker).not.toHaveBeenCalled();
+  });
+
+  it('returns the existing active job on unique violation (singleflight)', async () => {
+    getPlanningContext.mockResolvedValue(null);
+    findActiveBuildJob
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'job-winner',
+        planningContextId: 'external-osm:bengaluru:test',
+        status: 'queued',
+        place,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    markPlanningContextBuilding.mockResolvedValue(undefined);
+    insertBuildJob.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate'), { code: '23505' }),
+    );
+
+    const result = await enqueuePlanningContextBuild({ place });
+
+    expect(result).toEqual({
+      jobId: 'job-winner',
+      contextId: expect.any(String),
+      status: 'queued',
+    });
+    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
+  });
+
+  it('returns reused succeeded job when unique-violation winner already finished', async () => {
+    const fresh = readyContext({
+      id: 'external-osm:bengaluru:finished',
+      status: 'ready',
+    });
+    getPlanningContext
+      .mockResolvedValueOnce(null) // initial freshness check
+      .mockResolvedValueOnce(null) // under txn
+      .mockResolvedValueOnce(fresh); // after 23505, winner finished
+    findActiveBuildJob.mockResolvedValue(null);
+    markPlanningContextBuilding.mockResolvedValue(undefined);
+    countContextFeatures.mockResolvedValue({ ...emptyCounts, sites: 5 });
+    insertBuildJob
+      .mockRejectedValueOnce(
+        Object.assign(new Error('duplicate'), { code: '23505' }),
+      )
+      .mockResolvedValueOnce({
+        id: 'job-reuse-after-race',
+        planningContextId: fresh.id,
+        status: 'succeeded',
+        place,
+        counts: { ...emptyCounts, sites: 5 },
+        reused: true,
+        createdAt: fresh.createdAt,
+        updatedAt: fresh.updatedAt,
+      });
+
+    const result = await enqueuePlanningContextBuild({ place });
+
+    expect(result).toMatchObject({
+      jobId: 'job-reuse-after-race',
+      status: 'succeeded',
+      reused: true,
+    });
+    expect(insertBuildJob).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: 'succeeded', reused: true }),
+    );
   });
 });
