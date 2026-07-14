@@ -113,6 +113,10 @@ export interface PlanningContextBuildJobStatusResponse {
  */
 export interface PlanningContextBuildJobQueueHealthResponse {
   workerEnabled: boolean;
+  /** How build jobs are executed: in-process poller, pg-boss worker, or neither. */
+  workerMode: 'in-process' | 'pg-boss' | 'disabled';
+  /** True when workerMode is pg-boss (API enqueues; separate worker consumes). */
+  pgBossEnabled: boolean;
   pollMs: number;
   lockMs: number;
   maxAttempts: number;
@@ -127,6 +131,13 @@ export interface PlanningContextBuildJobQueueHealthResponse {
   failedLast24h: number;
   oldestQueuedAt: string | null;
   oldestRunningAt: string | null;
+  /** Best-effort pg-boss queue depths when workerMode is pg-boss. */
+  pgBoss?: {
+    pending: number;
+    active: number;
+    retry: number;
+    failed: number;
+  } | null;
 }
 
 /** Bundled Sydney portfolio fixture — default / offline fallback context. */

@@ -19,6 +19,7 @@
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@sitelens/shared": "*",
+    "@tanstack/react-query": "^5.101.2",
     "@turf/turf": "^7.3.5",
     "maplibre-gl": "^5.24.0",
     "react": "^19.2.7",

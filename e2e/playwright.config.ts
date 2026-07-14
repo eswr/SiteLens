@@ -45,6 +45,9 @@ export default defineConfig({
               process.env.EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED ?? 'true',
             GEOCODING_STATIC_FALLBACK_ENABLED:
               process.env.GEOCODING_STATIC_FALLBACK_ENABLED ?? 'true',
+            // Force rebuild so Cancel watching always sees queued/running (no reuse).
+            EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS:
+              process.env.EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS ?? '0',
           },
         },
         {

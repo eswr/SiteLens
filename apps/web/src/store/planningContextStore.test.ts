@@ -37,6 +37,7 @@ vi.mock('../api/planningContextsApi', () => ({
 }));
 
 const {
+  CANCEL_WATCH_NOTICE,
   EMPTY_BUILD_NOTICE,
   usePlanningContextStore,
 } = await import('./planningContextStore');
@@ -99,15 +100,20 @@ function resetStore() {
     isLoading: false,
     isBuilding: false,
     activeBuildJobId: null,
+    watchedBuildJobId: null,
+    watchingCancelled: false,
+    watchStartedAtMs: null,
+    watchNotice: null,
     buildError: null,
     buildNotice: null,
     dataRevision: 0,
+    priorBuildSelection: null,
+    buildingStub: null,
   });
 }
 
 describe('planningContextStore async build jobs', () => {
   beforeEach(() => {
-    vi.useRealTimers();
     resetStore();
     isApiConfigured.mockReturnValue(true);
   });
@@ -123,212 +129,242 @@ describe('planningContextStore async build jobs', () => {
     expect(buildPlanningContext).not.toHaveBeenCalled();
   });
 
-  it('shows an optimistic building context while the job is queued/running', async () => {
-    vi.useFakeTimers();
+  it('starts watching a queued build with an optimistic building context', async () => {
     buildPlanningContext.mockResolvedValue({
       jobId: 'job-opt',
       contextId: readyContext.id,
       status: 'queued',
     });
-    getPlanningContextBuildJob.mockResolvedValue({
-      job: {
-        id: 'job-opt',
-        planningContextId: readyContext.id,
-        status: 'running',
-        place,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    });
 
-    const buildPromise = usePlanningContextStore
+    await usePlanningContextStore
       .getState()
       .buildContextFromSelectedPlace(place);
-    await Promise.resolve();
 
     const optimistic = usePlanningContextStore.getState();
     expect(optimistic.isBuilding).toBe(true);
     expect(optimistic.activeBuildJobId).toBe('job-opt');
+    expect(optimistic.watchedBuildJobId).toBe('job-opt');
+    expect(optimistic.watchingCancelled).toBe(false);
     expect(optimistic.selectedContextId).toBe(readyContext.id);
     expect(optimistic.selectedContext?.status).toBe('building');
-    expect(optimistic.selectedContext?.source).toBe('external-osm');
-
-    // Abort before long timeout by superseding the job id.
-    usePlanningContextStore.setState({ activeBuildJobId: null });
-    await vi.advanceTimersByTimeAsync(1000);
-    await buildPromise;
   });
 
-  it('polls until the job succeeds and selects the built context', async () => {
-    vi.useFakeTimers();
+  it('selects the built context when a watched job succeeds', async () => {
     buildPlanningContext.mockResolvedValue({
       jobId: 'job-1',
       contextId: readyContext.id,
       status: 'queued',
     });
-    getPlanningContextBuildJob
-      .mockResolvedValueOnce({
-        job: {
-          id: 'job-1',
-          planningContextId: readyContext.id,
-          status: 'running',
-          place,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      })
-      .mockResolvedValueOnce({
-        job: {
-          id: 'job-1',
-          planningContextId: readyContext.id,
-          status: 'succeeded',
-          reused: false,
-          place,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      });
     getPlanningContextDetail.mockResolvedValue({
       context: readyContext,
       counts: readyCounts,
     });
     listPlanningContexts.mockResolvedValue([sydney, readyContext]);
 
-    const buildPromise = usePlanningContextStore
+    await usePlanningContextStore
       .getState()
       .buildContextFromSelectedPlace(place);
 
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(usePlanningContextStore.getState().isBuilding).toBe(true);
-    expect(usePlanningContextStore.getState().selectedContext?.status).toBe(
-      'building',
-    );
-
-    await vi.advanceTimersByTimeAsync(1000);
-    await buildPromise;
+    await usePlanningContextStore.getState().onBuildJobUpdate({
+      id: 'job-1',
+      planningContextId: readyContext.id,
+      status: 'succeeded',
+      reused: false,
+      place,
+      counts: null,
+      errorMessage: null,
+      attempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+    });
 
     const state = usePlanningContextStore.getState();
     expect(state.isBuilding).toBe(false);
     expect(state.activeBuildJobId).toBeNull();
+    expect(state.watchedBuildJobId).toBeNull();
     expect(state.selectedContextId).toBe(readyContext.id);
     expect(state.selectedCounts).toEqual(readyCounts);
     expect(state.lastBuildReused).toBe(false);
-    expect(state.buildError).toBeNull();
   });
 
-  it('rolls back to the prior selection when the job fails', async () => {
-    vi.useFakeTimers();
+  it('rolls back to the prior selection when the job fails while watching', async () => {
     buildPlanningContext.mockResolvedValue({
       jobId: 'job-fail',
       contextId: readyContext.id,
       status: 'queued',
     });
-    getPlanningContextBuildJob.mockResolvedValue({
-      job: {
-        id: 'job-fail',
-        planningContextId: readyContext.id,
-        status: 'failed',
-        errorMessage: 'Overpass unavailable',
-        place,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    });
 
-    const buildPromise = usePlanningContextStore
+    await usePlanningContextStore
       .getState()
       .buildContextFromSelectedPlace(place);
-    await vi.advanceTimersByTimeAsync(1000);
-    await buildPromise;
+
+    await usePlanningContextStore.getState().onBuildJobUpdate({
+      id: 'job-fail',
+      planningContextId: readyContext.id,
+      status: 'failed',
+      errorMessage: 'Overpass unavailable',
+      place,
+      counts: null,
+      reused: null,
+      attempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+    });
 
     const state = usePlanningContextStore.getState();
     expect(state.selectedContextId).toBe(sydney.id);
     expect(state.selectedContext).toEqual(sydney);
     expect(state.isBuilding).toBe(false);
-    expect(state.activeBuildJobId).toBeNull();
     expect(state.buildError).toBe('Overpass unavailable');
   });
 
-  it('rolls back with a timeout error when polling never finishes', async () => {
-    vi.useFakeTimers();
+  it('times out watching with a rollback', async () => {
     buildPlanningContext.mockResolvedValue({
       jobId: 'job-slow',
       contextId: readyContext.id,
       status: 'queued',
     });
-    getPlanningContextBuildJob.mockResolvedValue({
-      job: {
-        id: 'job-slow',
-        planningContextId: readyContext.id,
-        status: 'running',
-        place,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    });
 
-    const buildPromise = usePlanningContextStore
+    await usePlanningContextStore
       .getState()
       .buildContextFromSelectedPlace(place);
-    await vi.advanceTimersByTimeAsync(121_000);
-    await buildPromise;
+    usePlanningContextStore.getState().onBuildWatchTimeout();
 
     const state = usePlanningContextStore.getState();
     expect(state.selectedContextId).toBe(sydney.id);
     expect(state.buildError).toMatch(/timed out/i);
     expect(state.isBuilding).toBe(false);
-    expect(state.activeBuildJobId).toBeNull();
+  });
+
+  it('cancel watching stops applying terminal success and does not cancel backend work', async () => {
+    buildPlanningContext.mockResolvedValue({
+      jobId: 'job-cancel',
+      contextId: readyContext.id,
+      status: 'queued',
+    });
+    getPlanningContextDetail.mockResolvedValue({
+      context: readyContext,
+      counts: readyCounts,
+    });
+    listPlanningContexts.mockResolvedValue([sydney, readyContext]);
+
+    await usePlanningContextStore
+      .getState()
+      .buildContextFromSelectedPlace(place);
+
+    usePlanningContextStore.getState().cancelWatchingBuild();
+    const cancelled = usePlanningContextStore.getState();
+    expect(cancelled.watchingCancelled).toBe(true);
+    expect(cancelled.watchNotice).toBe(CANCEL_WATCH_NOTICE);
+    expect(cancelled.isBuilding).toBe(false);
+    expect(cancelled.watchedBuildJobId).toBe('job-cancel');
+    expect(cancelled.activeBuildJobId).toBeNull();
+
+    await usePlanningContextStore.getState().onBuildJobUpdate({
+      id: 'job-cancel',
+      planningContextId: readyContext.id,
+      status: 'succeeded',
+      reused: false,
+      place,
+      counts: null,
+      errorMessage: null,
+      attempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+    });
+
+    // Optimistic building selection may remain; terminal success must not auto-select.
+    expect(getPlanningContextDetail).not.toHaveBeenCalled();
+    expect(usePlanningContextStore.getState().lastBuildReused).toBeNull();
+  });
+
+  it('resume watching restarts applying job updates', async () => {
+    buildPlanningContext.mockResolvedValue({
+      jobId: 'job-resume',
+      contextId: readyContext.id,
+      status: 'queued',
+    });
+    getPlanningContextDetail.mockResolvedValue({
+      context: readyContext,
+      counts: readyCounts,
+    });
+    listPlanningContexts.mockResolvedValue([sydney, readyContext]);
+
+    await usePlanningContextStore
+      .getState()
+      .buildContextFromSelectedPlace(place);
+    usePlanningContextStore.getState().cancelWatchingBuild();
+    usePlanningContextStore.getState().resumeWatchingBuild();
+
+    const resumed = usePlanningContextStore.getState();
+    expect(resumed.watchingCancelled).toBe(false);
+    expect(resumed.isBuilding).toBe(true);
+    expect(resumed.activeBuildJobId).toBe('job-resume');
+    expect(resumed.watchNotice).toBeNull();
+
+    await usePlanningContextStore.getState().onBuildJobUpdate({
+      id: 'job-resume',
+      planningContextId: readyContext.id,
+      status: 'succeeded',
+      reused: false,
+      place,
+      counts: null,
+      errorMessage: null,
+      attempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+    });
+
+    expect(usePlanningContextStore.getState().selectedContextId).toBe(
+      readyContext.id,
+    );
   });
 
   it('ignores a superseded build after the user selects another context', async () => {
-    vi.useFakeTimers();
     buildPlanningContext.mockResolvedValue({
       jobId: 'job-stale',
       contextId: readyContext.id,
       status: 'queued',
     });
-    getPlanningContextBuildJob.mockResolvedValue({
-      job: {
-        id: 'job-stale',
-        planningContextId: readyContext.id,
-        status: 'succeeded',
-        reused: false,
-        place,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    });
-    getPlanningContextDetail.mockImplementation(async (id: string) => {
-      if (id === readyContext.id) {
-        return { context: readyContext, counts: readyCounts };
-      }
-      return { context: sydney, counts: readyCounts };
+    getPlanningContextDetail.mockResolvedValue({
+      context: readyContext,
+      counts: readyCounts,
     });
     listPlanningContexts.mockResolvedValue([sydney, readyContext]);
 
-    const buildPromise = usePlanningContextStore
+    await usePlanningContextStore
       .getState()
       .buildContextFromSelectedPlace(place);
-
-    // Let enqueue + optimistic building stub apply, then switch away.
-    await Promise.resolve();
-    expect(usePlanningContextStore.getState().selectedContext?.status).toBe(
-      'building',
-    );
     usePlanningContextStore.getState().selectContext(sydney.id);
     expect(usePlanningContextStore.getState().activeBuildJobId).toBeNull();
+    expect(usePlanningContextStore.getState().watchedBuildJobId).toBeNull();
 
-    await vi.advanceTimersByTimeAsync(1000);
-    await buildPromise;
+    await usePlanningContextStore.getState().onBuildJobUpdate({
+      id: 'job-stale',
+      planningContextId: readyContext.id,
+      status: 'succeeded',
+      reused: false,
+      place,
+      counts: null,
+      errorMessage: null,
+      attempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+    });
 
-    const state = usePlanningContextStore.getState();
-    expect(state.selectedContextId).toBe(sydney.id);
-    // Success path for the stale job must not re-select the external context.
-    expect(
-      getPlanningContextDetail.mock.calls.some(
-        ([id]) => id === readyContext.id,
-      ),
-    ).toBe(false);
+    expect(usePlanningContextStore.getState().selectedContextId).toBe(
+      sydney.id,
+    );
   });
 
   it('rolls back on pre-enqueue ApiError', async () => {
@@ -350,7 +386,6 @@ describe('planningContextStore async build jobs', () => {
   });
 
   it('surfaces EMPTY_BUILD_NOTICE when the ready context has zero counts', async () => {
-    vi.useFakeTimers();
     const emptyCounts: PlanningContextFeatureCounts = {
       sites: 0,
       landUse: 0,

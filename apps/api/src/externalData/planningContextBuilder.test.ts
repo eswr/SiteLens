@@ -9,22 +9,30 @@ const {
   insertBuildJob,
   getPool,
   loadConfig,
-  nudgePlanningContextBuildWorker,
-} = vi.hoisted(() => ({
-  getPlanningContext: vi.fn(),
-  countContextFeatures: vi.fn(),
-  markPlanningContextBuilding: vi.fn(),
-  findActiveBuildJob: vi.fn(),
-  insertBuildJob: vi.fn(),
-  getPool: vi.fn(),
-  loadConfig: vi.fn(),
-  nudgePlanningContextBuildWorker: vi.fn(),
-}));
+  dispatchPlanningContextBuildJob,
+  dispatchBuildJobInBackground,
+} = vi.hoisted(() => {
+  const dispatchPlanningContextBuildJob = vi.fn(async () => {});
+  return {
+    getPlanningContext: vi.fn(),
+    countContextFeatures: vi.fn(),
+    markPlanningContextBuilding: vi.fn(),
+    findActiveBuildJob: vi.fn(),
+    insertBuildJob: vi.fn(),
+    getPool: vi.fn(),
+    loadConfig: vi.fn(),
+    dispatchPlanningContextBuildJob,
+    dispatchBuildJobInBackground: vi.fn((jobId: string) => {
+      void dispatchPlanningContextBuildJob(jobId);
+    }),
+  };
+});
 
 vi.mock('../config', () => ({ loadConfig }));
 vi.mock('../db/pool', () => ({ getPool }));
-vi.mock('./planningContextBuildWorker', () => ({
-  nudgePlanningContextBuildWorker,
+vi.mock('./dispatchPlanningContextBuild', () => ({
+  dispatchPlanningContextBuildJob,
+  dispatchBuildJobInBackground,
 }));
 vi.mock('./planningContextBuildJobRepository', async (importOriginal) => {
   const actual =
@@ -125,10 +133,11 @@ describe('enqueuePlanningContextBuild', () => {
       expect.objectContaining({ status: 'succeeded', reused: true }),
     );
     expect(markPlanningContextBuilding).not.toHaveBeenCalled();
-    expect(nudgePlanningContextBuildWorker).not.toHaveBeenCalled();
+    expect(dispatchPlanningContextBuildJob).not.toHaveBeenCalled();
+    expect(dispatchBuildJobInBackground).not.toHaveBeenCalled();
   });
 
-  it('returns an existing active job for the same context and nudges the worker', async () => {
+  it('returns an existing active job for the same context and dispatches the worker', async () => {
     getPlanningContext.mockResolvedValue(null);
     findActiveBuildJob.mockResolvedValue({
       id: 'job-active',
@@ -147,10 +156,11 @@ describe('enqueuePlanningContextBuild', () => {
       status: 'running',
     });
     expect(markPlanningContextBuilding).not.toHaveBeenCalled();
-    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
+    expect(dispatchBuildJobInBackground).toHaveBeenCalledWith('job-active');
+    expect(dispatchPlanningContextBuildJob).toHaveBeenCalledWith('job-active');
   });
 
-  it('enqueues a queued job and nudges the worker', async () => {
+  it('enqueues a queued job and dispatches the worker', async () => {
     getPlanningContext.mockResolvedValue(null);
     findActiveBuildJob.mockResolvedValue(null);
     insertBuildJob.mockResolvedValue({
@@ -179,7 +189,8 @@ describe('enqueuePlanningContextBuild', () => {
       }),
       expect.anything(),
     );
-    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
+    expect(dispatchPlanningContextBuildJob).toHaveBeenCalledWith('job-queued');
+    expect(dispatchBuildJobInBackground).not.toHaveBeenCalled();
   });
 
   it('quota exceeded before live enqueue does not mark building', async () => {
@@ -205,7 +216,8 @@ describe('enqueuePlanningContextBuild', () => {
 
     expect(beforeLiveFetch).toHaveBeenCalledTimes(1);
     expect(markPlanningContextBuilding).not.toHaveBeenCalled();
-    expect(nudgePlanningContextBuildWorker).not.toHaveBeenCalled();
+    expect(dispatchPlanningContextBuildJob).not.toHaveBeenCalled();
+    expect(dispatchBuildJobInBackground).not.toHaveBeenCalled();
   });
 
   it('returns the existing active job on unique violation (singleflight)', async () => {
@@ -233,7 +245,8 @@ describe('enqueuePlanningContextBuild', () => {
       contextId: expect.any(String),
       status: 'queued',
     });
-    expect(nudgePlanningContextBuildWorker).toHaveBeenCalled();
+    expect(dispatchBuildJobInBackground).toHaveBeenCalledWith('job-winner');
+    expect(dispatchPlanningContextBuildJob).toHaveBeenCalledWith('job-winner');
   });
 
   it('returns reused succeeded job when unique-violation winner already finished', async () => {

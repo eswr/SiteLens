@@ -21,7 +21,10 @@ import {
   getPlanningContext,
   markPlanningContextBuilding,
 } from './planningContextRepository.js';
-import { nudgePlanningContextBuildWorker } from './planningContextBuildWorker.js';
+import {
+  dispatchBuildJobInBackground,
+  dispatchPlanningContextBuildJob,
+} from './dispatchPlanningContextBuild.js';
 
 export class PlanningContextBuildError extends Error {
   readonly code: string;
@@ -36,6 +39,8 @@ export class PlanningContextBuildError extends Error {
 
 function isFresh(context: PlanningContext, rebuildAfterDays: number): boolean {
   if (context.status !== 'ready') return false;
+  // `0` (and negatives) force rebuild — used by deterministic e2e cancel gates.
+  if (rebuildAfterDays <= 0) return false;
   const updated = Date.parse(context.updatedAt);
   if (!Number.isFinite(updated)) return false;
   const ageMs = Date.now() - updated;
@@ -144,7 +149,7 @@ export async function enqueuePlanningContextBuild(
 
   const active = await findActiveBuildJob(contextId);
   if (active) {
-    nudgePlanningContextBuildWorker();
+    dispatchBuildJobInBackground(active.id);
     return activeJobResponse(contextId, active);
   }
 
@@ -206,7 +211,7 @@ export async function enqueuePlanningContextBuild(
     const activeAgain = await findActiveBuildJob(contextId, client);
     if (activeAgain) {
       await client.query('COMMIT');
-      nudgePlanningContextBuildWorker();
+      dispatchBuildJobInBackground(activeAgain.id);
       return activeJobResponse(contextId, activeAgain);
     }
 
@@ -227,7 +232,7 @@ export async function enqueuePlanningContextBuild(
     );
     await client.query('COMMIT');
 
-    nudgePlanningContextBuildWorker();
+    await dispatchPlanningContextBuildJob(job.id);
 
     return {
       jobId: job.id,
@@ -246,7 +251,7 @@ export async function enqueuePlanningContextBuild(
     if (isUniqueViolation(error)) {
       const winner = await findActiveBuildJob(contextId);
       if (winner) {
-        nudgePlanningContextBuildWorker();
+        dispatchBuildJobInBackground(winner.id);
         return activeJobResponse(contextId, winner);
       }
 

@@ -19,11 +19,11 @@ async function main(): Promise<void> {
     await app.listen({ port: config.port, host: '0.0.0.0' });
     // Eagerly connect the cache so the first request doesn't race the handshake.
     void waitForCacheReady();
-    if (config.planningContextWorkerEnabled) {
+    if (config.planningContextWorkerMode === 'in-process') {
       startPlanningContextBuildWorker(config.planningContextWorkerPollMs);
     }
     console.log(
-      `sitelens-api listening on http://0.0.0.0:${config.port} (${config.nodeEnv})`,
+      `sitelens-api listening on http://0.0.0.0:${config.port} (${config.nodeEnv}, worker=${config.planningContextWorkerMode})`,
     );
   } catch (error) {
     console.error(error);

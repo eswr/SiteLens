@@ -58,3 +58,56 @@ describe('loadConfig WEB_ORIGIN', () => {
     expect(() => loadConfig()).toThrow('WEB_ORIGIN is required in production');
   });
 });
+
+describe('loadConfig provider rate limits', () => {
+  const keys = [
+    'PROVIDER_RATE_LIMIT_BACKEND',
+    'PROVIDER_COOLDOWN_TTL_MS',
+    'PROVIDER_RATE_LIMIT_NAMESPACE',
+    'EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS',
+    'NODE_ENV',
+    'WEB_ORIGIN',
+  ] as const;
+  const originals = Object.fromEntries(
+    keys.map((key) => [key, process.env[key]]),
+  );
+
+  afterEach(() => {
+    for (const key of keys) {
+      const value = originals[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  });
+
+  it('defaults provider spacer settings for demo-safe local use', () => {
+    delete process.env.PROVIDER_RATE_LIMIT_BACKEND;
+    delete process.env.PROVIDER_COOLDOWN_TTL_MS;
+    delete process.env.PROVIDER_RATE_LIMIT_NAMESPACE;
+    process.env.NODE_ENV = 'development';
+    delete process.env.WEB_ORIGIN;
+    const config = loadConfig();
+    expect(config.providerRateLimitBackend).toBe('auto');
+    expect(config.providerCooldownTtlMs).toBe(60_000);
+    expect(config.providerRateLimitNamespace).toBe(
+      'sitelens:provider-limits:v1',
+    );
+  });
+
+  it('accepts explicit redis/memory backends', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.PROVIDER_RATE_LIMIT_BACKEND = 'redis';
+    expect(loadConfig().providerRateLimitBackend).toBe('redis');
+    process.env.PROVIDER_RATE_LIMIT_BACKEND = 'memory';
+    expect(loadConfig().providerRateLimitBackend).toBe('memory');
+  });
+
+  it('allows EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS=0 to force rebuilds', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS = '0';
+    expect(loadConfig().externalContextRebuildAfterDays).toBe(0);
+  });
+});

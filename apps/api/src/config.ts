@@ -11,6 +11,15 @@ export interface AppConfig {
   redisUrl: string;
   cacheEnabled: boolean;
   cacheDefaultTtlSeconds: number;
+  /**
+   * Outbound provider spacer backend for Nominatim/Overpass.
+   * `auto` uses Redis when cache/Redis is ready, else process-local memory.
+   */
+  providerRateLimitBackend: 'auto' | 'redis' | 'memory';
+  /** Default Overpass failure cooldown when call sites omit an explicit duration. */
+  providerCooldownTtlMs: number;
+  /** Redis key namespace for shared provider slot/cooldown keys. */
+  providerRateLimitNamespace: string;
   stripeSecretKey: string;
   stripeWebhookSecret: string;
   enableDemoBilling: boolean;
@@ -21,7 +30,7 @@ export interface AppConfig {
   geocodingCacheTtlSeconds: number;
   /** Bundled static places when live Nominatim is blocked/unavailable. */
   geocodingStaticFallbackEnabled: boolean;
-  /** After 403/429/outage, skip Nominatim for this long (process-local). */
+  /** After 403/429/outage, skip Nominatim for this long (shared when Redis spacer is on). */
   geocodingUpstreamErrorCooldownMs: number;
   /** TTL for cached static-demo place-search responses. */
   geocodingStaticFallbackTtlSeconds: number;
@@ -34,7 +43,15 @@ export interface AppConfig {
   externalContextMaxBboxAreaDeg2: number;
   externalContextRebuildAfterDays: number;
   externalContextSyntheticFallbackEnabled: boolean;
-  /** In-process planning-context build worker (demo queue). */
+  /**
+   * How planning-context builds are executed.
+   * `in-process` (default demo), `pg-boss` (external worker), or `disabled`.
+   */
+  planningContextWorkerMode: 'in-process' | 'pg-boss' | 'disabled';
+  /**
+   * True when jobs should be processed somehow (`mode !== 'disabled'`).
+   * Derived for backward-compatible health / nudge checks.
+   */
   planningContextWorkerEnabled: boolean;
   planningContextWorkerPollMs: number;
   /** Lease duration while a job is running (ms). */
@@ -46,6 +63,10 @@ export interface AppConfig {
   planningContextJobHeartbeatMs: number;
   /** Max claim/reclaim attempts before the job is marked failed. */
   planningContextJobMaxAttempts: number;
+  pgBossSchema: string;
+  pgBossQueuePlanningContext: string;
+  pgBossWorkerConcurrency: number;
+  pgBossPollIntervalMs: number;
 }
 
 /** Default (placeholder) Nominatim User-Agent; must be replaced for production. */
@@ -95,6 +116,25 @@ export function loadConfig(): AppConfig {
     Number.isFinite(parsedTtl) && parsedTtl > 0
       ? parsedTtl
       : DEFAULT_CACHE_TTL_SECONDS;
+
+  const providerBackendRaw = (
+    process.env.PROVIDER_RATE_LIMIT_BACKEND ?? 'auto'
+  )
+    .trim()
+    .toLowerCase();
+  const providerRateLimitBackend =
+    providerBackendRaw === 'redis' || providerBackendRaw === 'memory'
+      ? providerBackendRaw
+      : 'auto';
+  const parsedProviderCooldown = Number(process.env.PROVIDER_COOLDOWN_TTL_MS);
+  const providerCooldownTtlMs =
+    Number.isFinite(parsedProviderCooldown) && parsedProviderCooldown >= 0
+      ? parsedProviderCooldown
+      : 60_000;
+  const providerRateLimitNamespace = (
+    process.env.PROVIDER_RATE_LIMIT_NAMESPACE ??
+    'sitelens:provider-limits:v1'
+  ).trim() || 'sitelens:provider-limits:v1';
 
   const stripeSecretKey = (process.env.STRIPE_SECRET_KEY ?? '').trim();
   const stripeWebhookSecret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
@@ -165,17 +205,37 @@ export function loadConfig(): AppConfig {
   const externalContextMaxBboxAreaDeg2 =
     Number.isFinite(parsedMaxArea) && parsedMaxArea > 0 ? parsedMaxArea : 0.01;
   const parsedRebuildDays = Number(process.env.EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS);
+  // `0` means always rebuild (no freshness reuse). Unset/invalid → 7 days.
   const externalContextRebuildAfterDays =
-    Number.isFinite(parsedRebuildDays) && parsedRebuildDays > 0
+    Number.isFinite(parsedRebuildDays) && parsedRebuildDays >= 0
       ? parsedRebuildDays
       : 7;
   const externalContextSyntheticFallbackEnabled =
     (process.env.EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED ?? 'false')
       .toLowerCase() === 'true';
 
+  const workerModeRaw = (
+    process.env.PLANNING_CONTEXT_WORKER_MODE ?? ''
+  )
+    .trim()
+    .toLowerCase();
+  let planningContextWorkerMode: 'in-process' | 'pg-boss' | 'disabled';
+  if (
+    workerModeRaw === 'in-process' ||
+    workerModeRaw === 'pg-boss' ||
+    workerModeRaw === 'disabled'
+  ) {
+    planningContextWorkerMode = workerModeRaw;
+  } else if (
+    (process.env.PLANNING_CONTEXT_WORKER_ENABLED ?? 'true').toLowerCase() ===
+    'false'
+  ) {
+    planningContextWorkerMode = 'disabled';
+  } else {
+    planningContextWorkerMode = 'in-process';
+  }
   const planningContextWorkerEnabled =
-    (process.env.PLANNING_CONTEXT_WORKER_ENABLED ?? 'true').toLowerCase() !==
-    'false';
+    planningContextWorkerMode !== 'disabled';
   const parsedWorkerPoll = Number(process.env.PLANNING_CONTEXT_WORKER_POLL_MS);
   const planningContextWorkerPollMs =
     Number.isFinite(parsedWorkerPoll) && parsedWorkerPoll > 0
@@ -199,6 +259,21 @@ export function loadConfig(): AppConfig {
     Number.isFinite(parsedJobMaxAttempts) && parsedJobMaxAttempts > 0
       ? Math.floor(parsedJobMaxAttempts)
       : 3;
+  const pgBossSchema =
+    (process.env.PG_BOSS_SCHEMA ?? 'pgboss').trim() || 'pgboss';
+  const pgBossQueuePlanningContext =
+    (process.env.PG_BOSS_QUEUE_PLANNING_CONTEXT ?? 'planning-context-build')
+      .trim() || 'planning-context-build';
+  const parsedBossConcurrency = Number(process.env.PG_BOSS_WORKER_CONCURRENCY);
+  const pgBossWorkerConcurrency =
+    Number.isFinite(parsedBossConcurrency) && parsedBossConcurrency > 0
+      ? Math.floor(parsedBossConcurrency)
+      : 1;
+  const parsedBossPoll = Number(process.env.PG_BOSS_POLL_INTERVAL_MS);
+  const pgBossPollIntervalMs =
+    Number.isFinite(parsedBossPoll) && parsedBossPoll > 0
+      ? Math.floor(parsedBossPoll)
+      : 1000;
 
   return {
     port,
@@ -210,6 +285,9 @@ export function loadConfig(): AppConfig {
     redisUrl,
     cacheEnabled,
     cacheDefaultTtlSeconds,
+    providerRateLimitBackend,
+    providerCooldownTtlMs,
+    providerRateLimitNamespace,
     stripeSecretKey,
     stripeWebhookSecret,
     enableDemoBilling,
@@ -230,10 +308,15 @@ export function loadConfig(): AppConfig {
     externalContextMaxBboxAreaDeg2,
     externalContextRebuildAfterDays,
     externalContextSyntheticFallbackEnabled,
+    planningContextWorkerMode,
     planningContextWorkerEnabled,
     planningContextWorkerPollMs,
     planningContextJobLockMs,
     planningContextJobHeartbeatMs,
     planningContextJobMaxAttempts,
+    pgBossSchema,
+    pgBossQueuePlanningContext,
+    pgBossWorkerConcurrency,
+    pgBossPollIntervalMs,
   };
 }

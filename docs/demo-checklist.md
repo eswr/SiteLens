@@ -59,18 +59,22 @@ Requires backend API mode + Planner/Pro (or Admin/Enterprise).
 4. Expect an **async job**: Network shows `POST /api/planning-contexts/build`
    returning `{ jobId, contextId, status: "queued" }`, then polling
    `GET /api/planning-contexts/jobs/:jobId` (`running` → `succeeded`).
-5. Health card shows `Status: building` while pending, then `ready` + counts
+5. While watching, the Place card shows **Watching build…** and
+   **Cancel watching**. Cancel is **client-only** — polling stops and the
+   backend/pg-boss job continues; use **Resume watching** or refresh the
+   context list later to pick up results.
+6. Health card shows `Status: building` while pending, then `ready` + counts
    (Open-map derived / Not official / Newly built or Reused).
-6. Map renders open-map-derived layers (Sites/Buildings, Land Use, etc.).
-7. Planning search for `metro` / `park` returns only that context’s rows.
-8. Draw an AOI over the generated features — PostGIS analysis returns
+7. Map renders open-map-derived layers (Sites/Buildings, Land Use, etc.).
+8. Planning search for `metro` / `park` returns only that context’s rows.
+9. Draw an AOI over the generated features — PostGIS analysis returns
    context-local metrics. Planning summary caveats say external open map
    context, not official planning data.
-9. Repeat build/select: fresh contexts reuse PostGIS (`reused: true`, no
-   second Overpass call).
-10. Repeat for **Dubai**. Fly to London via Places without changing context —
+10. Repeat build/select: fresh contexts reuse PostGIS (`reused: true`, no
+    second Overpass call).
+11. Repeat for **Dubai**. Fly to London via Places without changing context —
     layers stay on the selected planning context until you build/select another.
-11. Browser never calls Overpass or Nominatim directly.
+12. Browser never calls Overpass or Nominatim directly.
 
 The Places tab includes an autocomplete-style UX, but it does not call public
 Nominatim on every keystroke. Suggestions are local: bundled demo places,

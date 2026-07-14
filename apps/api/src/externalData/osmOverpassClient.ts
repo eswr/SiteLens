@@ -174,7 +174,7 @@ export async function fetchOverpassFeatures(
     });
 
     if (!response.ok) {
-      markOverpassFailure(response.status === 429 ? 120_000 : 60_000);
+      await markOverpassFailure(response.status === 429 ? 120_000 : 60_000);
       throw new OverpassRequestError(
         `Overpass request failed (${response.status}). External data provider unavailable — try a smaller area or use Sydney Demo.`,
         response.status,
@@ -192,7 +192,7 @@ export async function fetchOverpassFeatures(
     if (error instanceof OverpassRequestError || error instanceof OverpassDisabledError) {
       throw error;
     }
-    markOverpassFailure(60_000);
+    await markOverpassFailure(60_000);
     const aborted =
       error instanceof Error &&
       (error.name === 'AbortError' || /aborted/i.test(error.message));

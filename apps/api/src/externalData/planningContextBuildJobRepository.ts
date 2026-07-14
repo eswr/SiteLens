@@ -281,6 +281,77 @@ export async function claimNextQueuedBuildJob(
 }
 
 /**
+ * Claim a specific queued ledger job for the pg-boss worker.
+ * Returns null when the job is missing, terminal, or already claimed.
+ * If attempts exceed max after claim, marks the job failed and returns null.
+ */
+export async function claimBuildJobByIdForWorker(
+  jobId: string,
+): Promise<JobRowWithUser | null> {
+  const pool = getPool();
+  const lockMs = loadConfig().planningContextJobLockMs;
+  const maxAttempts = loadConfig().planningContextJobMaxAttempts;
+
+  const existingRows = await getBuildJobById.run({ jobId }, pool);
+  const existing = existingRows[0];
+  if (!existing) {
+    return null;
+  }
+  if (existing.status === 'succeeded' || existing.status === 'failed') {
+    return null;
+  }
+  if (existing.status !== 'queued') {
+    // Already running (or unexpected) — another worker owns it.
+    return null;
+  }
+
+  const result = await pool.query<JobRow>(
+    `UPDATE planning_context_build_jobs
+        SET status = 'running',
+            attempts = attempts + 1,
+            started_at = COALESCE(started_at, now()),
+            locked_until = now() + ($2::double precision * interval '1 millisecond'),
+            updated_at = now()
+      WHERE id = $1
+        AND status = 'queued'
+      RETURNING ${JOB_RETURNING}`,
+    [jobId, lockMs],
+  );
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+  const claimed = rowToJobWithUser(row);
+  if (claimed.attempts > maxAttempts) {
+    const buildingPlaceholder: PlanningContext = {
+      id: claimed.planningContextId,
+      label: claimed.planningContextId,
+      source: 'external-osm',
+      status: 'building',
+      center: [claimed.place.longitude, claimed.place.latitude],
+      bbox: [0, 0, 0, 0],
+      place: {
+        id: claimed.place.id,
+        label: claimed.place.label,
+        displayName: claimed.place.displayName,
+        provider: claimed.place.provider,
+      },
+      disclaimer: '',
+      createdAt: claimed.createdAt,
+      updatedAt: claimed.updatedAt,
+    };
+    await markBuildJobAndContextFailed(
+      claimed.id,
+      buildingPlaceholder,
+      `Build exceeded ${maxAttempts} attempts after worker interruption. Try again.`,
+    );
+    return null;
+  }
+  logJobClaim(claimed);
+  return claimed;
+}
+
+/**
  * Extend the lease on a running build job (heartbeat).
  * Returns false if the job is no longer running (succeeded/failed/stolen).
  */
@@ -298,8 +369,21 @@ export async function getBuildJobQueueHealth(): Promise<PlanningContextBuildJobQ
   const config = loadConfig();
   const rows = await getBuildJobQueueHealthQuery.run(undefined, getPool());
   const row = rows[0];
+
+  let pgBoss: PlanningContextBuildJobQueueHealthResponse['pgBoss'] = null;
+  if (config.planningContextWorkerMode === 'pg-boss') {
+    try {
+      const { getPgBossQueueStats } = await import('../worker/bossClient.js');
+      pgBoss = await getPgBossQueueStats();
+    } catch {
+      pgBoss = null;
+    }
+  }
+
   return {
     workerEnabled: config.planningContextWorkerEnabled,
+    workerMode: config.planningContextWorkerMode,
+    pgBossEnabled: config.planningContextWorkerMode === 'pg-boss',
     pollMs: config.planningContextWorkerPollMs,
     lockMs: config.planningContextJobLockMs,
     maxAttempts: config.planningContextJobMaxAttempts,
@@ -311,6 +395,7 @@ export async function getBuildJobQueueHealth(): Promise<PlanningContextBuildJobQ
     failedLast24h: Number(row?.failed_recent ?? 0),
     oldestQueuedAt: toIsoOrNull(row?.oldest_queued_at ?? null),
     oldestRunningAt: toIsoOrNull(row?.oldest_running_at ?? null),
+    pgBoss,
   };
 }
 

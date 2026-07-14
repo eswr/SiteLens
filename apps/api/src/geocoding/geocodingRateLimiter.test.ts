@@ -7,9 +7,11 @@ import {
 describe('waitForGeocodingSlot', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    process.env.PROVIDER_RATE_LIMIT_BACKEND = 'memory';
     resetGeocodingRateLimiter();
   });
   afterEach(() => {
+    delete process.env.PROVIDER_RATE_LIMIT_BACKEND;
     vi.useRealTimers();
   });
 

@@ -35,9 +35,22 @@ All responses use a consistent envelope: `{ data, meta? }` on success and
 
 `@fastify/helmet` and `@fastify/rate-limit` are registered on the app. Sensitive
 routes (geocode, analyze, summary, context build, demo-plan, webhook) use tighter
-route-level budgets; `/health` is excluded. Rate limiting is **process-local**
-(in-memory) — production-shaped for the single-machine Fly demo, not distributed
-Redis rate limiting yet. API-key buckets use a short SHA-256 digest, not the raw key.
+route-level budgets; `/health` is excluded. **Inbound** route rate limiting is
+still **process-local** (in-memory) — fine for the single-machine Fly demo.
+API-key buckets use a short SHA-256 digest, not the raw key.
+
+**Outbound** Nominatim/Overpass provider spacing is separate. Local/demo uses
+`PROVIDER_RATE_LIMIT_BACKEND=auto` (Redis when ready, else memory).
+Production-shaped multi-process deploys should set
+`PROVIDER_RATE_LIMIT_BACKEND=redis` so a missing Redis fails loudly instead of
+silently falling back to process-local spacing. Keys live under
+`PROVIDER_RATE_LIMIT_NAMESPACE`. `memory` is only safe for single-process demos.
+
+Nuance: `waitForProviderSlot` fails closed in production when
+`PROVIDER_RATE_LIMIT_BACKEND=redis` and Redis is unavailable. `markProviderFailure`
+only **warns** if a shared cooldown write fails — intentionally, so a Redis
+glitch does not mask the original Nominatim/Overpass error. Process-local
+cooldown still applies in that process.
 
 ## Auth & entitlements (demo)
 
@@ -124,19 +137,20 @@ configured `NOMINATIM_USER_AGENT`.
 When public Nominatim returns 403/429 or is otherwise unavailable, development/
 demo mode can return a clearly labeled bundled **static-demo** dataset
 (`GEOCODING_STATIC_FALLBACK_ENABLED`, on by default outside production) and
-enter a process-local cooldown (`GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS`) so
-retries do not keep hammering the provider. Fallback responses include
-`fallback: { active, reason, message }` and are never labeled as Nominatim.
+enter a shared provider cooldown (`GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS`, Redis
+when the provider spacer is on) so retries do not keep hammering the provider.
+Fallback responses include `fallback: { active, reason, message }` and are never
+labeled as Nominatim.
 
 Errors when fallback is disabled: `400` short query, `503` disabled/
 misconfigured/cooldown, `502` upstream, `504` timeout. A Redis failure still
-returns fresh results when the chosen provider path succeeds. This is
-independent of local planning search and does not trigger AOI analysis.
+returns fresh results when the chosen provider path succeeds (and the spacer
+falls back to memory outside production when `auto`). This is independent of
+local planning search and does not trigger AOI analysis.
 
-The single-process request spacer + cooldown is fine for the demo; a
-horizontally-scaled deployment should use a distributed Redis-backed
-limiter/circuit breaker. Production alternatives to public Nominatim:
-self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider.
+Live Nominatim/Overpass remain opt-in for smoke tests; unit tests never hit
+public providers. Production alternatives to public Nominatim: self-hosted
+Nominatim, Mapbox Geocoding, Pelias, or a commercial provider.
 
 ## Caching (Redis)
 
@@ -199,6 +213,67 @@ curl -X POST http://localhost:4000/api/analyze-area \
   -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}'
 ```
 
+## Planning-context build worker
+
+`planning_context_build_jobs` is the **product ledger** (poll status, health,
+screenshots). Execution can run in three modes (`PLANNING_CONTEXT_WORKER_MODE`):
+
+| Mode | Behavior |
+| --- | --- |
+| `in-process` (default local demo) | API starts a poller + nudge after enqueue |
+| `pg-boss` (production-shaped) | API enqueues `{ buildJobId }` on pg-boss; a separate worker process claims the ledger row and runs Overpass/synthetic/commit |
+| `disabled` | Ledger row stays `queued`; nothing executes |
+
+Do not run in-process and pg-boss consumers against the same database at once.
+
+```bash
+# Local demo (default): API only
+npm run dev:api
+
+# Production-shaped local: API with MODE=pg-boss + separate worker
+PLANNING_CONTEXT_WORKER_MODE=pg-boss npm run dev:api
+npm run worker:planning-context -w apps/api
+
+# Production image
+npm run start -w apps/api
+npm run worker:planning-context:prod -w apps/api
+```
+
+### Manual pg-boss smoke (separate API + worker)
+
+With PostGIS up and seeded:
+
+```bash
+# Terminal 1 — API (no in-process poller)
+PLANNING_CONTEXT_WORKER_MODE=pg-boss \
+OVERPASS_ENABLED=false \
+EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED=true \
+npm run dev:api
+
+# Terminal 2 — worker
+PLANNING_CONTEXT_WORKER_MODE=pg-boss \
+OVERPASS_ENABLED=false \
+EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED=true \
+npm run worker:planning-context -w apps/api
+
+# Terminal 3 — enqueue + poll
+curl -sS -X POST http://localhost:4000/api/planning-contexts/build \
+  -H 'content-type: application/json' \
+  -H 'x-api-key: demo-planner-key' \
+  -d '{"source":"external-osm","place":{"id":"static-demo-dubai","label":"Dubai","displayName":"Dubai, United Arab Emirates","latitude":25.2048,"longitude":55.2708,"provider":"static-demo"}}'
+# Then: GET /api/planning-contexts/jobs/<jobId> until status=succeeded
+# Health: GET /api/planning-contexts/jobs/health → workerMode=pg-boss
+```
+
+`GET /api/planning-contexts/jobs/health` `pgBoss` counts are **best-effort /
+approximate** (portfolio observability). Treat ledger aggregates
+(`queued` / `running` / …) as the product truth; do not use pg-boss health
+fields as billing-grade queue metrics.
+
+**Known worker debt:** with `PG_BOSS_WORKER_CONCURRENCY=1`, a long Overpass
+provider-cooldown sleep can occupy the only worker. Later: detect cooldown
+before fetch and re-enqueue with delay instead of sleeping inside the handler.
+
 ## Local development
 
 Full backend setup from the repo root:
@@ -218,15 +293,17 @@ npm run typecheck      # tsc --noEmit
 npm run lint           # oxlint
 npm run test           # vitest run (DB/Redis integration tests skipped by default)
 npm run test:db        # RUN_DB_TESTS=true vitest run src/db (needs DB up)
-npm run test:redis     # RUN_REDIS_TESTS=true vitest run src/cache (needs Redis up + REDIS_URL)
+npm run test:redis     # RUN_REDIS_TESTS=true vitest run src/cache src/providers (needs Redis up + REDIS_URL)
 npm run db:reset       # drop tables + re-run migrations (dev only)
 npm run cache:clear    # clear all sitelens:* cache keys (tsx)
+npm run worker:planning-context      # pg-boss worker (tsx)
 # Production image / Fly SSH (no tsx — compiled dist):
 npm run db:migrate:prod
 npm run db:migrate:check:prod
 npm run db:seed:billing:prod
 npm run ingest:geojson:prod
 npm run cache:clear:prod
+npm run worker:planning-context:prod
 ```
 
 `npm run db:up` starts both PostgreSQL/PostGIS (`54329`) and Redis (`6389`).

@@ -10,7 +10,8 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Add an organization/team membership model
 - [x] Verify and lock down CORS origins (`WEB_ORIGIN` required in production; fail closed)
 - [ ] Use secure, `HttpOnly`, `SameSite` cookies / session storage if added
-- [x] Rate-limit sensitive endpoints (`@fastify/rate-limit` + Helmet; **process-local** in-memory store — production-shaped for the single-machine Fly demo, not distributed Redis rate limiting yet)
+- [x] Rate-limit sensitive endpoints (`@fastify/rate-limit` + Helmet; inbound store is still **process-local** — production-shaped for the single-machine Fly demo)
+- [x] Distributed Redis-backed **outbound** Nominatim/Overpass provider spacers (`PROVIDER_RATE_LIMIT_BACKEND=redis` in production; `auto`/`memory` only for local/demo)
 - [ ] Sanitize inputs and log safely (no secrets/PII in logs)
 - [ ] Disable demo billing in production (`ENABLE_DEMO_BILLING` unset/false)
 
@@ -48,17 +49,21 @@ a real geospatial SaaS. Items are grouped by concern.
 ## External planning contexts
 
 - [ ] Replace public Overpass with self-hosted Overpass, Overture Maps ingestion, or official municipal open-data connectors per city
-- [ ] Add distributed Redis-backed rate limiting / job queue for provider fetches (process-local spacing is demo-oriented)
+- [x] Distributed Redis-backed spacing/cooldown for Overpass fetches
+- [x] Dedicated pg-boss execution queue + external worker process (ledger table `planning_context_build_jobs` remains the product-facing job state; local demos may still use `PLANNING_CONTEXT_WORKER_MODE=in-process`)
 - [ ] Keep clear attribution and disclaimers that open-map context is not official zoning/cadastre/DAs
 - [ ] Schedule freshness jobs (`EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` or equivalent)
 - [ ] Confirm licensing/attribution for any commercial geospatial providers
 - [ ] Monitor `external-context:build` metering (Free 0 / Pro monthly / Enterprise unlimited) and `planning_context_build_jobs` queue depth / failures
+- [ ] Treat jobs/health `pgBoss` stats as approximate only; wire billing-grade queue metrics if needed
+- [ ] Replace concurrency-1 Overpass cooldown sleeps with delayed re-enqueue when shared cooldown is active
+- [ ] Decide whether Redis cooldown **write** failures should fail closed (today: warn only so the original provider error is not masked; slot waits already fail closed in production with `PROVIDER_RATE_LIMIT_BACKEND=redis`)
 
 ## Geocoding (worldwide place search)
 
 - [ ] Replace public Nominatim with a self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider
 - [ ] Set a real identifying `NOMINATIM_USER_AGENT` (contact address)
-- [ ] Replace the single-process request spacer + cooldown with a distributed Redis-backed rate limiter/circuit breaker
+- [x] Redis-backed Nominatim spacer + shared upstream cooldown (`PROVIDER_RATE_LIMIT_*`; keep a contracted/self-hosted geocoder for real traffic)
 - [ ] Decide whether static-demo fallback stays enabled in production (default off) or is removed after a real provider is wired
 - [ ] Keep visible provider attribution (OSM/Nominatim or static-demo copy) wherever place results appear
 - [ ] Tune place-search cache TTL and monitor upstream error/latency / fallback rates

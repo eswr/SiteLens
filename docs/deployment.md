@@ -110,8 +110,11 @@ fly secrets set \
 fly deploy
 ```
 
-- Image builds from the root `Dockerfile` (multi-stage: `tsc` → `node dist/server.js`; no `tsx` in runtime).
-- Health check: `GET /health` (also `/api/health`).
+- Image builds from the root `Dockerfile` (multi-stage: `tsc` → `node dist/…`; no `tsx` in runtime). The same image runs both process groups:
+  - **app:** `npm run start -w apps/api` (HTTP API; does not consume build jobs when `PLANNING_CONTEXT_WORKER_MODE=pg-boss`)
+  - **worker:** `npm run worker:planning-context:prod -w apps/api` (pg-boss consumer)
+- Health check: `GET /health` (also `/api/health`). Queue health:
+  `GET /api/planning-contexts/jobs/health` (includes `workerMode` / `pgBossEnabled`).
 - **Docker runtime smoke** (compiled `node dist/server.js`, not `tsx`):
 
 ```bash
@@ -124,12 +127,22 @@ RUN_MIGRATE_CHECK=1 npm run smoke:docker:api
 
   Manual CI gate: dispatch the **Docker API smoke** job in
   [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
-- [`fly.toml`](../fly.toml) uses a **single** machine (`[[vm]] count = 1`,
-  `min_machines_running = 1`) so the portfolio demo stays warm without an HA
-  replica. If a deploy ever creates a second machine: `fly scale count app=1`.
+- [`fly.toml`](../fly.toml) defines `app` + `worker` process groups. Keep the API
+  at one warm machine for the portfolio demo (`fly scale count app=1`). Scale the
+  worker separately (`fly scale count worker=1`) when using pg-boss mode. Do **not**
+  run the in-process worker in the API process at the same time as the external
+  worker (`PLANNING_CONTEXT_WORKER_MODE=pg-boss` on both).
+- Local demos may keep `PLANNING_CONTEXT_WORKER_MODE=in-process` (API poller only;
+  no separate worker process required).
+- Set `PROVIDER_RATE_LIMIT_BACKEND=redis` (with `REDIS_URL`) so Nominatim/Overpass
+  spacing is shared across app + worker; avoid `auto` in production (silent
+  memory fallback).
 - If the Vercel hostname is not known yet, set a provisional `WEB_ORIGIN`, deploy
   the frontend, then `fly secrets set WEB_ORIGIN=https://<exact-origin>` and
   restart (`fly apps restart sitelens-api`).
+
+Manual local verification of the split worker path is documented in
+[`apps/api/README.md`](../apps/api/README.md) (pg-boss smoke).
 
 ### 4. Migrate and seed (managed database)
 

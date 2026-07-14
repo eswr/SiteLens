@@ -1,50 +1,42 @@
 import type { GeocodingFallbackReason } from '@sitelens/shared';
 import { loadConfig } from '../config.js';
+import {
+  getProviderCooldownInfo,
+  markProviderFailure,
+  resetProviderSpacer,
+} from '../providers/providerSpacer.js';
 
 /**
- * Process-local upstream cooldown / circuit breaker for Nominatim.
+ * Upstream cooldown / circuit breaker for Nominatim.
  *
- * Production multi-instance deployments should replace this with Redis (or
- * another shared store) so cooldown state is consistent across API replicas.
+ * Backed by the shared provider spacer (Redis when available) so cooldown is
+ * consistent across API replicas.
  */
 
-interface UpstreamState {
-  untilMs: number;
-  reason: GeocodingFallbackReason;
-}
-
-let state: UpstreamState | null = null;
-
-export function markGeocodingUpstreamUnavailable(
+export async function markGeocodingUpstreamUnavailable(
   reason: GeocodingFallbackReason,
-): void {
+): Promise<void> {
   const cooldownMs = loadConfig().geocodingUpstreamErrorCooldownMs;
-  state = {
-    reason,
-    untilMs: Date.now() + cooldownMs,
-  };
+  await markProviderFailure('nominatim', cooldownMs, reason);
 }
 
-export function getGeocodingUpstreamCooldown(): {
+export async function getGeocodingUpstreamCooldown(): Promise<{
   active: boolean;
   reason?: GeocodingFallbackReason;
   until?: string;
-} {
-  if (!state) {
-    return { active: false };
-  }
-  if (Date.now() >= state.untilMs) {
-    state = null;
+}> {
+  const info = await getProviderCooldownInfo('nominatim');
+  if (info.remainingMs <= 0) {
     return { active: false };
   }
   return {
     active: true,
-    reason: state.reason,
-    until: new Date(state.untilMs).toISOString(),
+    reason: (info.reason as GeocodingFallbackReason | null) ?? undefined,
+    until: new Date(Date.now() + info.remainingMs).toISOString(),
   };
 }
 
 /** Reset cooldown state (tests / manual recovery). */
 export function resetGeocodingUpstreamState(): void {
-  state = null;
+  resetProviderSpacer();
 }

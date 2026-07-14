@@ -161,7 +161,10 @@ async function failJob(
   }
 }
 
-async function processJob(job: JobRowWithUser): Promise<void> {
+/** Core processing for a claimed ledger job (shared by in-process and pg-boss). */
+export async function processClaimedPlanningContextBuildJob(
+  job: JobRowWithUser,
+): Promise<void> {
   const building = await resolveBuildingContext(job);
   const maxAttempts = loadConfig().planningContextJobMaxAttempts;
   const startedAtMs = Date.now();
@@ -326,23 +329,38 @@ export async function runPlanningContextBuildWorkerTick(): Promise<void> {
   try {
     const job = await claimNextQueuedBuildJob();
     if (!job) return;
-    await processJob(job);
+    await processClaimedPlanningContextBuildJob(job);
   } finally {
     tickInFlight = false;
   }
 }
 
-/** Wake the worker soon after enqueue (does not block the request). */
+/**
+ * pg-boss handler path: claim the ledger row by id, then process.
+ * No-ops when the job is terminal / already claimed.
+ */
+export async function processQueuedBuildJobById(
+  buildJobId: string,
+): Promise<void> {
+  const { claimBuildJobByIdForWorker } = await import(
+    './planningContextBuildJobRepository.js'
+  );
+  const job = await claimBuildJobByIdForWorker(buildJobId);
+  if (!job) return;
+  await processClaimedPlanningContextBuildJob(job);
+}
+
+/** Wake the in-process worker soon after enqueue (does not block the request). */
 export function nudgePlanningContextBuildWorker(): void {
-  if (!loadConfig().planningContextWorkerEnabled) {
+  if (loadConfig().planningContextWorkerMode !== 'in-process') {
     return;
   }
   void runPlanningContextBuildWorkerTick();
 }
 
-/** Start the poll loop. Self-guards so callers cannot bypass config or double-start. */
+/** Start the in-process poll loop. Only used when worker mode is in-process. */
 export function startPlanningContextBuildWorker(pollMs?: number): void {
-  if (!loadConfig().planningContextWorkerEnabled) return;
+  if (loadConfig().planningContextWorkerMode !== 'in-process') return;
   if (timer) return;
   const intervalMs = pollMs ?? loadConfig().planningContextWorkerPollMs;
   timer = setInterval(() => {

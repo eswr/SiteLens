@@ -39,6 +39,7 @@ import {
   MIN_SUGGESTION_QUERY_LENGTH,
 } from '../../store/placeSearchStore';
 import { usePlanningContextStore } from '../../store/planningContextStore';
+import { usePlanningContexts } from '../../query/planningContextQueries';
 import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import { DemoAccessSwitcher } from './AccessControls';
@@ -682,10 +683,30 @@ function PlanningContextSection() {
   );
   const selectContext = usePlanningContextStore((state) => state.selectContext);
   const isLoading = usePlanningContextStore((state) => state.isLoading);
+  const {
+    data: queriedContexts,
+    isLoading: listLoading,
+    isFetching: listFetching,
+  } = usePlanningContexts();
 
   useEffect(() => {
+    // Bootstrap selection/detail once; subsequent list freshness comes from Query.
     void loadContexts();
   }, [loadContexts]);
+
+  useEffect(() => {
+    if (!queriedContexts || queriedContexts.length === 0) {
+      return;
+    }
+    usePlanningContextStore.setState((state) => ({
+      contexts: queriedContexts,
+      isLoading: false,
+      // Keep selected detail ownership in the store; only refresh list rows.
+      selectedContext:
+        queriedContexts.find((c) => c.id === state.selectedContextId) ??
+        state.selectedContext,
+    }));
+  }, [queriedContexts]);
 
   return (
     <SectionCard>
@@ -698,7 +719,9 @@ function PlanningContextSection() {
         size="small"
         label="Context"
         value={selectedContextId}
-        disabled={isLoading || contexts.length === 0}
+        disabled={
+          isLoading || listLoading || listFetching || contexts.length === 0
+        }
         onChange={(event) => selectContext(event.target.value)}
         slotProps={{
           htmlInput: { 'aria-label': 'Select planning context' },

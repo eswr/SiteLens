@@ -246,6 +246,22 @@ function PlaceDetails() {
     (state) => state.buildContextFromSelectedPlace,
   );
   const isBuilding = usePlanningContextStore((state) => state.isBuilding);
+  const watchingCancelled = usePlanningContextStore(
+    (state) => state.watchingCancelled,
+  );
+  const watchedBuildJobId = usePlanningContextStore(
+    (state) => state.watchedBuildJobId,
+  );
+  const watchNotice = usePlanningContextStore((state) => state.watchNotice);
+  const cancelWatchingBuild = usePlanningContextStore(
+    (state) => state.cancelWatchingBuild,
+  );
+  const resumeWatchingBuild = usePlanningContextStore(
+    (state) => state.resumeWatchingBuild,
+  );
+  const clearWatchNotice = usePlanningContextStore(
+    (state) => state.clearWatchNotice,
+  );
   const selectedContext = usePlanningContextStore(
     (state) => state.selectedContext,
   );
@@ -255,6 +271,10 @@ function PlaceDetails() {
   );
   const capabilities = useAuthStore((state) => state.capabilities);
   const canBuild = capabilities?.canBuildExternalContext ?? false;
+  const isWatchingBuild =
+    Boolean(watchedBuildJobId) && isBuilding && !watchingCancelled;
+  const canResumeWatch =
+    Boolean(watchedBuildJobId) && watchingCancelled;
 
   if (!selectedPlace) {
     return null;
@@ -372,15 +392,38 @@ function PlaceDetails() {
         }
         onClick={() => {
           clearBuildError();
+          clearWatchNotice();
           void buildContextFromSelectedPlace(selectedPlace);
         }}
       >
-        {contextBuilding
-          ? 'Building planning context…'
-          : contextReady
-            ? 'Refresh if stale'
-            : 'Build planning context for this place'}
+        {isWatchingBuild
+          ? 'Watching build…'
+          : contextBuilding
+            ? 'Building planning context…'
+            : contextReady
+              ? 'Refresh if stale'
+              : 'Build planning context for this place'}
       </Button>
+      {isWatchingBuild && (
+        <Button
+          size="small"
+          variant="outlined"
+          color="inherit"
+          onClick={() => cancelWatchingBuild()}
+        >
+          Cancel watching
+        </Button>
+      )}
+      {canResumeWatch && (
+        <Button
+          size="small"
+          variant="outlined"
+          color="primary"
+          onClick={() => resumeWatchingBuild()}
+        >
+          Resume watching
+        </Button>
+      )}
       {contextReady && (
         <Typography variant="caption" color="text.secondary">
           This place already has a ready planning context selected.
@@ -396,6 +439,11 @@ function PlaceDetails() {
           Building external planning contexts requires the Pro or Enterprise
           plan.
         </Typography>
+      )}
+      {watchNotice && (
+        <Alert severity="info" onClose={() => clearWatchNotice()}>
+          {watchNotice}
+        </Alert>
       )}
       {buildError && (
         <Alert severity="warning" onClose={() => clearBuildError()}>

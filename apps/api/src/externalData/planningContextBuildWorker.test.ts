@@ -33,8 +33,10 @@ const {
     planningContextJobMaxAttempts: 3,
     planningContextWorkerPollMs: 750,
     planningContextWorkerEnabled: true,
+    planningContextWorkerMode: 'in-process' as const,
     planningContextJobHeartbeatMs: 0,
     planningContextJobLockMs: 300_000,
+    externalContextSyntheticFallbackEnabled: false,
   })),
 }));
 
@@ -389,13 +391,15 @@ describe('planningContextBuildWorker', () => {
     );
   });
 
-  it('does not run a tick when the worker is disabled', async () => {
+  it('does not run a tick when the worker mode is not in-process', async () => {
     loadConfig.mockReturnValue({
       planningContextJobMaxAttempts: 3,
       planningContextWorkerPollMs: 750,
       planningContextWorkerEnabled: false,
+      planningContextWorkerMode: 'disabled' as const,
       planningContextJobHeartbeatMs: 0,
       planningContextJobLockMs: 300_000,
+      externalContextSyntheticFallbackEnabled: false,
     });
 
     nudgePlanningContextBuildWorker();

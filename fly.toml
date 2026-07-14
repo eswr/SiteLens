@@ -12,13 +12,22 @@ primary_region = 'sjc'
 [env]
   NODE_ENV = 'production'
   PORT = '4000'
+  # Fail closed if Redis is down — do not use auto (silent memory fallback).
+  PROVIDER_RATE_LIMIT_BACKEND = 'redis'
+  # Production-shaped: API enqueues; worker process consumes via pg-boss.
+  # Local demos may keep PLANNING_CONTEXT_WORKER_MODE=in-process instead.
+  PLANNING_CONTEXT_WORKER_MODE = 'pg-boss'
+
+[processes]
+  app = 'npm run start -w apps/api'
+  worker = 'npm run worker:planning-context:prod -w apps/api'
 
 [http_service]
   internal_port = 4000
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  # Portfolio demo: keep exactly one warm machine (scale count 1 — no HA replica).
+  # Portfolio demo: keep exactly one warm API machine (scale count 1 — no HA replica).
   min_machines_running = 1
   processes = ['app']
 
@@ -29,8 +38,17 @@ primary_region = 'sjc'
     method = 'GET'
     path = '/health'
 
-# Single shared-cpu VM for the portfolio demo (do not raise count for HA).
+# Shared-cpu VMs for the portfolio demo (do not raise app count for HA).
+# Scale the worker process separately when using pg-boss mode.
 [[vm]]
+  processes = ['app']
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  count = 1
+
+[[vm]]
+  processes = ['worker']
   memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1

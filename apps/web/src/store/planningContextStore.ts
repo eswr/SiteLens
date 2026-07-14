@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   PlanningContext,
+  PlanningContextBuildJob,
   PlanningContextFeatureCounts,
 } from '@sitelens/shared';
 import {
@@ -21,11 +22,12 @@ import { useAiSummaryStore } from './aiSummaryStore';
 import { useSearchStore } from './searchStore';
 
 const STORAGE_KEY = 'sitelens:selected-planning-context:v1';
-const BUILD_POLL_MS = 1000;
-const BUILD_POLL_MAX_MS = 120_000;
 
 export const EMPTY_BUILD_NOTICE =
   'The context was built, but no usable planning features were found in this area. Try a different place or a smaller area.';
+
+export const CANCEL_WATCH_NOTICE =
+  'Stopped watching this build. The backend job will continue; refresh contexts later to see results.';
 
 function isEmptyBuildCounts(counts: PlanningContextFeatureCounts): boolean {
   return (
@@ -36,12 +38,6 @@ function isEmptyBuildCounts(counts: PlanningContextFeatureCounts): boolean {
       counts.developmentActivity ===
     0
   );
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 function optimisticBuildingContext(
@@ -142,6 +138,12 @@ async function refreshSelectedDetail(contextId: string): Promise<{
   }
 }
 
+interface PriorSelection {
+  selectedContextId: string;
+  selectedContext: PlanningContext | null;
+  selectedCounts: PlanningContextFeatureCounts | null;
+}
+
 interface PlanningContextState {
   contexts: PlanningContext[];
   selectedContextId: string;
@@ -154,166 +156,327 @@ interface PlanningContextState {
   isBuilding: boolean;
   /** Job id for the in-flight build; stale polls must not overwrite selection. */
   activeBuildJobId: string | null;
+  /** Job currently associated with watch UI (may remain after cancel for resume). */
+  watchedBuildJobId: string | null;
+  watchingCancelled: boolean;
+  watchStartedAtMs: number | null;
+  watchNotice: string | null;
   buildError: string | null;
   /** Immediate post-build notice (e.g. empty feature counts). */
   buildNotice: string | null;
   dataRevision: number;
+  priorBuildSelection: PriorSelection | null;
+  buildingStub: PlanningContext | null;
   loadContexts: () => Promise<void>;
   selectContext: (contextId: string) => void;
   buildContextFromSelectedPlace: (
     place: PlaceSearchResult,
   ) => Promise<void>;
+  cancelWatchingBuild: () => void;
+  resumeWatchingBuild: () => void;
+  clearWatchedBuild: () => void;
+  onBuildJobUpdate: (job: PlanningContextBuildJob) => Promise<void>;
+  onBuildWatchTimeout: () => void;
   clearBuildError: () => void;
   clearBuildNotice: () => void;
+  clearWatchNotice: () => void;
 }
 
 export const usePlanningContextStore = create<PlanningContextState>(
-  (set, get) => ({
-    contexts: [SYDNEY_FALLBACK],
-    selectedContextId: readStoredId(),
-    selectedContext: SYDNEY_FALLBACK,
-    selectedCounts: null,
-    countsLoading: false,
-    lastBuildReused: null,
-    isLoading: false,
-    isBuilding: false,
-    activeBuildJobId: null,
-    buildError: null,
-    buildNotice: null,
-    dataRevision: 0,
-
-    loadContexts: async () => {
-      if (!isApiConfigured()) {
-        set({
-          contexts: [SYDNEY_FALLBACK],
-          selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
-          selectedContext: SYDNEY_FALLBACK,
-          selectedCounts: null,
-          countsLoading: false,
-          lastBuildReused: null,
-        });
-        return;
-      }
-      set({ isLoading: true, countsLoading: true });
-      try {
-        const contexts = await listPlanningContexts();
-        const list = contexts.length > 0 ? contexts : [SYDNEY_FALLBACK];
-        const preferred = get().selectedContextId;
-        const ready = (c: PlanningContext) => c.status === 'ready';
-        const selected =
-          list.find((c) => c.id === preferred && ready(c)) ??
-          list.find((c) => c.id === LOCAL_DEMO_SYDNEY_CONTEXT_ID && ready(c)) ??
-          list.find(ready) ??
-          list[0];
-        persistId(selected.id);
-        set({
-          contexts: list,
-          selectedContextId: selected.id,
-          selectedContext: selected,
-          isLoading: false,
-          lastBuildReused: null,
-        });
-        const selectedId = selected.id;
-        const detail = await refreshSelectedDetail(selectedId);
-        if (get().selectedContextId !== selectedId) {
-          return;
-        }
-        set({
-          selectedContext: detail.context,
-          selectedCounts: detail.counts,
-          countsLoading: false,
-          contexts: list.map((c) =>
-            c.id === detail.context.id ? detail.context : c,
-          ),
-        });
-      } catch {
-        set({
-          contexts: [SYDNEY_FALLBACK],
-          selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
-          selectedContext: SYDNEY_FALLBACK,
-          selectedCounts: null,
-          countsLoading: false,
-          isLoading: false,
-          lastBuildReused: null,
-        });
-      }
-    },
-
-    selectContext: (contextId) => {
-      const context =
-        get().contexts.find((c) => c.id === contextId) ?? SYDNEY_FALLBACK;
-      if (context.status !== 'ready') {
-        set({
-          buildError: `Planning context is ${context.status}.`,
-        });
-        return;
-      }
-      persistId(context.id);
-      clearTransientUi();
-      useMapStore.getState().requestFlyToFeature({
-        center: context.center,
-        bbox: context.bbox,
-        geometryType: 'Polygon',
-      });
-      set((state) => ({
-        selectedContextId: context.id,
-        selectedContext: context,
-        selectedCounts: null,
-        countsLoading: true,
-        lastBuildReused: null,
+  (set, get) => {
+    const clearWatchState = () =>
+      set({
+        watchedBuildJobId: null,
+        watchingCancelled: false,
+        watchStartedAtMs: null,
         activeBuildJobId: null,
         isBuilding: false,
-        dataRevision: state.dataRevision + 1,
-        buildError: null,
-      }));
-      void refreshSelectedDetail(context.id).then((detail) => {
-        if (get().selectedContextId !== context.id) {
-          return;
-        }
-        set({
-          selectedContext: detail.context,
-          selectedCounts: detail.counts,
-          countsLoading: false,
-          contexts: get().contexts.map((c) =>
-            c.id === detail.context.id ? detail.context : c,
-          ),
-        });
+        priorBuildSelection: null,
+        buildingStub: null,
       });
-    },
 
-    buildContextFromSelectedPlace: async (place) => {
-      if (!isApiConfigured()) {
+    const restorePrior = (buildError: string) => {
+      const prior = get().priorBuildSelection;
+      if (!prior) {
         set({
-          buildError:
-            'External planning contexts require backend API mode.',
+          isBuilding: false,
+          activeBuildJobId: null,
+          watchedBuildJobId: null,
+          watchingCancelled: false,
+          watchStartedAtMs: null,
+          buildError,
+          buildNotice: null,
+          lastBuildReused: null,
+          buildingStub: null,
         });
         return;
       }
-
-      const prior = {
-        selectedContextId: get().selectedContextId,
-        selectedContext: get().selectedContext,
-        selectedCounts: get().selectedCounts,
-      };
-
       set({
-        isBuilding: true,
-        buildError: null,
+        selectedContextId: prior.selectedContextId,
+        selectedContext: prior.selectedContext,
+        selectedCounts: prior.selectedCounts,
+        countsLoading: false,
+        isBuilding: false,
+        activeBuildJobId: null,
+        watchedBuildJobId: null,
+        watchingCancelled: false,
+        watchStartedAtMs: null,
+        priorBuildSelection: null,
+        buildingStub: null,
+        buildError,
         buildNotice: null,
         lastBuildReused: null,
       });
+    };
 
-      let jobId: string | null = null;
+    const applySuccess = async (
+      contextId: string,
+      terminalReused: boolean,
+    ) => {
+      if (get().watchingCancelled) {
+        return;
+      }
+      if (get().watchedBuildJobId == null && get().activeBuildJobId == null) {
+        return;
+      }
 
-      try {
-        const enqueued = await buildPlanningContext(place);
-        jobId = enqueued.jobId;
-        const stillActive = () => get().activeBuildJobId === jobId;
+      const detail = await getPlanningContextDetail(contextId);
+      if (get().watchingCancelled) {
+        return;
+      }
+      if (get().watchedBuildJobId == null && get().activeBuildJobId == null) {
+        return;
+      }
 
-        set({ activeBuildJobId: jobId });
+      const contexts = await listPlanningContexts().catch(() => get().contexts);
+      const merged = contexts.some((c) => c.id === detail.context.id)
+        ? contexts.map((c) =>
+            c.id === detail.context.id ? detail.context : c,
+          )
+        : [detail.context, ...contexts];
+      persistId(detail.context.id);
+      clearTransientUi();
+      useMapStore.getState().requestFlyToFeature({
+        center: detail.context.center,
+        bbox: detail.context.bbox,
+        geometryType: 'Polygon',
+      });
+      set((state) => ({
+        contexts: merged,
+        selectedContextId: detail.context.id,
+        selectedContext: detail.context,
+        selectedCounts: detail.counts,
+        countsLoading: false,
+        lastBuildReused: terminalReused,
+        isBuilding: false,
+        activeBuildJobId: null,
+        watchedBuildJobId: null,
+        watchingCancelled: false,
+        watchStartedAtMs: null,
+        priorBuildSelection: null,
+        buildingStub: null,
+        watchNotice: null,
+        buildNotice: isEmptyBuildCounts(detail.counts)
+          ? EMPTY_BUILD_NOTICE
+          : null,
+        dataRevision: state.dataRevision + 1,
+      }));
+    };
 
-        const restorePrior = (buildError: string) => {
-          if (!stillActive()) return;
+    return {
+      contexts: [SYDNEY_FALLBACK],
+      selectedContextId: readStoredId(),
+      selectedContext: SYDNEY_FALLBACK,
+      selectedCounts: null,
+      countsLoading: false,
+      lastBuildReused: null,
+      isLoading: false,
+      isBuilding: false,
+      activeBuildJobId: null,
+      watchedBuildJobId: null,
+      watchingCancelled: false,
+      watchStartedAtMs: null,
+      watchNotice: null,
+      buildError: null,
+      buildNotice: null,
+      dataRevision: 0,
+      priorBuildSelection: null,
+      buildingStub: null,
+
+      loadContexts: async () => {
+        if (!isApiConfigured()) {
+          set({
+            contexts: [SYDNEY_FALLBACK],
+            selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+            selectedContext: SYDNEY_FALLBACK,
+            selectedCounts: null,
+            countsLoading: false,
+            lastBuildReused: null,
+          });
+          return;
+        }
+        set({ isLoading: true, countsLoading: true });
+        try {
+          const contexts = await listPlanningContexts();
+          const list = contexts.length > 0 ? contexts : [SYDNEY_FALLBACK];
+          const preferred = get().selectedContextId;
+          const ready = (c: PlanningContext) => c.status === 'ready';
+          const selected =
+            list.find((c) => c.id === preferred && ready(c)) ??
+            list.find((c) => c.id === LOCAL_DEMO_SYDNEY_CONTEXT_ID && ready(c)) ??
+            list.find(ready) ??
+            list[0];
+          persistId(selected.id);
+          set({
+            contexts: list,
+            selectedContextId: selected.id,
+            selectedContext: selected,
+            isLoading: false,
+            lastBuildReused: null,
+          });
+          const selectedId = selected.id;
+          const detail = await refreshSelectedDetail(selectedId);
+          if (get().selectedContextId !== selectedId) {
+            return;
+          }
+          set({
+            selectedContext: detail.context,
+            selectedCounts: detail.counts,
+            countsLoading: false,
+            contexts: list.map((c) =>
+              c.id === detail.context.id ? detail.context : c,
+            ),
+          });
+        } catch {
+          set({
+            contexts: [SYDNEY_FALLBACK],
+            selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+            selectedContext: SYDNEY_FALLBACK,
+            selectedCounts: null,
+            countsLoading: false,
+            isLoading: false,
+            lastBuildReused: null,
+          });
+        }
+      },
+
+      selectContext: (contextId) => {
+        const context =
+          get().contexts.find((c) => c.id === contextId) ?? SYDNEY_FALLBACK;
+        if (context.status !== 'ready') {
+          set({
+            buildError: `Planning context is ${context.status}.`,
+          });
+          return;
+        }
+        persistId(context.id);
+        clearTransientUi();
+        useMapStore.getState().requestFlyToFeature({
+          center: context.center,
+          bbox: context.bbox,
+          geometryType: 'Polygon',
+        });
+        set((state) => ({
+          selectedContextId: context.id,
+          selectedContext: context,
+          selectedCounts: null,
+          countsLoading: true,
+          lastBuildReused: null,
+          activeBuildJobId: null,
+          watchedBuildJobId: null,
+          watchingCancelled: false,
+          watchStartedAtMs: null,
+          priorBuildSelection: null,
+          buildingStub: null,
+          isBuilding: false,
+          watchNotice: null,
+          dataRevision: state.dataRevision + 1,
+          buildError: null,
+        }));
+        void refreshSelectedDetail(context.id).then((detail) => {
+          if (get().selectedContextId !== context.id) {
+            return;
+          }
+          set({
+            selectedContext: detail.context,
+            selectedCounts: detail.counts,
+            countsLoading: false,
+            contexts: get().contexts.map((c) =>
+              c.id === detail.context.id ? detail.context : c,
+            ),
+          });
+        });
+      },
+
+      buildContextFromSelectedPlace: async (place) => {
+        if (!isApiConfigured()) {
+          set({
+            buildError:
+              'External planning contexts require backend API mode.',
+          });
+          return;
+        }
+
+        const prior: PriorSelection = {
+          selectedContextId: get().selectedContextId,
+          selectedContext: get().selectedContext,
+          selectedCounts: get().selectedCounts,
+        };
+
+        set({
+          isBuilding: true,
+          buildError: null,
+          buildNotice: null,
+          watchNotice: null,
+          lastBuildReused: null,
+          watchingCancelled: false,
+        });
+
+        try {
+          const enqueued = await buildPlanningContext(place);
+          const jobId = enqueued.jobId;
+          const buildingStub = optimisticBuildingContext(
+            enqueued.contextId,
+            place,
+          );
+
+          if (enqueued.status === 'succeeded') {
+            set({
+              activeBuildJobId: jobId,
+              watchedBuildJobId: jobId,
+              priorBuildSelection: prior,
+              buildingStub,
+              watchStartedAtMs: Date.now(),
+            });
+            let terminalReused = enqueued.reused === true;
+            try {
+              const { job } = await getPlanningContextBuildJob(jobId);
+              terminalReused = job.reused === true || enqueued.reused === true;
+            } catch {
+              // keep enqueue reused flag
+            }
+            await applySuccess(enqueued.contextId, terminalReused);
+            return;
+          }
+
+          set({
+            activeBuildJobId: jobId,
+            watchedBuildJobId: jobId,
+            watchingCancelled: false,
+            watchStartedAtMs: Date.now(),
+            priorBuildSelection: prior,
+            buildingStub,
+            selectedContextId: enqueued.contextId,
+            selectedContext: buildingStub,
+            selectedCounts: null,
+            countsLoading: true,
+            isBuilding: true,
+          });
+        } catch (error) {
+          const message =
+            error instanceof ApiError
+              ? error.message
+              : 'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.';
           set({
             selectedContextId: prior.selectedContextId,
             selectedContext: prior.selectedContext,
@@ -321,50 +484,69 @@ export const usePlanningContextStore = create<PlanningContextState>(
             countsLoading: false,
             isBuilding: false,
             activeBuildJobId: null,
-            buildError,
+            watchedBuildJobId: null,
+            watchingCancelled: false,
+            watchStartedAtMs: null,
+            priorBuildSelection: null,
+            buildingStub: null,
+            buildError: message,
             buildNotice: null,
             lastBuildReused: null,
           });
-        };
+        }
+      },
 
-        const buildingStub = optimisticBuildingContext(
-          enqueued.contextId,
-          place,
-        );
+      cancelWatchingBuild: () => {
+        const jobId = get().watchedBuildJobId;
+        if (!jobId || get().watchingCancelled) {
+          return;
+        }
+        set({
+          watchingCancelled: true,
+          isBuilding: false,
+          activeBuildJobId: null,
+          watchNotice: CANCEL_WATCH_NOTICE,
+          buildError: null,
+        });
+      },
 
-        if (enqueued.status !== 'succeeded') {
-          if (!stillActive()) return;
-          set({
-            selectedContextId: enqueued.contextId,
-            selectedContext: buildingStub,
-            selectedCounts: null,
-            countsLoading: true,
-            isBuilding: true,
-          });
+      resumeWatchingBuild: () => {
+        const jobId = get().watchedBuildJobId;
+        if (!jobId || !get().watchingCancelled) {
+          return;
+        }
+        set({
+          watchingCancelled: false,
+          isBuilding: true,
+          activeBuildJobId: jobId,
+          watchNotice: null,
+          watchStartedAtMs: Date.now(),
+        });
+      },
+
+      clearWatchedBuild: () => {
+        clearWatchState();
+        set({ watchNotice: null });
+      },
+
+      onBuildJobUpdate: async (job) => {
+        if (get().watchingCancelled) {
+          return;
+        }
+        if (get().watchedBuildJobId !== job.id) {
+          return;
+        }
+        if (get().activeBuildJobId !== job.id) {
+          return;
         }
 
-        let terminalStatus: 'queued' | 'running' | 'succeeded' | 'failed' =
-          enqueued.status;
-        let terminalReused = enqueued.reused === true;
-        let terminalError: string | null = null;
-
-        if (enqueued.status === 'queued' || enqueued.status === 'running') {
-          const deadline = Date.now() + BUILD_POLL_MAX_MS;
-          while (Date.now() < deadline) {
-            await sleep(BUILD_POLL_MS);
-            if (!stillActive()) return;
-            const { job } = await getPlanningContextBuildJob(enqueued.jobId);
-            if (!stillActive()) return;
-            if (job.status === 'succeeded' || job.status === 'failed') {
-              terminalStatus = job.status;
-              terminalReused = job.reused === true;
-              terminalError = job.errorMessage ?? null;
-              break;
-            }
+        const stub = get().buildingStub;
+        if (job.status === 'queued' || job.status === 'running') {
+          if (stub) {
             set({
-              selectedContextId: enqueued.contextId,
+              selectedContextId: job.planningContextId,
               selectedContext: {
-                ...buildingStub,
+                ...stub,
                 status: 'building',
                 updatedAt: new Date().toISOString(),
               },
@@ -373,92 +555,39 @@ export const usePlanningContextStore = create<PlanningContextState>(
               isBuilding: true,
             });
           }
-          if (!stillActive()) return;
-          if (terminalStatus === 'queued' || terminalStatus === 'running') {
-            restorePrior(
-              'Planning context build timed out. Try again shortly.',
-            );
-            return;
-          }
-        } else if (enqueued.status === 'succeeded') {
-          try {
-            const { job } = await getPlanningContextBuildJob(enqueued.jobId);
-            terminalReused = job.reused === true || enqueued.reused === true;
-          } catch {
-            terminalReused = enqueued.reused === true;
-          }
+          return;
         }
 
-        if (!stillActive()) return;
-
-        if (terminalStatus === 'failed') {
+        if (job.status === 'failed') {
           restorePrior(
-            terminalError ??
+            job.errorMessage ??
               'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.',
           );
           return;
         }
 
-        const detail = await getPlanningContextDetail(enqueued.contextId);
-        if (!stillActive()) return;
-
-        const contexts = await listPlanningContexts().catch(
-          () => get().contexts,
-        );
-        if (!stillActive()) return;
-
-        const merged = contexts.some((c) => c.id === detail.context.id)
-          ? contexts.map((c) =>
-              c.id === detail.context.id ? detail.context : c,
-            )
-          : [detail.context, ...contexts];
-        persistId(detail.context.id);
-        clearTransientUi();
-        useMapStore.getState().requestFlyToFeature({
-          center: detail.context.center,
-          bbox: detail.context.bbox,
-          geometryType: 'Polygon',
-        });
-        set((state) => ({
-          contexts: merged,
-          selectedContextId: detail.context.id,
-          selectedContext: detail.context,
-          selectedCounts: detail.counts,
-          countsLoading: false,
-          lastBuildReused: terminalReused,
-          isBuilding: false,
-          activeBuildJobId: null,
-          buildNotice: isEmptyBuildCounts(detail.counts)
-            ? EMPTY_BUILD_NOTICE
-            : null,
-          dataRevision: state.dataRevision + 1,
-        }));
-      } catch (error) {
-        const message =
-          error instanceof ApiError
-            ? error.message
-            : 'External data provider unavailable or bbox too large. Try a smaller city/area or use Sydney Demo.';
-        // Ignore failures from superseded builds (user selected another context
-        // or started a newer build). Pre-enqueue failures have jobId == null.
-        if (jobId == null || get().activeBuildJobId === jobId) {
-          set({
-            selectedContextId: prior.selectedContextId,
-            selectedContext: prior.selectedContext,
-            selectedCounts: prior.selectedCounts,
-            countsLoading: false,
-            isBuilding: false,
-            activeBuildJobId: null,
-            buildError: message,
-            buildNotice: null,
-            lastBuildReused: null,
-          });
+        if (job.status === 'succeeded') {
+          await applySuccess(job.planningContextId, job.reused === true);
         }
-      }
-    },
+      },
 
-    clearBuildError: () => set({ buildError: null }),
-    clearBuildNotice: () => set({ buildNotice: null }),
-  }),
+      onBuildWatchTimeout: () => {
+        if (get().watchingCancelled) {
+          return;
+        }
+        if (!get().watchedBuildJobId || !get().isBuilding) {
+          return;
+        }
+        restorePrior(
+          'Planning context build timed out. Try again shortly.',
+        );
+      },
+
+      clearBuildError: () => set({ buildError: null }),
+      clearBuildNotice: () => set({ buildNotice: null }),
+      clearWatchNotice: () => set({ watchNotice: null }),
+    };
+  },
 );
 
 /** Convenience accessor used by API clients. */

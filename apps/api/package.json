@@ -11,7 +11,7 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:db": "RUN_DB_TESTS=true vitest run src/db src/billing",
-    "test:redis": "RUN_REDIS_TESTS=true vitest run src/cache",
+    "test:redis": "RUN_REDIS_TESTS=true vitest run src/cache src/providers",
     "test:geocoding:live": "RUN_GEOCODING_LIVE_TESTS=true vitest run src/geocoding/nominatimClient.live.test.ts",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:migrate:check": "tsx src/db/migrate.ts --check",
@@ -25,6 +25,8 @@
     "db:seed": "npm run ingest:geojson && npm run db:seed:billing",
     "cache:clear": "tsx src/cache/clearCache.ts",
     "cache:clear:prod": "node dist/cache/clearCache.js",
+    "worker:planning-context": "tsx src/worker/planningContextWorkerMain.ts",
+    "worker:planning-context:prod": "node dist/worker/planningContextWorkerMain.js",
     "db:codegen": "pgtyped -c pgtyped.json"
   },
   "dependencies": {
@@ -37,7 +39,8 @@
     "dotenv": "^17.4.2",
     "fastify": "^5.10.0",
     "ioredis": "^5.11.1",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "pg-boss": "^10.4.2"
   },
   "devDependencies": {
     "@pgtyped/cli": "^2.4.3",

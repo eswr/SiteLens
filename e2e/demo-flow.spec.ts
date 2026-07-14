@@ -144,4 +144,95 @@ test.describe('SiteLens demo flow smoke', () => {
       ),
     ).toBeVisible({ timeout: 20_000 });
   });
+
+  test('Cancel watching stops client polling without cancelling the backend job', async ({
+    page,
+  }) => {
+    page.setDefaultTimeout(45_000);
+
+    // Synthetic fallback can finish before the Cancel click lands; keep job
+    // polls non-terminal until cancel succeeds so the button stays mounted.
+    let holdJobAsRunning = true;
+    await page.route('**/api/planning-contexts/jobs/**', async (route) => {
+      const url = route.request().url();
+      if (
+        route.request().method() !== 'GET' ||
+        url.includes('/jobs/health')
+      ) {
+        await route.continue();
+        return;
+      }
+      const response = await route.fetch();
+      const body = (await response.json()) as {
+        data?: { job?: { status?: string; finishedAt?: string | null } };
+      };
+      if (holdJobAsRunning && body.data?.job) {
+        body.data.job = {
+          ...body.data.job,
+          status: 'running',
+          finishedAt: null,
+        };
+      }
+      await route.fulfill({
+        status: response.status(),
+        headers: {
+          ...response.headers(),
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Planning Context Health')).toBeVisible({
+      timeout: 60_000,
+    });
+    await ensurePlanner(page);
+    await ensureProPlan(page);
+
+    // Distinct from the happy-path city; e2e API uses
+    // EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS=0 so reuse cannot skip the watch UI.
+    await page.getByRole('tab', { name: 'Places' }).click();
+    const placeInput = page.getByRole('combobox', {
+      name: 'Search worldwide places',
+    });
+    await placeInput.fill('Dubai');
+    await page.waitForTimeout(600);
+
+    const suggestion = page
+      .getByRole('option')
+      .filter({ hasText: 'Dubai' })
+      .first();
+    if (await suggestion.isVisible().catch(() => false)) {
+      await suggestion.click();
+    } else {
+      await page
+        .getByRole('button', { name: /Search live geocoder for/i })
+        .click();
+      await page
+        .locator('.MuiListItemButton-root')
+        .filter({ hasText: 'Dubai' })
+        .first()
+        .click();
+    }
+
+    const buildBtn = page.getByRole('button', {
+      name: /Build planning context for this place/i,
+    });
+    await expect(buildBtn).toBeEnabled({ timeout: 20_000 });
+    await buildBtn.click();
+
+    const cancelBtn = page.getByRole('button', { name: /Cancel watching/i });
+    await expect(cancelBtn).toBeVisible({ timeout: 20_000 });
+    await cancelBtn.click();
+    holdJobAsRunning = false;
+    await expect(
+      page.getByText(
+        /Stopped watching this build\. The backend job will continue/i,
+      ),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByRole('button', { name: /Resume watching/i }),
+    ).toBeVisible();
+  });
 });

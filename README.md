@@ -250,6 +250,8 @@ without exposing proprietary work.
 1. Start on **Sydney Demo** — toggle layers, search, inspect a feature.
 2. Switch to **Places**, select **Bengaluru**, click **Build planning context**.
 3. Watch the Health card show `building` while the job is `queued`/`running`.
+   Optionally click **Cancel watching** — that stops client polling only; the
+   backend job continues (use **Resume watching** or refresh contexts later).
 4. When `ready`, review feature counts (Open-map derived / Not official).
 5. Draw an AOI on the generated context and review PostGIS analysis.
 6. Generate the planning summary (external-context caveats).

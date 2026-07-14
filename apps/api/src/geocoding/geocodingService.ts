@@ -145,7 +145,7 @@ export async function searchPlaces(
     return liveCached;
   }
 
-  const cooldown = getGeocodingUpstreamCooldown();
+  const cooldown = await getGeocodingUpstreamCooldown();
   if (cooldown.active) {
     if (config.geocodingStaticFallbackEnabled) {
       return searchStaticFallback(trimmed, clamped, 'cooldown_active');
@@ -187,7 +187,7 @@ export async function searchPlaces(
     }
 
     const reason = reasonFromHttpError(error);
-    markGeocodingUpstreamUnavailable(reason);
+    await markGeocodingUpstreamUnavailable(reason);
 
     if (config.geocodingStaticFallbackEnabled) {
       return searchStaticFallback(trimmed, clamped, reason);

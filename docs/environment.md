@@ -86,6 +86,9 @@ ENABLE_DEMO_BILLING=true
 | `DB_SSL` | `false` | Set `true` for managed Postgres requiring TLS. |
 | `REDIS_URL` | _(empty)_ | **Optional.** Caching is disabled when unset; the API still works. |
 | `CACHE_ENABLED` | `true` | Only effective when `REDIS_URL` is set. |
+| `PROVIDER_RATE_LIMIT_BACKEND` | `auto` (local) / `redis` (production) | Outbound Nominatim/Overpass spacer. Local/demo: `auto` (Redis when ready, else memory). Production-shaped multi-process: **`redis`** so misconfigured Redis fails loudly instead of silently using process-local memory. `memory` is single-process only. |
+| `PROVIDER_COOLDOWN_TTL_MS` | `60000` | Default Overpass failure cooldown when call sites omit a duration. |
+| `PROVIDER_RATE_LIMIT_NAMESPACE` | `sitelens:provider-limits:v1` | Redis key prefix for shared provider slot/cooldown keys. |
 | `CACHE_DEFAULT_TTL_SECONDS` | `300` | Default cache TTL. |
 | `STRIPE_SECRET_KEY` | _(empty)_ | **Optional.** Not required for the demo. |
 | `STRIPE_WEBHOOK_SECRET` | _(empty)_ | **Optional.** When set, the webhook verifies signatures. |
@@ -96,17 +99,22 @@ ENABLE_DEMO_BILLING=true
 | `GEOCODING_MIN_INTERVAL_MS` | `1100` | Minimum spacing between outbound Nominatim requests (~1 req/sec policy). |
 | `GEOCODING_CACHE_TTL_SECONDS` | `86400` | TTL for cached live Nominatim place-search results in Redis. |
 | `GEOCODING_STATIC_FALLBACK_ENABLED` | `true` (non-prod) / `false` (prod) | When live Nominatim is blocked/unavailable, return bundled static-demo places. Production must opt in explicitly. |
-| `GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS` | `900000` | After 403/429/timeout/outage, skip Nominatim for this long (process-local circuit breaker). |
+| `GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS` | `900000` | After 403/429/timeout/outage, skip Nominatim for this long (shared via provider spacer when Redis is on). |
 | `GEOCODING_STATIC_FALLBACK_TTL_SECONDS` | `3600` | TTL for cached static-demo place-search results. |
 | `OVERPASS_ENABLED` | `true` | Enables external planning-context builds via Overpass. |
 | `OVERPASS_BASE_URL` | `https://overpass-api.de/api/interpreter` | Overpass interpreter URL (backend-only). |
 | `OVERPASS_USER_AGENT` | same default as Nominatim UA | Identifying User-Agent for Overpass. Replace in production. |
 | `OVERPASS_TIMEOUT_MS` | `15000` | Timeout for Overpass HTTP calls. |
-| `OVERPASS_MIN_INTERVAL_MS` | `2500` | Process-local spacing between Overpass requests. |
+| `OVERPASS_MIN_INTERVAL_MS` | `2500` | Minimum spacing between Overpass requests (Redis-backed when provider spacer uses Redis). |
 | `EXTERNAL_CONTEXT_CACHE_TTL_SECONDS` | `604800` | Soft freshness window documentation; rebuild reuse uses `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS`. |
 | `EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2` | `0.01` | Max bbox area (deg²) accepted for Overpass extracts; larger place bboxes are clamped around the center. |
-| `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. |
+| `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. `0` forces rebuild on every build (useful for deterministic e2e cancel tests). |
 | `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | When Overpass is disabled or fails, build jobs can fall back to clearly labeled synthetic features (logged as `planning_context_build.synthetic_fallback`). Off by default; enable for deterministic CI/e2e. |
+| `PLANNING_CONTEXT_WORKER_MODE` | unset → `in-process` (or `disabled` if `PLANNING_CONTEXT_WORKER_ENABLED=false`) | `in-process` \| `pg-boss` \| `disabled`. Production-shaped deploys use `pg-boss` + a worker process. |
+| `PG_BOSS_SCHEMA` | `pgboss` | Postgres schema for the pg-boss execution queue. |
+| `PG_BOSS_QUEUE_PLANNING_CONTEXT` | `planning-context-build` | Queue name for planning-context build jobs. |
+| `PG_BOSS_WORKER_CONCURRENCY` | `1` | Concurrent pg-boss handlers in the worker process. |
+| `PG_BOSS_POLL_INTERVAL_MS` | `1000` | Worker poll interval for pg-boss. |
 | `PLANNING_CONTEXT_WORKER_ENABLED` | `true` | Start the in-process build-job worker on API boot (`server.ts`). |
 | `PLANNING_CONTEXT_WORKER_POLL_MS` | `750` | Interval between worker ticks when scanning for claimable jobs. |
 | `PLANNING_CONTEXT_JOB_LOCK_MS` | `300000` | Lease duration (ms) while a job is `running` before it can be reclaimed. |
@@ -137,8 +145,9 @@ ENABLE_DEMO_BILLING=true
   transaction. A partial unique index enforces one active job per context;
   expired leases / max attempts recover stuck `running` jobs after a process
   crash. Poll `GET /api/planning-contexts/jobs/:jobId` until terminal.
-- Overpass calls are process-local rate-spaced; production should use a
-  distributed Redis-backed limiter/queue.
+- Overpass calls use the shared provider spacer. Prefer
+  `PROVIDER_RATE_LIMIT_BACKEND=redis` for multi-process deploys; `auto` is for
+  local/demo only (can fall back to memory).
 - Generated contexts are stored in PostGIS and reused when still fresh
   (`status: "succeeded", reused: true` with no Overpass call).
 - Feature writes commit atomically (clear → insert → mark ready + job succeeded);
