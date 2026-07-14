@@ -26,6 +26,21 @@ and plans:
 4. Point out the header chip (e.g. "Demo Planner · Pro") and that cache keys are
    scoped by entitlement so lower tiers can't receive higher-tier cached data.
 
+## Worldwide Place Search Demo
+
+Requires backend API mode (`VITE_API_BASE_URL` set).
+
+1. In the sidebar Search card, switch from **Planning features** to **Places**.
+2. Type a worldwide place (e.g. "Bengaluru" or "London") and press Enter / click
+   **Search places**. (Place search runs only on explicit submit, min 3 chars.)
+3. First search shows `cache miss`; repeating the same search shows `cache hit`.
+4. Selecting a result flies/fits the map to the place, drops a marker, and shows
+   a Place card in the details panel with OSM/Nominatim attribution.
+5. Note the split: **Planning features** still searches the local PostGIS
+   dataset, and AOI analysis still applies only to that local dataset — place
+   search is independent. Open browser devtools → Network: no request goes to
+   nominatim.openstreetmap.org from the browser (only the SiteLens API).
+
 ## Billing / Plan Demo
 
 Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):

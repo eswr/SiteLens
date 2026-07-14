@@ -45,6 +45,14 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Source metrics always visible alongside generated text
 - [ ] Human review for risky / high-impact outputs
 
+## Geocoding (worldwide place search)
+
+- [ ] Replace public Nominatim with a self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider
+- [ ] Set a real identifying `NOMINATIM_USER_AGENT` (contact address)
+- [ ] Replace the single-process request spacer with a distributed Redis-backed rate limiter/queue
+- [ ] Keep visible OSM/Nominatim attribution wherever place results appear
+- [ ] Tune place-search cache TTL and monitor upstream error/latency rates
+
 ## Observability
 
 - [ ] Structured logs (request id, user, plan, route)

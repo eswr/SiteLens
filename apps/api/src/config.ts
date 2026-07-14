@@ -14,7 +14,16 @@ export interface AppConfig {
   stripeSecretKey: string;
   stripeWebhookSecret: string;
   enableDemoBilling: boolean;
+  geocodingEnabled: boolean;
+  nominatimBaseUrl: string;
+  nominatimUserAgent: string;
+  geocodingMinIntervalMs: number;
+  geocodingCacheTtlSeconds: number;
 }
+
+/** Default (placeholder) Nominatim User-Agent; must be replaced for production. */
+export const DEFAULT_NOMINATIM_USER_AGENT =
+  'SiteLens/0.1 (portfolio-demo; contact: replace-with-your-email@example.com)';
 
 const DEFAULT_DATABASE_URL =
   'postgres://sitelens:sitelens@localhost:54329/sitelens';
@@ -46,6 +55,23 @@ export function loadConfig(): AppConfig {
   const enableDemoBilling =
     (process.env.ENABLE_DEMO_BILLING ?? 'true').toLowerCase() === 'true';
 
+  const geocodingEnabled =
+    (process.env.GEOCODING_ENABLED ?? 'true').toLowerCase() !== 'false';
+  const nominatimBaseUrl = (
+    process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org'
+  ).replace(/\/+$/, '');
+  const nominatimUserAgent = (
+    process.env.NOMINATIM_USER_AGENT ?? DEFAULT_NOMINATIM_USER_AGENT
+  ).trim();
+  const parsedInterval = Number(process.env.GEOCODING_MIN_INTERVAL_MS);
+  const geocodingMinIntervalMs =
+    Number.isFinite(parsedInterval) && parsedInterval >= 0
+      ? parsedInterval
+      : 1100;
+  const parsedGeoTtl = Number(process.env.GEOCODING_CACHE_TTL_SECONDS);
+  const geocodingCacheTtlSeconds =
+    Number.isFinite(parsedGeoTtl) && parsedGeoTtl > 0 ? parsedGeoTtl : 86400;
+
   return {
     port,
     nodeEnv,
@@ -59,5 +85,10 @@ export function loadConfig(): AppConfig {
     stripeSecretKey,
     stripeWebhookSecret,
     enableDemoBilling,
+    geocodingEnabled,
+    nominatimBaseUrl,
+    nominatimUserAgent,
+    geocodingMinIntervalMs,
+    geocodingCacheTtlSeconds,
   };
 }

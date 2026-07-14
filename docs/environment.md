@@ -55,6 +55,22 @@ ENABLE_DEMO_BILLING=true
 | `STRIPE_SECRET_KEY` | _(empty)_ | **Optional.** Not required for the demo. |
 | `STRIPE_WEBHOOK_SECRET` | _(empty)_ | **Optional.** When set, the webhook verifies signatures. |
 | `ENABLE_DEMO_BILLING` | `true` | Allows demo plan switching. **Do not enable in production** unless intentionally configured. |
+| `GEOCODING_ENABLED` | `true` | Enables `GET /api/geocode/search`; when `false` the route returns `503`. |
+| `NOMINATIM_BASE_URL` | `https://nominatim.openstreetmap.org` | Nominatim base URL (point at a self-hosted instance for production). |
+| `NOMINATIM_USER_AGENT` | `SiteLens/0.1 (portfolio-demo; contact: replace-with-your-email@example.com)` | Identifying User-Agent required by Nominatim. **Must be replaced** with a real contact in production (the server refuses the default placeholder in production). |
+| `GEOCODING_MIN_INTERVAL_MS` | `1100` | Minimum spacing between outbound Nominatim requests (~1 req/sec policy). |
+| `GEOCODING_CACHE_TTL_SECONDS` | `86400` | TTL for cached place-search results in Redis. |
+
+### Worldwide place search (geocoding)
+
+- The browser only calls the SiteLens API; the API proxies to **Nominatim /
+  OpenStreetMap**. Repeated queries are served from Redis, and outbound requests
+  are spaced by `GEOCODING_MIN_INTERVAL_MS` to respect the public-service policy.
+- Place search is **separate** from local planning-feature search and does not
+  affect AOI analysis (which stays on the local PostGIS dataset).
+- Set `NOMINATIM_USER_AGENT` to a real identifying value before deploying.
+  Production options: self-host Nominatim, or switch to Mapbox Geocoding /
+  Pelias / a commercial provider, plus a distributed Redis-backed rate limiter.
 
 ### Notes
 

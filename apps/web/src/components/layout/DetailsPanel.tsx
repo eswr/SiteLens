@@ -10,8 +10,10 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PublicIcon from '@mui/icons-material/Public';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore } from '../../store/analysisStore';
+import { usePlaceSearchStore } from '../../store/placeSearchStore';
 import { useUiStore } from '../../store/uiStore';
 import AnalysisSummary from '../analysis/AnalysisSummary';
 import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
@@ -195,6 +197,74 @@ function SelectedFeatureDetails({ feature }: { feature: SelectedFeature }) {
   );
 }
 
+function PlaceDetails() {
+  const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
+  const attribution = usePlaceSearchStore((state) => state.attribution);
+  const clearSelectedPlace = usePlaceSearchStore(
+    (state) => state.clearSelectedPlace,
+  );
+  if (!selectedPlace) {
+    return null;
+  }
+  const typeLabel = [selectedPlace.category, selectedPlace.type]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          backgroundColor: 'background.paper',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <PublicIcon fontSize="small" sx={{ color: '#2563eb' }} />
+          <Chip label="Nominatim" size="small" variant="outlined" />
+          {typeLabel && (
+            <Chip
+              label={typeLabel}
+              size="small"
+              variant="outlined"
+              sx={{ textTransform: 'capitalize' }}
+            />
+          )}
+        </Box>
+        <Typography variant="subtitle1">{selectedPlace.label}</Typography>
+        <Typography variant="body2" color="text.secondary">
+          {selectedPlace.displayName}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {selectedPlace.latitude.toFixed(4)},{' '}
+          {selectedPlace.longitude.toFixed(4)}
+        </Typography>
+      </Box>
+
+      <Button
+        size="small"
+        variant="outlined"
+        color="inherit"
+        startIcon={<CloseIcon fontSize="small" />}
+        onClick={() => clearSelectedPlace()}
+      >
+        Clear place
+      </Button>
+
+      <Divider />
+      <Typography variant="caption" color="text.secondary">
+        {attribution ?? '© OpenStreetMap contributors; geocoding by Nominatim'}
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Worldwide place lookup only. AOI spatial analysis applies to the local
+        SiteLens planning dataset.
+      </Typography>
+    </Box>
+  );
+}
+
 function EmptyState() {
   return (
     <Box
@@ -269,8 +339,10 @@ export default function DetailsPanel() {
   const selectedFeature = useMapStore((state) => state.selectedFeature);
   const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
   const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
+  const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
 
   const showAoi = !selectedFeature && (Boolean(areaOfInterest) || isAnalyzing);
+  const showPlace = !selectedFeature && !showAoi && Boolean(selectedPlace);
 
   return (
     <Box
@@ -294,6 +366,8 @@ export default function DetailsPanel() {
         </Box>
       ) : showAoi ? (
         <AoiPanel />
+      ) : showPlace ? (
+        <PlaceDetails />
       ) : (
         <EmptyState />
       )}

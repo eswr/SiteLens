@@ -26,6 +26,16 @@ export function searchKey(query: string, scope: AccessScope): string {
   return `${NAMESPACE}:search:${VERSION}:${scope}:${sha256(query.trim().toLowerCase())}`;
 }
 
+/**
+ * Cache key for a worldwide place search. The query is normalized (trim,
+ * lowercase, collapse whitespace) then hashed, so the key never exposes the raw
+ * query. The result `limit` is part of the key.
+ */
+export function placeSearchKey(query: string, limit: number): string {
+  const normalized = query.trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${NAMESPACE}:place-search:${VERSION}:${limit}:${sha256(normalized)}`;
+}
+
 /** Hash the geometry so the key never contains raw coordinates. */
 export function analysisKey(geometry: unknown, scope: AccessScope): string {
   return `${NAMESPACE}:analysis:${VERSION}:${scope}:${sha256(JSON.stringify(geometry))}`;
@@ -84,6 +94,7 @@ export const CACHE_TTL = {
   search: 120,
   analysis: 300,
   summary: 300,
+  placeSearch: 86400,
 } as const;
 
 /** Key patterns cleared when planning data is re-ingested. */

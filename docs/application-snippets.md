@@ -32,6 +32,10 @@ SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest p
 
 SiteLens demonstrates the kind of frontend engineering needed for urban analytics, planning, property intelligence, logistics, and spatial decision-support tools. It focuses on turning complex spatial data into an intuitive map-based product that non-technical users can understand quickly.
 
+## Worldwide Place Search (Geocoding Proxy)
+
+SiteLens adds worldwide place search using Nominatim/OpenStreetMap through a Fastify backend proxy — the browser never calls Nominatim directly. The API caches repeat queries in Redis, spaces outbound requests to respect Nominatim's ~1 req/sec policy, sends an identifying User-Agent, and returns typed results with OSM attribution. The UI cleanly separates local planning-feature search (PostGIS dataset) from worldwide place search; selecting a place flies/fits the map, while AOI spatial analysis stays scoped to the local planning dataset. Production would self-host Nominatim (or use Mapbox/Pelias/commercial) with a distributed Redis-backed rate limiter.
+
 ## Full-Stack Geospatial Project Answer
 
 SiteLens is a full-stack geospatial planning intelligence platform I built as a public portfolio project. The frontend uses React, TypeScript, MapLibre, Material UI, Recharts, and Turf-style interactions for spatial layers, feature inspection, search, AOI drawing, and analytics. The backend uses Fastify, PostgreSQL/PostGIS, Redis, GeoJSON ingestion scripts, role/plan-based entitlements, Stripe-style billing gates, and a backend-owned deterministic planning summary service.

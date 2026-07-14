@@ -72,6 +72,32 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 - **Request:** `{ "analysisResult": SpatialAnalysisResult, "context": { "sourceEngine": "postgis" } }`.
 - **Response:** `{ data: { summary: PlanningSummary, engine: "deterministic-backend" }, meta: { cache, computedAt, access } }`.
 
+### `GET /api/geocode/search?q=&limit=`
+
+- **Purpose:** worldwide place search (geocoding) via a backend **Nominatim /
+  OpenStreetMap** proxy. The browser never calls Nominatim directly.
+- **Auth:** none (public).
+- **Params:** `q` required, min 3 chars; `limit` default 5, max 10 (clamped).
+- **Cache:** yes, Redis (`sitelens:place-search:v1:<limit>:<hash>` — the raw
+  query is hashed, never embedded). Outbound calls are rate-spaced.
+- **Example:** `GET /api/geocode/search?q=Bengaluru&limit=5`.
+- **Response:**
+  ```json
+  {
+    "data": {
+      "results": [
+        { "id": "123", "label": "Bengaluru, Karnataka, India", "displayName": "…", "latitude": 12.9768, "longitude": 77.5901, "boundingBox": [12.834, 13.143, 77.460, 77.784], "category": "place", "type": "city", "importance": 0.72, "provider": "nominatim" }
+      ],
+      "provider": "nominatim",
+      "attribution": "© OpenStreetMap contributors; geocoding by Nominatim"
+    },
+    "meta": { "cache": "miss", "computedAt": "…" }
+  }
+  ```
+- **Errors:** short/missing `q` → `400`; disabled/misconfigured → `503`; upstream
+  failure → `502`; upstream timeout → `504`. A Redis failure still returns fresh
+  results if Nominatim succeeds.
+
 ### `GET /api/billing/plans`
 
 - **Purpose:** the public plan catalog (Free / Pro / Enterprise).

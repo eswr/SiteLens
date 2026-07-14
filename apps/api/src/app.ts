@@ -11,6 +11,7 @@ import { billingRoutes } from './routes/billing';
 import { layersRoutes } from './routes/layers';
 import { parcelsRoutes } from './routes/parcels';
 import { searchRoutes } from './routes/search';
+import { geocodingRoutes } from './routes/geocoding';
 import { analysisRoutes } from './routes/analysis';
 import { planningSummaryRoutes } from './routes/planningSummary';
 
@@ -51,6 +52,7 @@ export async function buildApp(
       await api.register(layersRoutes);
       await api.register(parcelsRoutes);
       await api.register(searchRoutes);
+      await api.register(geocodingRoutes);
       await api.register(analysisRoutes);
       await api.register(planningSummaryRoutes);
     },

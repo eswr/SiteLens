@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import { INITIAL_CENTER, INITIAL_ZOOM, useMapStore } from '../../store/mapStore';
 import { useLayerStore } from '../../store/layerStore';
 import { useAnalysisStore } from '../../store/analysisStore';
+import { usePlaceSearchStore } from '../../store/placeSearchStore';
 import {
   CLICK_PRIORITY,
   CONFIG_BY_MAP_LAYER_ID,
@@ -216,7 +217,10 @@ export default function SiteMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const highlightRef = useRef<{ source: string; id: string } | null>(null);
+  const placeMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [ready, setReady] = useState(false);
+
+  const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
 
   const setViewport = useMapStore((state) => state.setViewport);
   const setSelectedFeature = useMapStore((state) => state.setSelectedFeature);
@@ -278,6 +282,9 @@ export default function SiteMap() {
         return;
       }
 
+      // Selecting a local planning feature clears any selected worldwide place.
+      usePlaceSearchStore.getState().clearSelectedPlace();
+
       const featureId = String(best.id ?? best.properties?.id ?? '');
       const box = turfBbox(best) as [number, number, number, number];
       const centroid = turfCenter(best).geometry.coordinates as [
@@ -323,9 +330,52 @@ export default function SiteMap() {
       map.remove();
       mapRef.current = null;
       highlightRef.current = null;
+      placeMarkerRef.current = null;
       setReady(false);
     };
   }, [setViewport, setSelectedFeature]);
+
+  // Show a marker for the selected worldwide place and fly/fit to it.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) {
+      return;
+    }
+    if (!selectedPlace) {
+      placeMarkerRef.current?.remove();
+      placeMarkerRef.current = null;
+      return;
+    }
+    if (!placeMarkerRef.current) {
+      placeMarkerRef.current = new maplibregl.Marker({ color: '#2563eb' });
+    }
+    const popup = new maplibregl.Popup({ offset: 24, closeButton: false }).setText(
+      selectedPlace.label,
+    );
+    placeMarkerRef.current
+      .setLngLat([selectedPlace.longitude, selectedPlace.latitude])
+      .setPopup(popup)
+      .addTo(map);
+
+    const padding = { top: 60, bottom: 60, left: 60, right: 360 };
+    const bb = selectedPlace.boundingBox; // [south, north, west, east]
+    if (bb) {
+      map.fitBounds(
+        [
+          [bb[2], bb[0]],
+          [bb[3], bb[1]],
+        ],
+        { padding, maxZoom: 14, duration: 800 },
+      );
+    } else {
+      map.flyTo({
+        center: [selectedPlace.longitude, selectedPlace.latitude],
+        zoom: 13,
+        padding,
+        duration: 800,
+      });
+    }
+  }, [selectedPlace, ready]);
 
   // Sync layer visibility from the store to the map.
   useEffect(() => {

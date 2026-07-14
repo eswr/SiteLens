@@ -12,7 +12,10 @@ import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import SearchIcon from '@mui/icons-material/Search';
+import PublicIcon from '@mui/icons-material/Public';
 import GestureIcon from '@mui/icons-material/Gesture';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { PLANNING_LAYERS, LAYER_COLORS, LAYER_BY_ID } from '../../data/layers';
@@ -23,10 +26,15 @@ import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
 import { useUiStore } from '../../store/uiStore';
 import { useAiSummaryStore } from '../../store/aiSummaryStore';
 import { useAuthStore } from '../../store/authStore';
+import {
+  usePlaceSearchStore,
+  MIN_PLACE_QUERY_LENGTH,
+} from '../../store/placeSearchStore';
 import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import { DemoAccessSwitcher } from './AccessControls';
 import type { IndexedFeature } from '../../utils/featureIndex';
+import type { PlaceSearchResult } from '../../api/geocodingApi';
 import type { PlanningLayerId } from '../../types/planning';
 
 function LayerColorDot({
@@ -66,7 +74,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SearchSection() {
+function PlanningSearchInner() {
   const [input, setInput] = useState('');
   const initialize = useSearchStore((state) => state.initialize);
   const setQuery = useSearchStore((state) => state.setQuery);
@@ -80,6 +88,9 @@ function SearchSection() {
   const requestFlyToFeature = useMapStore((state) => state.requestFlyToFeature);
   const setLayerVisible = useLayerStore((state) => state.setLayerVisible);
   const cancelDrawing = useAnalysisStore((state) => state.cancelDrawing);
+  const clearSelectedPlace = usePlaceSearchStore(
+    (state) => state.clearSelectedPlace,
+  );
 
   useEffect(() => {
     initialize();
@@ -93,6 +104,8 @@ function SearchSection() {
   const handleSelect = (record: IndexedFeature) => {
     // Selecting a search result exits any in-progress AOI drawing.
     cancelDrawing();
+    // A planning-feature selection clears any selected worldwide place.
+    clearSelectedPlace();
     setLayerVisible(record.layerId, true);
     setSelectedFeature({
       layerId: record.layerId,
@@ -116,7 +129,7 @@ function SearchSection() {
     query.trim() !== '' && !isLoading && !error && results.length === 0;
 
   return (
-    <SectionCard>
+    <>
       <TextField
         fullWidth
         size="small"
@@ -200,6 +213,219 @@ function SearchSection() {
           })}
         </List>
       )}
+    </>
+  );
+}
+
+const PLACE_CACHE_LABEL: Record<string, string> = {
+  hit: 'cache hit',
+  miss: 'cache miss',
+  disabled: 'cache disabled',
+  error: 'cache error',
+};
+
+function PlacesSearchInner() {
+  const [input, setInput] = useState('');
+  const search = usePlaceSearchStore((state) => state.search);
+  const selectPlace = usePlaceSearchStore((state) => state.selectPlace);
+  const requestFlyToFeature = useMapStore((state) => state.requestFlyToFeature);
+  const results = usePlaceSearchStore((state) => state.results);
+  const isLoading = usePlaceSearchStore((state) => state.isLoading);
+  const error = usePlaceSearchStore((state) => state.error);
+  const cacheStatus = usePlaceSearchStore((state) => state.cacheStatus);
+  const attribution = usePlaceSearchStore((state) => state.attribution);
+
+  const apiConfigured = isApiConfigured();
+  const canSubmit =
+    apiConfigured && input.trim().length >= MIN_PLACE_QUERY_LENGTH && !isLoading;
+
+  const submit = () => {
+    if (!isLoading) {
+      void search(input);
+    }
+  };
+
+  const handleSelect = (place: PlaceSearchResult) => {
+    selectPlace(place);
+    // Reuse the shared fly-to path; place bbox is [south, north, west, east].
+    const bbox = place.boundingBox
+      ? ([
+          place.boundingBox[2],
+          place.boundingBox[0],
+          place.boundingBox[3],
+          place.boundingBox[1],
+        ] as [number, number, number, number])
+      : undefined;
+    requestFlyToFeature({
+      center: [place.longitude, place.latitude],
+      bbox,
+      geometryType: bbox ? 'Polygon' : 'Point',
+    });
+  };
+
+  if (!apiConfigured) {
+    return (
+      <Alert severity="info">
+        Worldwide place search requires backend API mode. Set{' '}
+        <code>VITE_API_BASE_URL</code> to enable it.
+      </Alert>
+    );
+  }
+
+  return (
+    <>
+      <Stack direction="row" spacing={1}>
+        <TextField
+          fullWidth
+          size="small"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="Search worldwide places…"
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PublicIcon fontSize="small" color="disabled" />
+                </InputAdornment>
+              ),
+            },
+            htmlInput: { 'aria-label': 'Search worldwide places' },
+          }}
+        />
+      </Stack>
+      <Button
+        fullWidth
+        size="small"
+        variant="contained"
+        sx={{ mt: 1 }}
+        disabled={!canSubmit}
+        startIcon={<SearchIcon fontSize="small" />}
+        onClick={submit}
+      >
+        Search places
+      </Button>
+
+      {isLoading && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            mt: 1.5,
+            color: 'text.secondary',
+          }}
+        >
+          <CircularProgress size={16} />
+          <Typography variant="body2">Searching places…</Typography>
+        </Box>
+      )}
+
+      {error && (
+        <Alert severity="warning" sx={{ mt: 1.5 }}>
+          {error}
+        </Alert>
+      )}
+
+      {results.length > 0 && (
+        <>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              mt: 1.5,
+              mb: 0.5,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              {results.length} result{results.length === 1 ? '' : 's'}
+            </Typography>
+            {cacheStatus && PLACE_CACHE_LABEL[cacheStatus] && (
+              <Chip
+                label={PLACE_CACHE_LABEL[cacheStatus]}
+                size="small"
+                variant="outlined"
+                sx={{ height: 18, fontSize: '0.65rem' }}
+              />
+            )}
+          </Box>
+          <List dense disablePadding>
+            {results.map((place) => {
+              const typeLabel = [place.category, place.type]
+                .filter(Boolean)
+                .join(' · ');
+              return (
+                <ListItemButton
+                  key={place.id}
+                  onClick={() => handleSelect(place)}
+                  sx={{ borderRadius: 1, alignItems: 'flex-start', gap: 1 }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                      {place.label}
+                    </Typography>
+                    {typeLabel && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textTransform: 'capitalize' }}
+                        noWrap
+                      >
+                        {typeLabel}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Chip
+                    label="Nominatim"
+                    size="small"
+                    variant="outlined"
+                    sx={{ flexShrink: 0, height: 20 }}
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mt: 1 }}
+          >
+            {attribution ?? '© OpenStreetMap contributors; geocoding by Nominatim'}
+          </Typography>
+        </>
+      )}
+    </>
+  );
+}
+
+function SearchSection() {
+  const [mode, setMode] = useState<'planning' | 'places'>('planning');
+  return (
+    <SectionCard>
+      <Tabs
+        value={mode}
+        onChange={(_, value) => setMode(value as 'planning' | 'places')}
+        variant="fullWidth"
+        sx={{
+          mb: 1.5,
+          minHeight: 36,
+          '& .MuiTab-root': {
+            minHeight: 36,
+            textTransform: 'none',
+            fontSize: '0.78rem',
+          },
+        }}
+      >
+        <Tab value="planning" label="Planning features" />
+        <Tab value="places" label="Places" />
+      </Tabs>
+      {mode === 'planning' ? <PlanningSearchInner /> : <PlacesSearchInner />}
     </SectionCard>
   );
 }

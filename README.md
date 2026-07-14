@@ -51,6 +51,7 @@ See [`docs/environment.md`](docs/environment.md) for env vars,
 - Redis caching and cache-safe entitlement scopes
 - Demo auth, roles, plans, and billing gates
 - Backend-owned deterministic AI summary service
+- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy
 - CI/CD and deployment-readiness
 
 ## Overview

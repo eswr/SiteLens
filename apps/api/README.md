@@ -20,6 +20,7 @@ external LLM), gated by plan features, metered, and Redis-cached.
 | GET | `/api/parcels` | Parcels FeatureCollection via `ST_AsGeoJSON` (count meta). |
 | GET | `/api/parcels/:id` | One parcel by `id` / `parcel_id` (404 if missing). |
 | GET | `/api/search?q=` | Search across spatial tables with `ILIKE` (top 8, incl. bbox). |
+| GET | `/api/geocode/search?q=&limit=` | **Worldwide place search** via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced). |
 | POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (area, parcels, zoning, constraints, transit, development activity). |
 | POST | `/api/planning-summary` | **Deterministic planning summary** from analysis metrics (gated by `summary:generate`, metered, cached). |
 
@@ -99,6 +100,24 @@ unavailable, the API falls back to the demo user's default plan (logged).
 **Production extension path:** Stripe Checkout + Customer Portal, real webhook
 signature verification via the Stripe SDK with the raw body, org/team billing,
 and usage metering.
+
+## Worldwide place search (Nominatim proxy)
+
+`GET /api/geocode/search?q=&limit=` proxies to **Nominatim / OpenStreetMap** —
+the browser never calls Nominatim directly. The service validates the query
+(min 3 chars), clamps `limit` to 1–10, serves repeats from Redis
+(`sitelens:place-search:v1:<limit>:<hash>` — the raw query is hashed), and on a
+miss spaces the outbound request (`GEOCODING_MIN_INTERVAL_MS`, ~1 req/sec) before
+calling Nominatim with the configured `NOMINATIM_USER_AGENT`. Results include OSM
+attribution. Errors are mapped safely (`400` short query, `503` disabled/
+misconfigured, `502` upstream, `504` timeout); a Redis failure still returns
+fresh upstream results. This is independent of local planning search and does
+not trigger AOI analysis.
+
+The single-process request spacer is fine for the demo; a horizontally-scaled
+deployment should use a distributed Redis-backed limiter/queue. Production
+alternatives to public Nominatim: self-hosted Nominatim, Mapbox Geocoding,
+Pelias, or a commercial provider.
 
 ## Caching (Redis)
 
@@ -189,6 +208,7 @@ Configuration (env vars, with defaults — see `.env.example`):
 - `CACHE_DEFAULT_TTL_SECONDS` (default `300`)
 - `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` (empty in demo)
 - `ENABLE_DEMO_BILLING` (default `true`; required to allow demo plan switching in production)
+- `GEOCODING_ENABLED` (default `true`), `NOMINATIM_BASE_URL`, `NOMINATIM_USER_AGENT` (replace the placeholder for production), `GEOCODING_MIN_INTERVAL_MS` (default `1100`), `GEOCODING_CACHE_TTL_SECONDS` (default `86400`)
 
 ## Current limitations
 
