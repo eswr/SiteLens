@@ -71,16 +71,9 @@ jobs:
       - run: npm run ingest:geojson
       - run: npm run test:db -w apps/api
       - name: Check pgtyped drift
-        run: |
-          # pgtyped.json defaults to host port 54329; CI Postgres is 5432.
-          node -e "
-            const fs = require('fs');
-            const p = 'apps/api/pgtyped.json';
-            const c = JSON.parse(fs.readFileSync(p, 'utf8'));
-            c.db.port = 5432;
-            fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');
-          "
-          npm run check:db-codegen
+        # pgtyped.json defaults to host port 54329; CI Postgres is 5432.
+        # PGTYPED_PORT patches a temp config — never mutates the committed file.
+        run: PGTYPED_PORT=5432 npm run check:db-codegen
 
   # Opt-in only (manual dispatch): hits the live Nominatim service. Never runs
   # on push/PR so regular CI stays offline and deterministic.
@@ -201,13 +194,6 @@ jobs:
       - run: npm run build:shared
       - run: npm run db:migrate
       - name: Check pgtyped drift
-        run: |
-          # pgtyped.json defaults to host port 54329; CI Postgres is 5432.
-          node -e "
-            const fs = require('fs');
-            const p = 'apps/api/pgtyped.json';
-            const c = JSON.parse(fs.readFileSync(p, 'utf8'));
-            c.db.port = 5432;
-            fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');
-          "
-          npm run check:db-codegen
+        # pgtyped.json defaults to host port 54329; CI Postgres is 5432.
+        # PGTYPED_PORT patches a temp config — never mutates the committed file.
+        run: PGTYPED_PORT=5432 npm run check:db-codegen

@@ -116,7 +116,8 @@ fly deploy
 - Health check: `GET /health` (also `/api/health`). Queue health:
   `GET /api/planning-contexts/jobs/health` (includes `workerMode` /
   `pgBossEnabled`, process `workerHeartbeatAt` /
-  `workerHeartbeatAgeSeconds`, and `pgBoss.workerHealthy`).
+  `workerHeartbeatAgeSeconds` / `workerHeartbeatSource`, and
+  `pgBoss.workerHealthy`).
 - **Before scaling API count > 1:** either configure `@fastify/rate-limit` with a
   Redis store, or keep `fly scale count app=1` and scale only the worker
   (`fly scale count worker=N`). Inbound rate limits are still process-local.
@@ -154,7 +155,7 @@ Manual local verification of the split worker path is documented in
 | Concern | How to check / act |
 | --- | --- |
 | API health | `GET /health` or `/api/health` → `200` |
-| Worker heartbeat | `GET /api/planning-contexts/jobs/health` → `workerHeartbeatAt`, `workerHeartbeatAgeSeconds`; in `pg-boss` mode `pgBoss.workerHealthy` is `false` when heartbeat is missing/older than 60s (HTTP stays 200 for the portfolio demo) |
+| Worker heartbeat | `GET /api/planning-contexts/jobs/health` → `workerHeartbeatAt`, `workerHeartbeatAgeSeconds`, `workerHeartbeatSource` (`redis` / `memory` / `missing`); in `pg-boss` mode `pgBoss.workerHealthy` is `false` when heartbeat is missing/older than 60s (HTTP stays 200 for the portfolio demo) |
 | Queue health | Same endpoint: ledger `queued` / `running` / `failedLast24h` are product truth; `pgBoss.*` depths are approximate |
 | Provider spacer mode | Boot logs `provider_spacer.mode` (`redis`/`memory`). Prod Fly sets `PROVIDER_RATE_LIMIT_BACKEND=redis` and fails startup if Redis is unavailable |
 | Retry stuck queued jobs | Ledger→pg-boss reconcile loop (worker) re-enqueues `queued` rows older than ~20s with `singletonKey=buildJobId`. Or `POST /api/planning-contexts/build` again for the place (may reuse active job) |

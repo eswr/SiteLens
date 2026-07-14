@@ -136,9 +136,12 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 - **Response:** `{ data }` includes `workerEnabled`, `workerMode`,
   `pgBossEnabled`, ledger counters (`queued` / `running` /
   `failedLast24h` / …), lease config, process heartbeat fields
-  (`workerHeartbeatAt`, `workerHeartbeatAgeSeconds`), and optional
+  (`workerHeartbeatAt`, `workerHeartbeatAgeSeconds`,
+  `workerHeartbeatSource`: `redis` | `memory` | `missing`), and optional
   `pgBoss: { pending, active, retry, failed, workerHealthy }`. HTTP stays
   `200` when the worker heartbeat is stale; check `pgBoss.workerHealthy`.
+  Production-shaped deploys should report `workerHeartbeatSource: "redis"`;
+  `memory` is same-process fallback only.
 - **Errors:** database unavailable → `503`.
 
 ### `GET /api/planning-contexts/jobs/:jobId`

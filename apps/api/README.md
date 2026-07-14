@@ -191,8 +191,10 @@ After migrations against a local PostGIS DB, regenerate TypeScript with:
 
 ```bash
 npm run db:codegen -w apps/api
-# Fail if committed generated files drifted (needs local PostGIS):
+# Fail if committed generated files drifted (needs local PostGIS on :54329):
 npm run check:db-codegen
+# CI (Postgres on 5432): patch a temp pgtyped config, never the committed file:
+# PGTYPED_PORT=5432 npm run check:db-codegen
 ```
 
 Commit the generated `*.queries.ts` files. PostGIS analysis/ingest SQL and

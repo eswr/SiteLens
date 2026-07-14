@@ -94,6 +94,8 @@ const {
   runPlanningContextBuildWorkerTick,
   nudgePlanningContextBuildWorker,
   processQueuedBuildJobById,
+  markPlanningContextBuildWorkerShuttingDown,
+  clearPlanningContextBuildWorkerShuttingDown,
 } = await import('./planningContextBuildWorker.js');
 const { OverpassRequestError } = await import('./osmOverpassClient.js');
 
@@ -141,6 +143,7 @@ describe('planningContextBuildWorker', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearPlanningContextBuildWorkerShuttingDown();
     heldClients = 0;
     isCacheEnabled.mockReturnValue(false);
     getPlanningContext.mockResolvedValue(building);
@@ -461,5 +464,25 @@ describe('planningContextBuildWorker', () => {
     } finally {
       logSpy.mockRestore();
     }
+  });
+
+  it('skips cooldown re-enqueue timer when worker is shutting down', async () => {
+    vi.useFakeTimers();
+    loadConfig.mockReturnValue({
+      planningContextJobMaxAttempts: 3,
+      planningContextWorkerPollMs: 750,
+      planningContextWorkerEnabled: true,
+      planningContextWorkerMode: 'pg-boss' as const,
+      planningContextJobHeartbeatMs: 0,
+      planningContextJobLockMs: 300_000,
+      externalContextSyntheticFallbackEnabled: false,
+    });
+    getProviderCooldown.mockResolvedValue(5_500);
+
+    await processQueuedBuildJobById('job-cooldown-shutdown');
+    markPlanningContextBuildWorkerShuttingDown();
+
+    await vi.advanceTimersByTimeAsync(250);
+    expect(enqueuePlanningContextBuildJob).not.toHaveBeenCalled();
   });
 });

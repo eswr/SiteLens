@@ -28,6 +28,18 @@ import {
 
 let timer: ReturnType<typeof setInterval> | null = null;
 let tickInFlight = false;
+/** When true, skip deferred cooldown re-enqueue timers (worker teardown). */
+let isShuttingDown = false;
+
+/** Mark the worker as shutting down so settle timers do not touch pg-boss. */
+export function markPlanningContextBuildWorkerShuttingDown(): void {
+  isShuttingDown = true;
+}
+
+/** Clear shutdown flag (tests / same-process restart). */
+export function clearPlanningContextBuildWorkerShuttingDown(): void {
+  isShuttingDown = false;
+}
 
 /** Thrown when heartbeat shows another worker took the lease (or job ended). */
 class BuildLeaseLostError extends Error {
@@ -367,7 +379,8 @@ export async function processQueuedBuildJobById(
       // during that window the timer is lost; the reconcile loop recovers
       // stale `queued` ledger rows onto pg-boss.
       const settleMs = 250;
-      setTimeout(() => {
+      const settleTimer = setTimeout(() => {
+        if (isShuttingDown) return;
         void import('../worker/bossClient.js')
           .then(({ enqueuePlanningContextBuildJob }) =>
             enqueuePlanningContextBuildJob(buildJobId, {
@@ -386,6 +399,10 @@ export async function processQueuedBuildJobById(
             );
           });
       }, settleMs);
+      // Don't keep the process alive solely for the settle window.
+      if (typeof settleTimer === 'object' && settleTimer !== null && 'unref' in settleTimer) {
+        settleTimer.unref();
+      }
       return;
     }
   }

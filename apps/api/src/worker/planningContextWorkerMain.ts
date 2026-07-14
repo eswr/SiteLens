@@ -6,7 +6,10 @@ import {
   startPlanningContextBuildReconcileLoop,
   stopPlanningContextBuildReconcileLoop,
 } from '../externalData/reconcilePlanningContextBuildDispatch.js';
-import { processQueuedBuildJobById } from '../externalData/planningContextBuildWorker.js';
+import {
+  markPlanningContextBuildWorkerShuttingDown,
+  processQueuedBuildJobById,
+} from '../externalData/planningContextBuildWorker.js';
 import { assertProviderSpacerReady } from '../providers/providerSpacer.js';
 import {
   startBoss,
@@ -125,6 +128,7 @@ async function main(): Promise<void> {
           signal,
         }),
       );
+      markPlanningContextBuildWorkerShuttingDown();
       stopWorkerHeartbeat();
       stopPlanningContextBuildReconcileLoop();
       void stopBoss()
@@ -137,6 +141,7 @@ async function main(): Promise<void> {
 
 void main().catch((error) => {
   console.error(error);
+  markPlanningContextBuildWorkerShuttingDown();
   stopWorkerHeartbeat();
   stopPlanningContextBuildReconcileLoop();
   void stopBoss()
