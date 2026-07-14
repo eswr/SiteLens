@@ -14,7 +14,7 @@ const SPARSE_FEATURE_TOTAL = 10;
 function providerLabel(source: PlanningContextSource): string {
   if (source === 'external-osm') return 'Overpass';
   if (source === 'external-overture') return 'Overture';
-  if (source === 'synthetic-fallback') return 'Bundled';
+  if (source === 'synthetic-fallback') return 'Synthetic';
   return 'Bundled';
 }
 

@@ -8,9 +8,9 @@ a real geospatial SaaS. Items are grouped by concern.
 
 - [ ] Replace demo API keys with real auth (OAuth/SSO, JWT, or session cookies)
 - [ ] Add an organization/team membership model
-- [ ] Verify and lock down CORS origins (`WEB_ORIGIN`)
+- [x] Verify and lock down CORS origins (`WEB_ORIGIN` required in production; fail closed)
 - [ ] Use secure, `HttpOnly`, `SameSite` cookies / session storage if added
-- [ ] Rate-limit sensitive endpoints (analysis, summary, webhook)
+- [x] Rate-limit sensitive endpoints (`@fastify/rate-limit` + Helmet; **process-local** in-memory store — production-shaped for the single-machine Fly demo, not distributed Redis rate limiting yet)
 - [ ] Sanitize inputs and log safely (no secrets/PII in logs)
 - [ ] Disable demo billing in production (`ENABLE_DEMO_BILLING` unset/false)
 

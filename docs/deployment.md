@@ -46,7 +46,7 @@ the following works:
 **Documented portfolio combo for this repo:** **Vercel** (web) + **Fly.io**
 (API) + **Neon** PostGIS (via Vercel Marketplace) + **Upstash** Redis.
 Configs: root [`Dockerfile`](../Dockerfile), [`fly.toml`](../fly.toml),
-[`apps/web/vercel.json`](../apps/web/vercel.json).
+root [`vercel.json`](../vercel.json).
 
 ---
 
@@ -112,6 +112,18 @@ fly deploy
 
 - Image builds from the root `Dockerfile` (multi-stage: `tsc` → `node dist/server.js`; no `tsx` in runtime).
 - Health check: `GET /health` (also `/api/health`).
+- **Docker runtime smoke** (compiled `node dist/server.js`, not `tsx`):
+
+```bash
+# Requires Docker. Sets WEB_ORIGIN (required in production).
+npm run smoke:docker:api
+
+# Optional: also run db:migrate:check:prod against local compose PostGIS
+RUN_MIGRATE_CHECK=1 npm run smoke:docker:api
+```
+
+  Manual CI gate: dispatch the **Docker API smoke** job in
+  [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 - [`fly.toml`](../fly.toml) uses a **single** machine (`[[vm]] count = 1`,
   `min_machines_running = 1`) so the portfolio demo stays warm without an HA
   replica. If a deploy ever creates a second machine: `fly scale count app=1`.
@@ -172,25 +184,26 @@ restrictions. Replace the Nominatim User-Agent contact before going public
 
 ### 6. Deploy the frontend on Vercel
 
+`@sitelens/web` depends on `@sitelens/shared` at build time. Deploy from the
+**repository root** so workspaces resolve correctly. Do **not** use an
+`apps/web`-only CLI upload unless shared is published or vendored.
+
 1. Import the GitHub repo in Vercel.
-2. **Root Directory:** `apps/web`. This repo is an **npm workspaces** monorepo:
-   Git-connected builds may need “Include source files outside of the Root
-   Directory” so the root `package-lock.json` resolves; a CLI deploy from
-   `apps/web` uploads that package alone (no workspace hoist) and is fine
-   because `@sitelens/web` does not import `@sitelens/shared` at build time.
-3. Framework: Vite (`npm run build` → `dist`). SPA fallback rewrite lives in
-   [`apps/web/vercel.json`](../apps/web/vercel.json).
-4. Environment (Production) — baked in at **build** time:
+2. **Root Directory:** repository root (`.`) — leave blank / unset in the UI.
+3. **Install:** `npm ci` · **Build:** `npm run build:web` · **Output:**
+   `apps/web/dist` (also set in root [`vercel.json`](../vercel.json)).
+4. Framework: Vite. SPA fallback rewrite is in root `vercel.json`.
+5. Environment (Production) — baked in at **build** time:
 
 ```txt
 VITE_API_BASE_URL=https://sitelens-api.fly.dev
 VITE_DEMO_API_KEY=demo-planner-key
 ```
 
-5. Deploy (e.g. `vercel deploy --prod` from `apps/web`). Prefer a stable alias
-   such as `https://sitelens-demo.vercel.app`, then set Fly `WEB_ORIGIN` to that
-   **exact** origin (scheme + host, no trailing slash).
-6. For a **public** portfolio demo, disable Vercel Deployment Protection SSO
+6. Deploy (e.g. `vercel deploy --prod` from the **repo root**). Prefer a stable
+   alias such as `https://sitelens-demo.vercel.app`, then set Fly `WEB_ORIGIN`
+   to that **exact** origin (scheme + host, no trailing slash).
+7. For a **public** portfolio demo, disable Vercel Deployment Protection SSO
    (`vercel project protection disable --sso`); otherwise `.vercel.app` aliases
    may redirect to Vercel login.
 
@@ -236,7 +249,9 @@ Provider settings (non-Docker hosts):
 On Fly, prefer `fly deploy` (Docker) instead of a bare start command.
 
 Set `WEB_ORIGIN` to allowed frontend origin(s) — a single origin or a
-comma-separated list (scheme + host, no trailing slash), e.g.
+comma-separated list (scheme + host, no trailing slash). In
+`NODE_ENV=production` the API **requires** a non-empty `WEB_ORIGIN` at
+startup (fail closed; there is no allow-any CORS fallback). Example:
 `https://sitelens-demo.vercel.app,http://localhost:5173` for Vercel + local
 Vite. A mismatch causes CORS failures for `/api/me`, `/api/geocode/search`,
 `/api/analyze-area`, and `/api/planning-summary`.
@@ -268,9 +283,10 @@ API_BASE=https://<api-host> npm run verify:deployed:api
 
 Provider settings (Vercel-style):
 
-- **Root directory:** `apps/web`
-- **Build command:** `npm run build`
-- **Output directory:** `dist`
+- **Root directory:** repository root (`.`)
+- **Install command:** `npm ci`
+- **Build command:** `npm run build:web`
+- **Output directory:** `apps/web/dist`
 
 Frontend env (required for full-stack):
 
@@ -291,12 +307,12 @@ Follow [`docs/frontend-deploy-verification.md`](frontend-deploy-verification.md)
 
 1. Push the repo to GitHub and import it in Vercel.
 2. Framework preset: Vite.
-3. Root directory: `apps/web` (see [`apps/web/vercel.json`](../apps/web/vercel.json)).
-   npm workspaces note: enable including files outside the Root Directory for
-   Git builds if the lockfile fails to resolve; or deploy from `apps/web` via
-   the Vercel CLI (the web package does not need `@sitelens/shared` at build).
-4. Build command: `npm run build` → output: `dist` (Vite defaults).
-5. SPA fallback: [`apps/web/vercel.json`](../apps/web/vercel.json) rewrites.
+3. Root directory: repository root (`.`). `apps/web` imports `@sitelens/shared`,
+   so builds must run from the monorepo root (`npm run build:web`).
+4. Install / build / output: see root [`vercel.json`](../vercel.json)
+   (`npm ci` → `npm run build:web` → `apps/web/dist`).
+5. SPA fallback: root `vercel.json` rewrites (legacy
+   [`apps/web/vercel.json`](../apps/web/vercel.json) kept for local reference).
 6. For **frontend-only**: omit `VITE_API_*` env vars.
 7. For **full-stack**: set `VITE_API_BASE_URL` and `VITE_DEMO_API_KEY` as above.
 
@@ -320,6 +336,10 @@ npm run ingest:geojson
 npm run db:seed:billing
 npm run dev:api        # :4000
 npm run dev:web        # :5173 with apps/web/.env.local
+
+# Optional release smoke (API + web + PostGIS seeded):
+# npm run test:e2e:smoke
+# Manual CI: workflow_dispatch → E2E demo smoke / Docker API smoke
 ```
 
 Reset / teardown:

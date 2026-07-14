@@ -33,6 +33,12 @@ All responses use a consistent envelope: `{ data, meta? }` on success and
 `x-request-id` header. When the database is unavailable, DB-backed routes return
 `503 SERVICE_UNAVAILABLE` (never a silent fallback).
 
+`@fastify/helmet` and `@fastify/rate-limit` are registered on the app. Sensitive
+routes (geocode, analyze, summary, context build, demo-plan, webhook) use tighter
+route-level budgets; `/health` is excluded. Rate limiting is **process-local**
+(in-memory) — production-shaped for the single-machine Fly demo, not distributed
+Redis rate limiting yet. API-key buckets use a short SHA-256 digest, not the raw key.
+
 ## Auth & entitlements (demo)
 
 Demo **API-key** auth (not production). Provide a key via `x-api-key` or
@@ -158,6 +164,25 @@ indexes.
 
 Data flow: `apps/api/data/*.geojson` → ingestion script (`ST_GeomFromGeoJSON` +
 `ST_Multi` for polygons) → PostGIS tables → Fastify API (`ST_AsGeoJSON`).
+
+Sydney demo GeoJSON under `apps/api/data/` is the **source of truth**. The
+frontend-only offline copies live in `apps/web/public/data/`. After editing API
+fixtures, run `npm run sync:web-fixtures` and commit both. CI runs
+`npm run check:web-fixtures` to catch drift.
+
+### Typed SQL (pgtyped)
+
+Non-spatial billing and build-job queries live under `src/**/queries/*.sql`.
+After migrations against a local PostGIS DB, regenerate TypeScript with:
+
+```bash
+npm run db:codegen -w apps/api
+# Fail if committed generated files drifted (needs local PostGIS):
+npm run check:db-codegen
+```
+
+Commit the generated `*.queries.ts` files. PostGIS analysis/ingest SQL and
+`db/migrations/*.sql` stay raw (not pgtyped).
 
 `POST /api/analyze-area` runs the AOI analysis in PostGIS: it validates the
 geometry (`ST_IsValid` → `400 INVALID_GEOMETRY` on failure), computes area with

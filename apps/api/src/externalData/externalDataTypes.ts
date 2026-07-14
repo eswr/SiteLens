@@ -1,7 +1,7 @@
 /** Normalized raw external feature before SiteLens layer mapping. */
 export interface ExternalFeature {
   id: string;
-  source: 'osm-overpass';
+  source: 'osm-overpass' | 'synthetic-fallback';
   kind:
     | 'building'
     | 'landuse'

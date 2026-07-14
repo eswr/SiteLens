@@ -10,25 +10,33 @@ import type { PoolClient } from 'pg';
 import { loadConfig } from '../config.js';
 import { getPool } from '../db/pool.js';
 import { markPlanningContextFailedOnClient } from './planningContextRepository.js';
+import {
+  extendBuildJobLease as extendBuildJobLeaseQuery,
+  findActiveBuildJobByContext,
+  getBuildJobById,
+  getBuildJobQueueHealth as getBuildJobQueueHealthQuery,
+  insertBuildJob as insertBuildJobQuery,
+  type IGetBuildJobByIdResult,
+  type Json,
+} from './queries/buildJobs.queries.js';
 
 /** Default max claims/reclaims when env is unset (also used by unit tests). */
 export const MAX_BUILD_JOB_ATTEMPTS = 3;
 
-interface JobRow {
-  id: string;
-  planning_context_id: string;
-  status: PlanningContextBuildJobStatus;
-  place: PlanningContextBuildJobPlace;
-  counts: PlanningContextFeatureCounts | null;
-  reused: boolean | null;
-  error_message: string | null;
-  user_id: string | null;
-  attempts: number;
-  locked_until: Date | string | null;
-  created_at: Date | string;
-  updated_at: Date | string;
-  started_at: Date | string | null;
-  finished_at: Date | string | null;
+type JobRow = IGetBuildJobByIdResult;
+
+function asJobPlace(value: JobRow['place']): PlanningContextBuildJobPlace {
+  return value as PlanningContextBuildJobPlace;
+}
+
+function asJobCounts(
+  value: JobRow['counts'],
+): PlanningContextFeatureCounts | null {
+  return (value as PlanningContextFeatureCounts | null) ?? null;
+}
+
+function asJobStatus(value: string): PlanningContextBuildJobStatus {
+  return value as PlanningContextBuildJobStatus;
 }
 
 function toIso(value: Date | string): string {
@@ -44,9 +52,9 @@ function rowToJob(row: JobRow): PlanningContextBuildJob {
   return {
     id: row.id,
     planningContextId: row.planning_context_id,
-    status: row.status,
-    place: row.place,
-    counts: row.counts ?? null,
+    status: asJobStatus(row.status),
+    place: asJobPlace(row.place),
+    counts: asJobCounts(row.counts),
     reused: row.reused ?? null,
     errorMessage: row.error_message ?? null,
     attempts: Number(row.attempts) || 0,
@@ -57,12 +65,10 @@ function rowToJob(row: JobRow): PlanningContextBuildJob {
   };
 }
 
+/** Column list for claim SQL (FOR UPDATE SKIP LOCKED — kept as raw SQL). */
 const JOB_RETURNING = `id, planning_context_id, status, place, counts, reused,
                 error_message, user_id, attempts, locked_until,
                 created_at, updated_at, started_at, finished_at`;
-
-const JOB_SELECT = `SELECT ${JOB_RETURNING}
-       FROM planning_context_build_jobs`;
 
 export interface JobRowWithUser extends PlanningContextBuildJob {
   userId: string | null;
@@ -152,8 +158,8 @@ export async function getBuildJob(
   client?: PoolClient,
 ): Promise<PlanningContextBuildJob | null> {
   const db = client ?? getPool();
-  const result = await db.query<JobRow>(`${JOB_SELECT} WHERE id = $1`, [jobId]);
-  const row = result.rows[0];
+  const rows = await getBuildJobById.run({ jobId }, db);
+  const row = rows[0];
   return row ? rowToJob(row) : null;
 }
 
@@ -162,15 +168,8 @@ export async function findActiveBuildJob(
   client?: PoolClient,
 ): Promise<PlanningContextBuildJob | null> {
   const db = client ?? getPool();
-  const result = await db.query<JobRow>(
-    `${JOB_SELECT}
-      WHERE planning_context_id = $1
-        AND status IN ('queued', 'running')
-      ORDER BY created_at DESC
-      LIMIT 1`,
-    [planningContextId],
-  );
-  const row = result.rows[0];
+  const rows = await findActiveBuildJobByContext.run({ planningContextId }, db);
+  const row = rows[0];
   return row ? rowToJob(row) : null;
 }
 
@@ -190,30 +189,24 @@ export async function insertBuildJob(
 ): Promise<PlanningContextBuildJob> {
   const db = client ?? getPool();
   const now = new Date().toISOString();
-  const result = await db.query<JobRow>(
-    `INSERT INTO planning_context_build_jobs (
-       planning_context_id, status, place, counts, reused, error_message, user_id,
-       created_at, updated_at, started_at, finished_at
-     ) VALUES (
-       $1, $2, $3::jsonb, $4::jsonb, $5, $6, $7,
-       $8::timestamptz, $9::timestamptz, $10::timestamptz, $11::timestamptz
-     )
-     RETURNING ${JOB_RETURNING}`,
-    [
-      input.planningContextId,
-      input.status,
-      JSON.stringify(input.place),
-      input.counts != null ? JSON.stringify(input.counts) : null,
-      input.reused ?? null,
-      input.errorMessage ?? null,
-      input.userId ?? null,
-      now,
-      now,
-      input.startedAt ?? null,
-      input.finishedAt ?? null,
-    ],
+  const rows = await insertBuildJobQuery.run(
+    {
+      planningContextId: input.planningContextId,
+      status: input.status,
+      place: input.place as unknown as Json,
+      counts:
+        input.counts != null ? (input.counts as unknown as Json) : null,
+      reused: input.reused ?? null,
+      errorMessage: input.errorMessage ?? null,
+      userId: input.userId ?? null,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: input.startedAt ?? null,
+      finishedAt: input.finishedAt ?? null,
+    },
+    db,
   );
-  return rowToJob(result.rows[0]!);
+  return rowToJob(rows[0]!);
 }
 
 export interface ClaimBuildJobOptions {
@@ -292,55 +285,19 @@ export async function claimNextQueuedBuildJob(
  * Returns false if the job is no longer running (succeeded/failed/stolen).
  */
 export async function extendBuildJobLease(jobId: string): Promise<boolean> {
-  const pool = getPool();
   const lockMs = loadConfig().planningContextJobLockMs;
-  const result = await pool.query<{ id: string }>(
-    `UPDATE planning_context_build_jobs
-        SET locked_until = now() + ($2::double precision * interval '1 millisecond'),
-            updated_at = now()
-      WHERE id = $1
-        AND status = 'running'
-      RETURNING id`,
-    [jobId, lockMs],
+  const rows = await extendBuildJobLeaseQuery.run(
+    { jobId, lockMs },
+    getPool(),
   );
-  return result.rowCount != null && result.rowCount > 0;
-}
-
-interface QueueHealthRow {
-  queued: string | number;
-  running: string | number;
-  running_expired_lease: string | number;
-  succeeded_recent: string | number;
-  failed_recent: string | number;
-  oldest_queued_at: Date | string | null;
-  oldest_running_at: Date | string | null;
+  return rows.length > 0;
 }
 
 /** Aggregate queue depths and recent outcomes for the health endpoint. */
 export async function getBuildJobQueueHealth(): Promise<PlanningContextBuildJobQueueHealthResponse> {
   const config = loadConfig();
-  const pool = getPool();
-  const result = await pool.query<QueueHealthRow>(
-    `SELECT
-       COUNT(*) FILTER (WHERE status = 'queued')::int AS queued,
-       COUNT(*) FILTER (WHERE status = 'running')::int AS running,
-       COUNT(*) FILTER (
-         WHERE status = 'running'
-           AND (locked_until IS NULL OR locked_until < now())
-       )::int AS running_expired_lease,
-       COUNT(*) FILTER (
-         WHERE status = 'succeeded'
-           AND finished_at >= now() - interval '24 hours'
-       )::int AS succeeded_recent,
-       COUNT(*) FILTER (
-         WHERE status = 'failed'
-           AND finished_at >= now() - interval '24 hours'
-       )::int AS failed_recent,
-       MIN(created_at) FILTER (WHERE status = 'queued') AS oldest_queued_at,
-       MIN(started_at) FILTER (WHERE status = 'running') AS oldest_running_at
-     FROM planning_context_build_jobs`,
-  );
-  const row = result.rows[0];
+  const rows = await getBuildJobQueueHealthQuery.run(undefined, getPool());
+  const row = rows[0];
   return {
     workerEnabled: config.planningContextWorkerEnabled,
     pollMs: config.planningContextWorkerPollMs,

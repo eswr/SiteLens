@@ -15,6 +15,8 @@ import {
   assertUsageWithinLimit,
   resolveBilling,
 } from '../billing/billingService.js';
+import { requireAdmin } from '../auth/requireCapability.js';
+import { loadConfig } from '../config.js';
 import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
 import {
   enqueuePlanningContextBuild,
@@ -29,6 +31,10 @@ import {
   getPlanningContext,
   listPlanningContexts,
 } from '../externalData/planningContextRepository.js';
+import {
+  RATE_LIMITS,
+  tieredRateLimitConfig,
+} from '../plugins/rateLimit.js';
 
 const buildBody = Type.Object({
   place: Type.Object({
@@ -71,8 +77,13 @@ export async function planningContextsRoutes(
   });
 
   // Must be registered before `/planning-contexts/jobs/:jobId`.
-  // Public for the portfolio demo; no-store so intermediaries do not cache ops state.
+  // Portfolio demo (ENABLE_DEMO_BILLING): public + no-store.
+  // Production-shaped (production && !ENABLE_DEMO_BILLING): admin only.
   app.get('/planning-contexts/jobs/health', async (request, reply) => {
+    const config = loadConfig();
+    if (config.isProduction && !config.enableDemoBilling) {
+      requireAdmin(request);
+    }
     try {
       reply.header('cache-control', 'no-store');
       const data = await getBuildJobQueueHealth();
@@ -153,7 +164,10 @@ export async function planningContextsRoutes(
 
   app.post<{ Body: BuildBody }>(
     '/planning-contexts/build',
-    { schema: { body: buildBody } },
+    {
+      schema: { body: buildBody },
+      config: tieredRateLimitConfig(RATE_LIMITS.planningContextBuild),
+    },
     async (request, reply) => {
       const { user, billing } = await resolveBilling(request);
       assertFeature(billing, 'external-context:build');

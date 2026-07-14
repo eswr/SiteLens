@@ -23,6 +23,10 @@ import {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
 } from '../lib/planningContextParam.js';
+import {
+  RATE_LIMITS,
+  tieredRateLimitConfig,
+} from '../plugins/rateLimit.js';
 
 const analyzeAreaBody = Type.Object({
   geometry: Type.Object({
@@ -37,7 +41,10 @@ type AnalyzeAreaBody = Static<typeof analyzeAreaBody>;
 export async function analysisRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: AnalyzeAreaBody }>(
     '/analyze-area',
-    { schema: { body: analyzeAreaBody } },
+    {
+      schema: { body: analyzeAreaBody },
+      config: tieredRateLimitConfig(RATE_LIMITS.analyzeArea),
+    },
     async (request, reply) => {
       const resolved = resolvePlanningContextIdParam(
         request.body.planningContextId,

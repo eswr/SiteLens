@@ -4,7 +4,7 @@
  *
  *   CAPTURE_BASE_URL=http://localhost:5173 npm run capture:demo
  */
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 import { mkdir, copyFile, readdir, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';

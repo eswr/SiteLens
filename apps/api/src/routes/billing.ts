@@ -17,6 +17,10 @@ import {
   applyStripeSubscriptionEvent,
   setDemoPlanForUser,
 } from '../billing/billingRepository.js';
+import {
+  RATE_LIMITS,
+  fixedRateLimitConfig,
+} from '../plugins/rateLimit.js';
 
 const demoPlanBody = Type.Object({
   plan: Type.Union([
@@ -144,7 +148,10 @@ export async function billingRoutes(app: FastifyInstance): Promise<void> {
 
   app.post<{ Body: DemoPlanBody }>(
     '/billing/demo-plan',
-    { schema: { body: demoPlanBody } },
+    {
+      schema: { body: demoPlanBody },
+      config: fixedRateLimitConfig(RATE_LIMITS.demoPlan),
+    },
     async (request, reply) => {
       requireAuthenticated(request);
       const config = loadConfig();
@@ -169,40 +176,44 @@ export async function billingRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.post('/billing/webhook', async (request, reply) => {
-    const config = loadConfig();
-    const payload = JSON.stringify(request.body ?? {});
-    const signature = request.headers['stripe-signature'];
-    const sigHeader = Array.isArray(signature) ? signature[0] : signature;
+  app.post(
+    '/billing/webhook',
+    { config: fixedRateLimitConfig(RATE_LIMITS.billingWebhook) },
+    async (request, reply) => {
+      const config = loadConfig();
+      const payload = JSON.stringify(request.body ?? {});
+      const signature = request.headers['stripe-signature'];
+      const sigHeader = Array.isArray(signature) ? signature[0] : signature;
 
-    if (config.stripeWebhookSecret) {
-      // Production-style: require a valid signature.
-      if (!verifySignature(payload, sigHeader, config.stripeWebhookSecret)) {
-        reply.code(400);
-        const body: ApiErrorEnvelope = {
-          error: {
-            code: 'INVALID_SIGNATURE',
-            message: 'Invalid Stripe webhook signature.',
-          },
-        };
-        return body;
+      if (config.stripeWebhookSecret) {
+        // Production-style: require a valid signature.
+        if (!verifySignature(payload, sigHeader, config.stripeWebhookSecret)) {
+          reply.code(400);
+          const body: ApiErrorEnvelope = {
+            error: {
+              code: 'INVALID_SIGNATURE',
+              message: 'Invalid Stripe webhook signature.',
+            },
+          };
+          return body;
+        }
+      } else if (config.isProduction) {
+        // No secret in production → refuse unsigned webhooks.
+        return forbidden(
+          reply,
+          'Webhook requires STRIPE_WEBHOOK_SECRET in production.',
+        );
       }
-    } else if (config.isProduction) {
-      // No secret in production → refuse unsigned webhooks.
-      return forbidden(
-        reply,
-        'Webhook requires STRIPE_WEBHOOK_SECRET in production.',
-      );
-    }
-    // Non-production without a secret accepts demo payloads directly.
+      // Non-production without a secret accepts demo payloads directly.
 
-    const event = (request.body ?? {}) as StripeEvent;
-    try {
-      await handleStripeEvent(event);
-    } catch (error) {
-      // Never fail the webhook because a demo DB write failed.
-      request.log.warn(error);
-    }
-    return { data: { received: true, type: event.type ?? null } };
-  });
+      const event = (request.body ?? {}) as StripeEvent;
+      try {
+        await handleStripeEvent(event);
+      } catch (error) {
+        // Never fail the webhook because a demo DB write failed.
+        request.log.warn(error);
+      }
+      return { data: { received: true, type: event.type ?? null } };
+    },
+  );
 }

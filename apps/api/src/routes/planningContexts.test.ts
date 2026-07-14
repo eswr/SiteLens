@@ -162,6 +162,54 @@ describe('planning context routes', () => {
     expect(getJobMock).not.toHaveBeenCalled();
   });
 
+  it('requires admin for queue health in production-shaped mode', async () => {
+    const configModule = await import('../config.js');
+    const baseline = configModule.loadConfig();
+    const spy = vi.spyOn(configModule, 'loadConfig').mockReturnValue({
+      ...baseline,
+      isProduction: true,
+      enableDemoBilling: false,
+    });
+    try {
+      const anonymous = await app.inject({
+        method: 'GET',
+        url: '/api/planning-contexts/jobs/health',
+      });
+      expect(anonymous.statusCode).toBe(401);
+
+      const planner = await app.inject({
+        method: 'GET',
+        url: '/api/planning-contexts/jobs/health',
+        headers: { 'x-api-key': 'demo-planner-key' },
+      });
+      expect(planner.statusCode).toBe(403);
+
+      queueHealthMock.mockResolvedValueOnce({
+        workerEnabled: true,
+        pollMs: 750,
+        lockMs: 300_000,
+        maxAttempts: 3,
+        heartbeatMs: 100_000,
+        queued: 0,
+        running: 0,
+        runningExpiredLease: 0,
+        succeededRecent: 0,
+        failedLast24h: 0,
+        oldestQueuedAt: null,
+        oldestRunningAt: null,
+      });
+      const admin = await app.inject({
+        method: 'GET',
+        url: '/api/planning-contexts/jobs/health',
+        headers: { 'x-api-key': 'demo-admin-key' },
+      });
+      expect(admin.statusCode).toBe(200);
+      expect(admin.headers['cache-control']).toBe('no-store');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('returns build job status', async () => {
     getJobMock.mockResolvedValueOnce({
       id: '11111111-1111-1111-1111-111111111111',

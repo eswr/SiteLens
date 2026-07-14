@@ -7,6 +7,14 @@ import type {
 import { getPlan, isBillingPlanId } from '@sitelens/shared';
 import { getPool } from '../db/pool.js';
 import { getUserById } from '../auth/demoUsers.js';
+import {
+  getBillingContextForAccount,
+  getUsageCount,
+  incrementUsageCounter,
+  upsertDemoAccount,
+  upsertDemoSubscription,
+  upsertStripeSubscription,
+} from './queries/billing.queries.js';
 
 let loggedFallback = false;
 
@@ -52,11 +60,26 @@ function contextForPlan(
 
 async function ensureAccount(userId: string): Promise<void> {
   const user = getUserById(userId);
-  await getPool().query(
-    `INSERT INTO demo_accounts (id, user_id, name, role)
-     VALUES ($1, $1, $2, $3)
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role, updated_at = now()`,
-    [userId, user?.name ?? userId, user?.role ?? 'viewer'],
+  await upsertDemoAccount.run(
+    {
+      id: userId,
+      userId,
+      name: user?.name ?? userId,
+      role: user?.role ?? 'viewer',
+    },
+    getPool(),
+  );
+}
+
+function isSubscriptionStatus(
+  value: string,
+): value is SubscriptionState['status'] {
+  return (
+    value === 'none' ||
+    value === 'active' ||
+    value === 'canceled' ||
+    value === 'past_due' ||
+    value === 'trialing'
   );
 }
 
@@ -68,23 +91,16 @@ export async function getBillingContextForUser(
     return demoFallbackContext(null);
   }
   try {
-    const result = await getPool().query<{
-      plan: string;
-      status: SubscriptionState['status'];
-      stripe_subscription_id: string | null;
-      stripe_customer_id: string | null;
-      current_period_end: Date | null;
-    }>(
-      `SELECT s.plan, s.status, s.stripe_subscription_id, s.current_period_end,
-              c.stripe_customer_id
-         FROM subscriptions s
-         LEFT JOIN billing_customers c ON c.account_id = s.account_id
-        WHERE s.account_id = $1
-        LIMIT 1`,
-      [userId],
+    const rows = await getBillingContextForAccount.run(
+      { accountId: userId },
+      getPool(),
     );
-    const row = result.rows[0];
-    if (row && isBillingPlanId(row.plan)) {
+    const row = rows[0];
+    if (
+      row &&
+      isBillingPlanId(row.plan) &&
+      isSubscriptionStatus(row.status)
+    ) {
       return contextForPlan(row.plan, {
         plan: row.plan,
         status: row.status,
@@ -108,12 +124,9 @@ export async function setDemoPlanForUser(
   plan: BillingPlanId,
 ): Promise<BillingContext> {
   await ensureAccount(userId);
-  await getPool().query(
-    `INSERT INTO subscriptions (account_id, plan, status)
-     VALUES ($1, $2, 'active')
-     ON CONFLICT (account_id)
-       DO UPDATE SET plan = EXCLUDED.plan, status = 'active', updated_at = now()`,
-    [userId, plan],
+  await upsertDemoSubscription.run(
+    { accountId: userId, plan },
+    getPool(),
   );
   return getBillingContextForUser(userId);
 }
@@ -130,20 +143,14 @@ export async function applyStripeSubscriptionEvent(
   update: StripeSubscriptionUpdate,
 ): Promise<void> {
   await ensureAccount(update.accountId);
-  await getPool().query(
-    `INSERT INTO subscriptions (account_id, plan, status, stripe_subscription_id)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (account_id) DO UPDATE SET
-       plan = COALESCE(EXCLUDED.plan, subscriptions.plan),
-       status = EXCLUDED.status,
-       stripe_subscription_id = COALESCE(EXCLUDED.stripe_subscription_id, subscriptions.stripe_subscription_id),
-       updated_at = now()`,
-    [
-      update.accountId,
-      update.plan ?? 'free',
-      update.status,
-      update.stripeSubscriptionId ?? null,
-    ],
+  await upsertStripeSubscription.run(
+    {
+      accountId: update.accountId,
+      plan: update.plan ?? 'free',
+      status: update.status,
+      stripeSubscriptionId: update.stripeSubscriptionId ?? null,
+    },
+    getPool(),
   );
 }
 
@@ -154,12 +161,13 @@ export async function recordUsage(
 ): Promise<void> {
   try {
     await ensureAccount(userId);
-    await getPool().query(
-      `INSERT INTO usage_counters (account_id, feature, period_start, count)
-       VALUES ($1, $2, $3, 1)
-       ON CONFLICT (account_id, feature, period_start)
-         DO UPDATE SET count = usage_counters.count + 1, updated_at = now()`,
-      [userId, feature, periodStart()],
+    await incrementUsageCounter.run(
+      {
+        accountId: userId,
+        feature,
+        periodStart: periodStart(),
+      },
+      getPool(),
     );
   } catch (error) {
     console.warn(
@@ -176,12 +184,15 @@ export async function getUsage(
   feature: BillingFeature,
 ): Promise<number> {
   try {
-    const result = await getPool().query<{ count: number }>(
-      `SELECT count FROM usage_counters
-        WHERE account_id = $1 AND feature = $2 AND period_start = $3`,
-      [userId, feature, periodStart()],
+    const rows = await getUsageCount.run(
+      {
+        accountId: userId,
+        feature,
+        periodStart: periodStart(),
+      },
+      getPool(),
     );
-    return result.rows[0]?.count ?? 0;
+    return rows[0]?.count ?? 0;
   } catch {
     return 0;
   }

@@ -56,12 +56,32 @@ const DEFAULT_DATABASE_URL =
   'postgres://sitelens:sitelens@localhost:54329/sitelens';
 const DEFAULT_CACHE_TTL_SECONDS = 300;
 
+/**
+ * Resolve `WEB_ORIGIN` for CORS.
+ * Production requires an explicit non-empty value (fail closed).
+ * Non-production defaults to local Vite when unset.
+ */
+export function resolveWebOrigin(
+  nodeEnv: string,
+  envWebOrigin: string | undefined,
+): string {
+  const isProduction = nodeEnv === 'production';
+  const trimmed = envWebOrigin?.trim() ?? '';
+  if (isProduction) {
+    if (trimmed.length === 0) {
+      throw new Error('WEB_ORIGIN is required in production');
+    }
+    return trimmed;
+  }
+  return trimmed.length > 0 ? trimmed : 'http://localhost:5173';
+}
+
 /** Read runtime configuration from the environment, with safe defaults. */
 export function loadConfig(): AppConfig {
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const parsedPort = Number(process.env.PORT);
   const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 4000;
-  const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
+  const webOrigin = resolveWebOrigin(nodeEnv, process.env.WEB_ORIGIN);
   const databaseUrl = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
   const dbSsl = (process.env.DB_SSL ?? 'false').toLowerCase() === 'true';
 

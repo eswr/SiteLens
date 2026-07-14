@@ -126,9 +126,12 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 ### `GET /api/planning-contexts/jobs/health`
 
 - **Purpose:** job-queue observability for the in-process build worker.
-- **Auth:** none (public for the portfolio demo). Response is intentionally
-  operational (not secret), with `Cache-Control: no-store`. Tighten to
-  Admin/Enterprise later if needed in a non-demo deployment.
+- **Auth:**
+  - **Portfolio demo** (`ENABLE_DEMO_BILLING=true`, including production Fly
+    demo): public. Response is operational (not secret), with
+    `Cache-Control: no-store`.
+  - **Production-shaped** (`NODE_ENV=production` and `ENABLE_DEMO_BILLING=false`):
+    requires an **admin** API key (`demo-admin-key` / admin role).
 - **Response:** `{ data }` includes at least `workerEnabled`, `queued`,
   `running`, `failedLast24h`, `oldestQueuedAt`, plus lock/poll/heartbeat
   config and related counters.

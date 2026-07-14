@@ -9,6 +9,10 @@ import type {
 import { DEFAULT_NOMINATIM_USER_AGENT, loadConfig } from '../config.js';
 import { HttpError } from '../auth/requireCapability.js';
 import { MIN_QUERY_LENGTH, searchPlaces } from '../geocoding/geocodingService.js';
+import {
+  RATE_LIMITS,
+  tieredRateLimitConfig,
+} from '../plugins/rateLimit.js';
 
 const geocodeQuery = Type.Object({
   q: Type.Optional(Type.String()),
@@ -53,7 +57,10 @@ function assertGeocodingReady(): void {
 export async function geocodingRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: GeocodeQuery }>(
     '/geocode/search',
-    { schema: { querystring: geocodeQuery } },
+    {
+      schema: { querystring: geocodeQuery },
+      config: tieredRateLimitConfig(RATE_LIMITS.geocodeSearch),
+    },
     async (request, reply) => {
       try {
         assertGeocodingReady();

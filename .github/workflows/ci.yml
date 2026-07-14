@@ -19,6 +19,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run check:web-fixtures
       - run: npm run build:shared
       - run: npm run typecheck
       - run: npm run lint
@@ -86,3 +87,115 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:geocoding:live -w apps/api
+
+  # Opt-in only (manual dispatch): build the production Docker image and curl /health.
+  docker-api-smoke:
+    name: Docker API smoke (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke:docker:api
+        env:
+          WEB_ORIGIN: http://localhost:5173
+
+  # Opt-in release gate: Playwright demo-flow smoke (starts local API + web).
+  e2e-demo-smoke:
+    name: E2E demo smoke (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: sitelens
+          POSTGRES_USER: sitelens
+          POSTGRES_PASSWORD: sitelens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sitelens -d sitelens"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DATABASE_URL: postgres://sitelens:sitelens@localhost:5432/sitelens
+      REDIS_URL: redis://localhost:6379
+      CACHE_ENABLED: "true"
+      ENABLE_DEMO_BILLING: "true"
+      WEB_ORIGIN: http://localhost:5173
+      VITE_API_BASE_URL: http://localhost:4000
+      VITE_DEMO_API_KEY: demo-planner-key
+      GEOCODING_STATIC_FALLBACK_ENABLED: "true"
+      # Deterministic: validate app flow, not public Overpass availability.
+      OVERPASS_ENABLED: "false"
+      EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run build:shared
+      - run: npm run db:migrate
+      - run: npm run db:seed:billing
+      - run: npm run ingest:geojson
+      - run: npm run test:e2e:smoke
+
+  # Opt-in: regenerate pgtyped outputs and fail if committed queries drifted.
+  db-codegen-check:
+    name: DB codegen drift (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: sitelens
+          POSTGRES_USER: sitelens
+          POSTGRES_PASSWORD: sitelens
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sitelens -d sitelens"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      DATABASE_URL: postgres://sitelens:sitelens@localhost:5432/sitelens
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build:shared
+      - run: npm run db:migrate
+      - name: Check pgtyped drift
+        run: |
+          # pgtyped.json defaults to host port 54329; CI Postgres is 5432.
+          node -e "
+            const fs = require('fs');
+            const p = 'apps/api/pgtyped.json';
+            const c = JSON.parse(fs.readFileSync(p, 'utf8'));
+            c.db.port = 5432;
+            fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');
+          "
+          npm run check:db-codegen

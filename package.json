@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.1.0",
   "description": "SiteLens — geospatial planning intelligence platform (monorepo: web + API + shared)",
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=20 <21",
+    "npm": ">=10"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -18,9 +23,9 @@
     "build:web": "npm run build:shared && npm run build -w apps/web",
     "build:api": "npm run build:shared && npm run build -w apps/api",
     "build:shared": "npm run build -w packages/shared",
-    "typecheck": "npm run typecheck -ws --if-present",
-    "lint": "npm run lint -ws --if-present",
-    "test": "npm run test -ws --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "db:up": "docker compose -f infra/docker-compose.yml up -d",
     "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:reset": "npm run db:reset -w apps/api",
@@ -28,6 +33,7 @@
     "db:migrate:check": "npm run db:migrate:check -w apps/api",
     "db:migrate:prod": "npm run db:migrate:prod -w apps/api",
     "db:migrate:check:prod": "npm run db:migrate:check:prod -w apps/api",
+    "db:codegen": "npm run db:codegen -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
     "db:seed:billing": "npm run db:seed:billing -w apps/api",
     "db:seed:billing:prod": "npm run db:seed:billing:prod -w apps/api",
@@ -37,10 +43,16 @@
     "cache:clear:prod": "npm run cache:clear:prod -w apps/api",
     "smoke:fullstack": "bash scripts/smoke-fullstack.sh",
     "verify:deployed:api": "bash scripts/verify-deployed-api.sh",
-    "capture:demo": "node scripts/capture-demo-assets.mjs"
+    "capture:demo": "node scripts/capture-demo-assets.mjs",
+    "sync:web-fixtures": "bash scripts/sync-web-fixtures.sh",
+    "check:web-fixtures": "bash scripts/check-web-fixtures.sh",
+    "check:db-codegen": "bash scripts/check-db-codegen.sh",
+    "smoke:docker:api": "bash scripts/smoke-docker-api.sh",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "test:e2e:smoke": "playwright test -c e2e/playwright.config.ts e2e/demo-flow.spec.ts"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4",
-    "playwright": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "concurrently": "^9.2.4"
   }
 }

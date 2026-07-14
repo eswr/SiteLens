@@ -71,12 +71,11 @@ VITE_DEMO_API_KEY=demo-planner-key
 
 Omit both for a frontend-only static demo.
 
-Vercel project settings: **Root Directory** `apps/web` (or deploy from
-`apps/web` with the Vercel CLI). npm workspaces: Git imports may need files
-outside the root directory for the lockfile; CLI deploys from `apps/web` work
-as shipped. SPA rewrites:
-[`apps/web/vercel.json`](../apps/web/vercel.json). Disable SSO protection for
-a public demo (`vercel project protection disable --sso`).
+Vercel project settings: **Root Directory** = repository root (`.`),
+**Build** `npm run build:web`, **Output** `apps/web/dist` (see root
+[`vercel.json`](../vercel.json)). The web app depends on `@sitelens/shared` at
+build time — do not deploy `apps/web` alone. Disable SSO protection for a
+public demo (`vercel project protection disable --sso`).
 
 Production demo URLs once deployed:
 

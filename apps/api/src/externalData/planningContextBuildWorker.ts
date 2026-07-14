@@ -11,6 +11,8 @@ import {
   OverpassRequestError,
 } from './osmOverpassClient.js';
 import { osmToPlanningContext } from './osmToPlanningContext.js';
+import { generateSyntheticExternalFeatures } from './syntheticExternalFeatures.js';
+import type { ExternalFeature } from './externalDataTypes.js';
 import {
   claimNextQueuedBuildJob,
   extendBuildJobLease,
@@ -182,8 +184,37 @@ async function processJob(job: JobRowWithUser): Promise<void> {
   });
   try {
     // Overpass RTT: no pool client held; heartbeat keeps the lease alive.
-    const features = await fetchOverpassFeatures(building.bbox);
+    // When Overpass is disabled/unavailable and synthetic fallback is enabled,
+    // use clearly labeled synthetic features (CI / offline release gates).
+    let features: ExternalFeature[];
+    let usedSyntheticFallback = false;
+    try {
+      features = await fetchOverpassFeatures(building.bbox);
+    } catch (error) {
+      const canFallback =
+        loadConfig().externalContextSyntheticFallbackEnabled &&
+        (error instanceof OverpassDisabledError ||
+          error instanceof OverpassRequestError);
+      if (!canFallback) {
+        throw error;
+      }
+      usedSyntheticFallback = true;
+      features = generateSyntheticExternalFeatures(building.bbox);
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          event: 'planning_context_build.synthetic_fallback',
+          jobId: job.id,
+          planningContextId: job.planningContextId,
+          reason:
+            error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
     const normalized = osmToPlanningContext(features);
+    const contextToCommit = usedSyntheticFallback
+      ? { ...building, source: 'synthetic-fallback' as const }
+      : building;
 
     if (leaseLost) {
       throw new BuildLeaseLostError();
@@ -202,7 +233,7 @@ async function processJob(job: JobRowWithUser): Promise<void> {
       await client.query('BEGIN');
       const committed = await commitReadyExternalContext({
         client,
-        building,
+        building: contextToCommit,
         normalized,
         manageTransaction: false,
       });

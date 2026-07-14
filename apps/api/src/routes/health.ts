@@ -4,7 +4,8 @@ import { API_VERSION } from '../config.js';
 
 /** Registers `GET /health` (also mounted under `/api` by the app factory). */
 export async function healthRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/health', async () => {
+  // Deploy probes / uptime monitors must not consume the public rate budget.
+  app.get('/health', { config: { rateLimit: false } }, async () => {
     const data: HealthResponse = {
       status: 'ok',
       service: 'sitelens-api',

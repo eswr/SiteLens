@@ -81,7 +81,7 @@ ENABLE_DEMO_BILLING=true
 | --- | --- | --- |
 | `NODE_ENV` | `development` | `production` enables prod behavior (e.g. gates demo billing). |
 | `PORT` | `4000` | API listen port. |
-| `WEB_ORIGIN` | `http://localhost:5173` | Allowed CORS origin(s) — must **exactly** match the frontend origin(s). Comma-separated list supported (e.g. Vercel + `http://localhost:5173`). A Vite fallback port like `:5174` is a different origin and will fail with “Failed to fetch” unless listed. |
+| `WEB_ORIGIN` | `http://localhost:5173` (non-prod) | Allowed CORS origin(s) — must **exactly** match the frontend origin(s). Comma-separated list supported (e.g. Vercel + `http://localhost:5173`). A Vite fallback port like `:5174` is a different origin and will fail with “Failed to fetch” unless listed. **Required in `NODE_ENV=production`** (startup throws if missing/blank; no allow-any fallback). |
 | `DATABASE_URL` | `postgres://sitelens:sitelens@localhost:54329/sitelens` | PostgreSQL/PostGIS connection string. |
 | `DB_SSL` | `false` | Set `true` for managed Postgres requiring TLS. |
 | `REDIS_URL` | _(empty)_ | **Optional.** Caching is disabled when unset; the API still works. |
@@ -106,7 +106,7 @@ ENABLE_DEMO_BILLING=true
 | `EXTERNAL_CONTEXT_CACHE_TTL_SECONDS` | `604800` | Soft freshness window documentation; rebuild reuse uses `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS`. |
 | `EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2` | `0.01` | Max bbox area (deg²) accepted for Overpass extracts; larger place bboxes are clamped around the center. |
 | `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. |
-| `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | Optional synthetic fallback (off by default; never silent). |
+| `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | When Overpass is disabled or fails, build jobs can fall back to clearly labeled synthetic features (logged as `planning_context_build.synthetic_fallback`). Off by default; enable for deterministic CI/e2e. |
 | `PLANNING_CONTEXT_WORKER_ENABLED` | `true` | Start the in-process build-job worker on API boot (`server.ts`). |
 | `PLANNING_CONTEXT_WORKER_POLL_MS` | `750` | Interval between worker ticks when scanning for claimable jobs. |
 | `PLANNING_CONTEXT_JOB_LOCK_MS` | `300000` | Lease duration (ms) while a job is `running` before it can be reclaimed. |

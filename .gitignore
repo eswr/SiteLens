@@ -38,6 +38,11 @@ docs/screenshots/*.mp4
 coverage
 *.lcov
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -48,3 +53,5 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*

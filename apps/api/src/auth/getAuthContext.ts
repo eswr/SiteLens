@@ -3,7 +3,7 @@ import type { AuthContext } from '@sitelens/shared';
 import { getUserForApiKey } from './demoUsers.js';
 
 /** Extract the API key from `x-api-key` or `Authorization: Bearer <key>`. */
-function extractApiKey(request: FastifyRequest): string | undefined {
+export function extractApiKeyHeader(request: FastifyRequest): string | undefined {
   const headerKey = request.headers['x-api-key'];
   if (typeof headerKey === 'string' && headerKey.trim()) {
     return headerKey.trim();
@@ -20,6 +20,6 @@ function extractApiKey(request: FastifyRequest): string | undefined {
  * anonymous context (no hard failure) — route guards decide access.
  */
 export function getAuthContext(request: FastifyRequest): AuthContext {
-  const user = getUserForApiKey(extractApiKey(request));
+  const user = getUserForApiKey(extractApiKeyHeader(request));
   return { user, isAuthenticated: user !== null };
 }

@@ -40,6 +40,17 @@ SMOKE_GEOCODING=true SMOKE_GEOCODING_EXPECT_FALLBACK=true npm run smoke:fullstac
 SMOKE_CONTEXT_BUILD=true npm run smoke:fullstack
 ```
 
+Docker production-runtime smoke + Playwright demo-flow release gates
+(manual / `workflow_dispatch` in CI — not every PR). E2E is deterministic
+(`OVERPASS_ENABLED=false`, synthetic context fallback) so it validates the app
+flow, not public Overpass:
+
+```bash
+npm run smoke:docker:api   # docker build + curl /health (WEB_ORIGIN required)
+OVERPASS_ENABLED=false EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED=true \
+  npm run test:e2e:smoke
+```
+
 Deployed API verification (requires `curl` and `jq`):
 
 ```bash
@@ -248,7 +259,8 @@ A recording checklist and talking points live in [`docs/demo-checklist.md`](docs
 
 ## Local Development
 
-Requires Node.js 20+. Install once at the repo root (npm workspaces):
+Requires Node.js 20 (see root `engines` / `packageManager`). Install once at the
+repo root (npm workspaces):
 
 ```bash
 npm install        # install all workspaces

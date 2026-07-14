@@ -19,3 +19,15 @@ export function requireAuthenticated(request: FastifyRequest): void {
     throw new HttpError(401, 'UNAUTHORIZED', 'Authentication is required.');
   }
 }
+
+/** Throw `401`/`403` unless the caller is an authenticated admin demo user. */
+export function requireAdmin(request: FastifyRequest): void {
+  requireAuthenticated(request);
+  if (request.auth.user?.role !== 'admin') {
+    throw new HttpError(
+      403,
+      'FORBIDDEN',
+      'Admin access is required for this endpoint.',
+    );
+  }
+}

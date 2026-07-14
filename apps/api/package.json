@@ -24,10 +24,14 @@
     "db:seed:billing:prod": "node dist/db/seedBilling.js",
     "db:seed": "npm run ingest:geojson && npm run db:seed:billing",
     "cache:clear": "tsx src/cache/clearCache.ts",
-    "cache:clear:prod": "node dist/cache/clearCache.js"
+    "cache:clear:prod": "node dist/cache/clearCache.js",
+    "db:codegen": "pgtyped -c pgtyped.json"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.0",
+    "@fastify/rate-limit": "^11.1.0",
+    "@pgtyped/runtime": "^2.4.2",
     "@sinclair/typebox": "^0.34.50",
     "@sitelens/shared": "*",
     "dotenv": "^17.4.2",
@@ -36,6 +40,7 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@pgtyped/cli": "^2.4.3",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "tsx": "^4.23.0",
