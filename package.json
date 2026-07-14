@@ -8,13 +8,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/web",
-    "dev:web": "npm run dev -w apps/web",
+    "postinstall": "npm run build -w packages/shared --if-present",
+    "dev": "npm run build:shared && concurrently -k -n shared,api,web -c cyan,magenta,green \"npm run dev:shared\" \"npm run dev -w apps/api\" \"npm run dev -w apps/web\"",
+    "dev:web": "npm run build:shared && npm run dev -w apps/web",
     "dev:web:prod-api": "bash scripts/dev-web-prod-api.sh",
-    "dev:api": "npm run dev -w apps/api",
-    "build": "npm run build -ws --if-present",
-    "build:web": "npm run build -w apps/web",
-    "build:api": "npm run build -w apps/api",
+    "dev:shared": "npm run dev -w packages/shared",
+    "dev:api": "npm run build:shared && npm run dev -w apps/api",
+    "build": "npm run build:shared && npm run build -w apps/api && npm run build -w apps/web --if-present",
+    "build:web": "npm run build:shared && npm run build -w apps/web",
+    "build:api": "npm run build:shared && npm run build -w apps/api",
+    "build:shared": "npm run build -w packages/shared",
     "typecheck": "npm run typecheck -ws --if-present",
     "lint": "npm run lint -ws --if-present",
     "test": "npm run test -ws --if-present",
@@ -22,15 +25,22 @@
     "db:down": "docker compose -f infra/docker-compose.yml down",
     "db:reset": "npm run db:reset -w apps/api",
     "db:migrate": "npm run db:migrate -w apps/api",
+    "db:migrate:check": "npm run db:migrate:check -w apps/api",
+    "db:migrate:prod": "npm run db:migrate:prod -w apps/api",
+    "db:migrate:check:prod": "npm run db:migrate:check:prod -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
     "db:seed:billing": "npm run db:seed:billing -w apps/api",
+    "db:seed:billing:prod": "npm run db:seed:billing:prod -w apps/api",
     "ingest:geojson": "npm run ingest:geojson -w apps/api",
+    "ingest:geojson:prod": "npm run ingest:geojson:prod -w apps/api",
     "cache:clear": "npm run cache:clear -w apps/api",
+    "cache:clear:prod": "npm run cache:clear:prod -w apps/api",
     "smoke:fullstack": "bash scripts/smoke-fullstack.sh",
     "verify:deployed:api": "bash scripts/verify-deployed-api.sh",
     "capture:demo": "node scripts/capture-demo-assets.mjs"
   },
   "devDependencies": {
+    "concurrently": "^9.2.4",
     "playwright": "^1.61.1"
   }
 }

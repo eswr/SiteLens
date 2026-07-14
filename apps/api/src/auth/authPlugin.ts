@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { AuthContext } from '@sitelens/shared';
-import { getAuthContext } from './getAuthContext';
+import { getAuthContext } from './getAuthContext.js';
 
 declare module 'fastify' {
   interface FastifyRequest {

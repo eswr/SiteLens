@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
-    "build": "tsc --noEmit",
+    "start": "node dist/server.js",
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
@@ -14,11 +14,17 @@
     "test:redis": "RUN_REDIS_TESTS=true vitest run src/cache",
     "test:geocoding:live": "RUN_GEOCODING_LIVE_TESTS=true vitest run src/geocoding/nominatimClient.live.test.ts",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate:check": "tsx src/db/migrate.ts --check",
+    "db:migrate:prod": "node dist/db/migrate.js",
+    "db:migrate:check:prod": "node dist/db/migrate.js --check",
     "db:reset": "tsx src/db/reset.ts",
     "ingest:geojson": "tsx src/db/ingestGeojson.ts",
+    "ingest:geojson:prod": "node dist/db/ingestGeojson.js",
     "db:seed:billing": "tsx src/db/seedBilling.ts",
+    "db:seed:billing:prod": "node dist/db/seedBilling.js",
     "db:seed": "npm run ingest:geojson && npm run db:seed:billing",
-    "cache:clear": "tsx src/cache/clearCache.ts"
+    "cache:clear": "tsx src/cache/clearCache.ts",
+    "cache:clear:prod": "node dist/cache/clearCache.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
@@ -27,12 +33,12 @@
     "dotenv": "^17.4.2",
     "fastify": "^5.10.0",
     "ioredis": "^5.11.1",
-    "pg": "^8.22.0",
-    "tsx": "^4.23.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
+    "tsx": "^4.23.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   }

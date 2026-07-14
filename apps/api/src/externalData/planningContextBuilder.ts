@@ -7,21 +7,21 @@ import {
   EXTERNAL_OSM_DISCLAIMER,
   LOCAL_DEMO_SYDNEY_CONTEXT_ID,
 } from '@sitelens/shared';
-import { HttpError } from '../auth/requireCapability';
-import { loadConfig } from '../config';
-import { getPool } from '../db/pool';
-import { BboxTooLargeError, buildExternalContextId, deriveContextBbox } from './bbox';
+import { HttpError } from '../auth/requireCapability.js';
+import { loadConfig } from '../config.js';
+import { getPool } from '../db/pool.js';
+import { BboxTooLargeError, buildExternalContextId, deriveContextBbox } from './bbox.js';
 import {
   findActiveBuildJob,
   insertBuildJob,
   isUniqueViolation,
-} from './planningContextBuildJobRepository';
+} from './planningContextBuildJobRepository.js';
 import {
   countContextFeatures,
   getPlanningContext,
   markPlanningContextBuilding,
-} from './planningContextRepository';
-import { nudgePlanningContextBuildWorker } from './planningContextBuildWorker';
+} from './planningContextRepository.js';
+import { nudgePlanningContextBuildWorker } from './planningContextBuildWorker.js';
 
 export class PlanningContextBuildError extends Error {
   readonly code: string;

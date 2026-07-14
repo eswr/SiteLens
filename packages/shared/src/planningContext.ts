@@ -107,6 +107,28 @@ export interface PlanningContextBuildJobStatusResponse {
   job: PlanningContextBuildJob;
 }
 
+/**
+ * Payload for `GET /api/planning-contexts/jobs/health`.
+ * Recent counts cover the trailing 24 hours.
+ */
+export interface PlanningContextBuildJobQueueHealthResponse {
+  workerEnabled: boolean;
+  pollMs: number;
+  lockMs: number;
+  maxAttempts: number;
+  /** Lease heartbeat interval (ms); `0` means heartbeat is disabled. */
+  heartbeatMs: number;
+  queued: number;
+  running: number;
+  /** Running jobs whose lease is null or expired (eligible for reclaim). */
+  runningExpiredLease: number;
+  succeededRecent: number;
+  /** Jobs that failed in the trailing 24 hours. */
+  failedLast24h: number;
+  oldestQueuedAt: string | null;
+  oldestRunningAt: string | null;
+}
+
 /** Bundled Sydney portfolio fixture — default / offline fallback context. */
 export const LOCAL_DEMO_SYDNEY_CONTEXT_ID = 'local-demo-sydney';
 

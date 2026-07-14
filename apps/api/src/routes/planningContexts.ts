@@ -6,6 +6,7 @@ import type {
   ApiErrorEnvelope,
   BuildPlanningContextJobResponse,
   PlanningContext,
+  PlanningContextBuildJobQueueHealthResponse,
   PlanningContextBuildJobStatusResponse,
   PlanningContextDetailResponse,
 } from '@sitelens/shared';
@@ -13,18 +14,21 @@ import {
   assertFeature,
   assertUsageWithinLimit,
   resolveBilling,
-} from '../billing/billingService';
-import { sendDatabaseUnavailable } from '../lib/httpErrors';
+} from '../billing/billingService.js';
+import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
 import {
   enqueuePlanningContextBuild,
   PlanningContextBuildError,
-} from '../externalData/planningContextBuilder';
-import { getBuildJob } from '../externalData/planningContextBuildJobRepository';
+} from '../externalData/planningContextBuilder.js';
+import {
+  getBuildJob,
+  getBuildJobQueueHealth,
+} from '../externalData/planningContextBuildJobRepository.js';
 import {
   countContextFeatures,
   getPlanningContext,
   listPlanningContexts,
-} from '../externalData/planningContextRepository';
+} from '../externalData/planningContextRepository.js';
 
 const buildBody = Type.Object({
   place: Type.Object({
@@ -58,6 +62,23 @@ export async function planningContextsRoutes(
       const body: ApiEnvelope<PlanningContext[]> = {
         data: contexts,
         meta: { requestId: request.id, count: contexts.length },
+      };
+      return body;
+    } catch (error) {
+      sendDatabaseUnavailable(reply, error);
+      return reply;
+    }
+  });
+
+  // Must be registered before `/planning-contexts/jobs/:jobId`.
+  // Public for the portfolio demo; no-store so intermediaries do not cache ops state.
+  app.get('/planning-contexts/jobs/health', async (request, reply) => {
+    try {
+      reply.header('cache-control', 'no-store');
+      const data = await getBuildJobQueueHealth();
+      const body: ApiEnvelope<PlanningContextBuildJobQueueHealthResponse> = {
+        data,
+        meta: { requestId: request.id },
       };
       return body;
     } catch (error) {

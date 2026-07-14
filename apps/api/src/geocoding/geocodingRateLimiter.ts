@@ -1,4 +1,4 @@
-import { loadConfig } from '../config';
+import { loadConfig } from '../config.js';
 
 /**
  * Process-local request spacer for outbound Nominatim calls.

@@ -4,7 +4,7 @@ import {
   resolveFeatureId,
   validateFeature,
   type IngestFeature,
-} from './geojson';
+} from './geojson.js';
 
 const polygonFeature: IngestFeature = {
   type: 'Feature',

@@ -181,7 +181,7 @@ Full backend setup from the repo root:
 ```bash
 npm install
 npm run db:up          # start PostgreSQL + PostGIS (port 54329)
-npm run db:migrate     # apply SQL migrations
+npm run db:migrate     # apply SQL migrations (tsx; local/dev)
 npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS
 npm run dev:api        # start on http://0.0.0.0:4000 (tsx watch)
 ```
@@ -195,7 +195,13 @@ npm run test           # vitest run (DB/Redis integration tests skipped by defau
 npm run test:db        # RUN_DB_TESTS=true vitest run src/db (needs DB up)
 npm run test:redis     # RUN_REDIS_TESTS=true vitest run src/cache (needs Redis up + REDIS_URL)
 npm run db:reset       # drop tables + re-run migrations (dev only)
-npm run cache:clear    # clear all sitelens:* cache keys
+npm run cache:clear    # clear all sitelens:* cache keys (tsx)
+# Production image / Fly SSH (no tsx — compiled dist):
+npm run db:migrate:prod
+npm run db:migrate:check:prod
+npm run db:seed:billing:prod
+npm run ingest:geojson:prod
+npm run cache:clear:prod
 ```
 
 `npm run db:up` starts both PostgreSQL/PostGIS (`54329`) and Redis (`6389`).
@@ -233,7 +239,8 @@ Configuration (env vars, with defaults — see `.env.local.example` /
   in an LLM call while keeping source metrics + caveats.
 - Search uses `ILIKE`, not ranked full-text search yet.
 - No authentication or external services.
-- The API is run directly with `tsx`; there is no compiled build artifact yet.
+- Production runs compiled `dist/server.js` via Node (`npm start`). Local `dev`
+  still uses `tsx watch`.
 
 ## Next planned backend steps
 

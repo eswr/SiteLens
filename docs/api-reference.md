@@ -123,6 +123,17 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 - **Response:** `{ data: { jobId, contextId, status: "queued"|"running"|"succeeded", reused?: boolean } }`.
 - **Errors:** invalid place/bbox → `400`; quota exceeded → `429`.
 
+### `GET /api/planning-contexts/jobs/health`
+
+- **Purpose:** job-queue observability for the in-process build worker.
+- **Auth:** none (public for the portfolio demo). Response is intentionally
+  operational (not secret), with `Cache-Control: no-store`. Tighten to
+  Admin/Enterprise later if needed in a non-demo deployment.
+- **Response:** `{ data }` includes at least `workerEnabled`, `queued`,
+  `running`, `failedLast24h`, `oldestQueuedAt`, plus lock/poll/heartbeat
+  config and related counters.
+- **Errors:** database unavailable → `503`.
+
 ### `GET /api/planning-contexts/jobs/:jobId`
 
 - **Purpose:** poll async build job status (`queued` / `running` / `succeeded` /

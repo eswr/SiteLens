@@ -1,15 +1,21 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
-const { buildMock, listMock, getMock, countMock, getJobMock } = vi.hoisted(
-  () => ({
-    buildMock: vi.fn(),
-    listMock: vi.fn(),
-    getMock: vi.fn(),
-    countMock: vi.fn(),
-    getJobMock: vi.fn(),
-  }),
-);
+const {
+  buildMock,
+  listMock,
+  getMock,
+  countMock,
+  getJobMock,
+  queueHealthMock,
+} = vi.hoisted(() => ({
+  buildMock: vi.fn(),
+  listMock: vi.fn(),
+  getMock: vi.fn(),
+  countMock: vi.fn(),
+  getJobMock: vi.fn(),
+  queueHealthMock: vi.fn(),
+}));
 vi.mock('../externalData/planningContextBuilder', () => ({
   enqueuePlanningContextBuild: buildMock,
   buildExternalPlanningContext: buildMock,
@@ -32,11 +38,12 @@ vi.mock('../externalData/planningContextRepository', () => ({
 
 vi.mock('../externalData/planningContextBuildJobRepository', () => ({
   getBuildJob: getJobMock,
+  getBuildJobQueueHealth: queueHealthMock,
 }));
 
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../billing/billingRepository')>();
+    await importOriginal<typeof import('../billing/billingRepository.js')>();
   return {
     ...actual,
     getBillingContextForUser: async (userId: string | null) =>
@@ -45,7 +52,7 @@ vi.mock('../billing/billingRepository', async (importOriginal) => {
   };
 });
 
-const { buildApp } = await import('../app');
+const { buildApp } = await import('../app.js');
 
 let app: FastifyInstance;
 
@@ -123,6 +130,36 @@ describe('planning context routes', () => {
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe('NOT_FOUND');
     expect(countMock).not.toHaveBeenCalled();
+  });
+
+  it('returns build job queue health', async () => {
+    queueHealthMock.mockResolvedValueOnce({
+      workerEnabled: true,
+      pollMs: 750,
+      lockMs: 300_000,
+      maxAttempts: 3,
+      heartbeatMs: 100_000,
+      queued: 1,
+      running: 0,
+      runningExpiredLease: 0,
+      succeededRecent: 2,
+      failedLast24h: 0,
+      oldestQueuedAt: '2026-07-14T08:00:00.000Z',
+      oldestRunningAt: null,
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/planning-contexts/jobs/health',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.json().data).toMatchObject({
+      workerEnabled: true,
+      queued: 1,
+      failedLast24h: 0,
+      succeededRecent: 2,
+    });
+    expect(getJobMock).not.toHaveBeenCalled();
   });
 
   it('returns build job status', async () => {

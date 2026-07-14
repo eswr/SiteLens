@@ -130,8 +130,10 @@ sitelens/
 
 - **App:** https://sitelens-demo.vercel.app
 - **API:** https://sitelens-api.fly.dev
-- **Local demo video:** [`docs/screenshots/async-build-demo.mp4`](docs/screenshots/async-build-demo.mp4)
-- **Loom walkthrough:** _(upload the local demo video to Loom and paste the share link here)_
+- **Loom walkthrough (preferred):** _(upload the local capture to Loom and paste the share link here)_
+
+Video walkthrough is Loom-only (no local MP4 embed in the README). Capture with
+`npm run capture:demo`, upload to Loom, and paste the share link above.
 
 ## Screenshots
 
@@ -148,15 +150,16 @@ API):
 # one-time browser binary for Playwright
 npx playwright install chromium
 
-# ffmpeg is required to convert the recorded WebM into MP4
+# ffmpeg is required to convert the recorded WebM into MP4 (for Loom upload)
 VITE_API_BASE_URL=http://localhost:4000 VITE_DEMO_API_KEY=demo-planner-key \
   npm run dev -w apps/web -- --port 5173 --strictPort
 # separate terminal:
 CAPTURE_BASE_URL=http://localhost:5173 npm run capture:demo
 ```
 
-The PNG screenshots are intended to be committed. The temporary
-`docs/screenshots/_video-tmp/` directory and `.webm` files are gitignored.
+**Screenshots / video policy:** commit PNG screenshots under `docs/screenshots/`.
+Ignore `docs/screenshots/_video-tmp/` and `*.webm`. Local `*.mp4` captures are
+also gitignored (upload to Loom instead of committing video binaries).
 
 To force a visible `Status: building` shot instead of a fast reuse, age the
 existing external context past `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` (or delete
@@ -226,7 +229,10 @@ without exposing proprietary work.
   (active details tab).
 - **Domain logic:** pure utilities — `featureIndex` (search index),
   `spatialAnalysis` (Turf calculations), and `mockPlanningSummary` (deterministic
-  summary). All are frontend-only and read `/data/*.geojson`.
+  summary). In **frontend-only** mode (no `VITE_API_BASE_URL`) these run in the
+  browser against bundled `/data/*.geojson`. In **full-stack** mode the web app
+  calls the API for layers, PostGIS `analyze-area`, cached `planning-summary`,
+  geocoding, and async planning-context builds.
 
 ## Demo Walkthrough
 
@@ -250,7 +256,7 @@ npm run dev:web    # web app  → http://localhost:5173
 npm run dev:api    # API      → http://localhost:4000
 npm run typecheck  # typecheck all workspaces
 npm run lint       # lint all workspaces (oxlint)
-npm run test       # run workspace tests (Vitest — API)
+npm run test       # run workspace tests (Vitest — API + web)
 npm run build      # build all workspaces
 ```
 

@@ -12,13 +12,13 @@ import {
   assertFeature,
   assertUsageWithinLimit,
   resolveBilling,
-} from '../billing/billingService';
-import { recordUsage } from '../billing/billingRepository';
-import { accessScope } from '../auth/capabilities';
-import { cached } from '../cache/cacheJson';
-import { CACHE_TTL, planningSummaryKey } from '../cache/cacheKeys';
-import { generatePlanningSummary } from '../summary/generatePlanningSummary';
-import { resolvePlanningContextIdParam } from '../lib/planningContextParam';
+} from '../billing/billingService.js';
+import { recordUsage } from '../billing/billingRepository.js';
+import { accessScope } from '../auth/capabilities.js';
+import { cached } from '../cache/cacheJson.js';
+import { CACHE_TTL, planningSummaryKey } from '../cache/cacheKeys.js';
+import { generatePlanningSummary } from '../summary/generatePlanningSummary.js';
+import { resolvePlanningContextIdParam } from '../lib/planningContextParam.js';
 
 const zoningItem = Type.Object({
   zoneCode: Type.String(),

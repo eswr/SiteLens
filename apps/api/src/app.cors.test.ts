@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseCorsOrigin } from './app';
+import { parseCorsOrigin } from './app.js';
 
 describe('parseCorsOrigin', () => {
   it('returns true when unset (reflect / allow any in non-configured mode)', () => {

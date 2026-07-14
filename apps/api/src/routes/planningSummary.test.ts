@@ -8,7 +8,7 @@ const { billingMock } = vi.hoisted(() => ({
 }));
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../billing/billingRepository')>();
+    await importOriginal<typeof import('../billing/billingRepository.js')>();
   return {
     ...actual,
     getBillingContextForUser: async (userId: string | null) =>
@@ -40,7 +40,7 @@ const { cacheMock } = vi.hoisted(() => ({
   cacheMock: { mode: 'memory' as 'memory' | 'error', store: new Map<string, unknown>() },
 }));
 vi.mock('../cache/cacheJson', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../cache/cacheJson')>();
+  const actual = await importOriginal<typeof import('../cache/cacheJson.js')>();
   return {
     ...actual,
     cached: async <T>({
@@ -70,7 +70,7 @@ vi.mock('../cache/cacheJson', async (importOriginal) => {
 const { genMock } = vi.hoisted(() => ({ genMock: { calls: 0 } }));
 vi.mock('../summary/generatePlanningSummary', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../summary/generatePlanningSummary')>();
+    await importOriginal<typeof import('../summary/generatePlanningSummary.js')>();
   return {
     generatePlanningSummary: (input: Parameters<typeof actual.generatePlanningSummary>[0]) => {
       genMock.calls += 1;
@@ -79,7 +79,7 @@ vi.mock('../summary/generatePlanningSummary', async (importOriginal) => {
   };
 });
 
-const { buildApp } = await import('../app');
+const { buildApp } = await import('../app.js');
 
 const analysisResult: SpatialAnalysisResult = {
   areaSqm: 120000,

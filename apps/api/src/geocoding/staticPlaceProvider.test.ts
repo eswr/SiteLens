@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   STATIC_DEMO_ATTRIBUTION,
   searchStaticDemoPlaces,
-} from './staticPlaceProvider';
+} from './staticPlaceProvider.js';
 
 describe('searchStaticDemoPlaces', () => {
   it('matches Bengaluru by substring and labels provider as static-demo', () => {

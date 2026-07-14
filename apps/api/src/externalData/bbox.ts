@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { ContextBbox } from './externalDataTypes';
+import type { ContextBbox } from './externalDataTypes.js';
 
 /** Approx. half-size (degrees) for a ~2.5 km fallback box near the equator. */
 const FALLBACK_HALF_DEG = 0.022;

@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
-import { analyzeArea, InvalidGeometryError } from './spatialRepository';
-import { closePool } from './pool';
+import { analyzeArea, InvalidGeometryError } from './spatialRepository.js';
+import { closePool } from './pool.js';
 import type { GeoJsonPolygon } from '@sitelens/shared';
 
 // Live PostGIS analysis tests. Skipped unless RUN_DB_TESTS=true so the default

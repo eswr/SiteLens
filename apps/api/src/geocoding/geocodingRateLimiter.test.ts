@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   resetGeocodingRateLimiter,
   waitForGeocodingSlot,
-} from './geocodingRateLimiter';
+} from './geocodingRateLimiter.js';
 
 describe('waitForGeocodingSlot', () => {
   beforeEach(() => {

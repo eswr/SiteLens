@@ -6,4 +6,5 @@
 # - planning-summary-generated-context.png
 #
 # Local-only / gitignored: _video-tmp/, *.webm, *.mp4
+# Prefer Loom for the public walkthrough — do not commit video binaries.
 # Recapture: npm run capture:demo (see README Screenshots section).

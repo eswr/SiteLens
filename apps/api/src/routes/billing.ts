@@ -10,13 +10,13 @@ import type {
   CapabilityFlags,
 } from '@sitelens/shared';
 import { PLAN_LIST, isBillingPlanId } from '@sitelens/shared';
-import { loadConfig } from '../config';
-import { requireAuthenticated } from '../auth/requireCapability';
-import { resolveBilling } from '../billing/billingService';
+import { loadConfig } from '../config.js';
+import { requireAuthenticated } from '../auth/requireCapability.js';
+import { resolveBilling } from '../billing/billingService.js';
 import {
   applyStripeSubscriptionEvent,
   setDemoPlanForUser,
-} from '../billing/billingRepository';
+} from '../billing/billingRepository.js';
 
 const demoPlanBody = Type.Object({
   plan: Type.Union([

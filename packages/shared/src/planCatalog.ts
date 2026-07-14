@@ -1,4 +1,4 @@
-import type { BillingFeature, BillingPlan, BillingPlanId } from './billing';
+import type { BillingFeature, BillingPlan, BillingPlanId } from './billing.js';
 
 const FREE_FEATURES: BillingFeature[] = [
   'layers:read',

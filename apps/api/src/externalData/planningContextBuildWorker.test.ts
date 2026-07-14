@@ -4,6 +4,8 @@ const {
   claimNextQueuedBuildJob,
   markBuildJobAndContextFailed,
   markBuildJobSucceeded,
+  extendBuildJobLease,
+  logBuildJobEvent,
   fetchOverpassFeatures,
   osmToPlanningContext,
   commitReadyExternalContext,
@@ -11,11 +13,14 @@ const {
   recordUsage,
   getPool,
   isCacheEnabled,
+  clearPlanningCacheForContext,
   loadConfig,
 } = vi.hoisted(() => ({
   claimNextQueuedBuildJob: vi.fn(),
-  markBuildJobAndContextFailed: vi.fn(),
+  markBuildJobAndContextFailed: vi.fn(async () => true),
   markBuildJobSucceeded: vi.fn(),
+  extendBuildJobLease: vi.fn(async () => true),
+  logBuildJobEvent: vi.fn(),
   fetchOverpassFeatures: vi.fn(),
   osmToPlanningContext: vi.fn(),
   commitReadyExternalContext: vi.fn(),
@@ -23,10 +28,13 @@ const {
   recordUsage: vi.fn(async () => {}),
   getPool: vi.fn(),
   isCacheEnabled: vi.fn(() => false),
+  clearPlanningCacheForContext: vi.fn(async () => 0),
   loadConfig: vi.fn(() => ({
     planningContextJobMaxAttempts: 3,
     planningContextWorkerPollMs: 750,
     planningContextWorkerEnabled: true,
+    planningContextJobHeartbeatMs: 0,
+    planningContextJobLockMs: 300_000,
   })),
 }));
 
@@ -38,7 +46,7 @@ vi.mock('../cache/cacheClient', () => ({
   waitForCacheReady: vi.fn(async () => {}),
 }));
 vi.mock('../cache/clearCache', () => ({
-  clearPlanningCache: vi.fn(async () => {}),
+  clearPlanningCacheForContext,
 }));
 vi.mock('./osmOverpassClient', () => ({
   fetchOverpassFeatures,
@@ -59,6 +67,8 @@ vi.mock('./planningContextBuildJobRepository', () => ({
   claimNextQueuedBuildJob,
   markBuildJobAndContextFailed,
   markBuildJobSucceeded,
+  extendBuildJobLease,
+  logBuildJobEvent,
 }));
 vi.mock('./planningContextRepository', () => ({
   commitReadyExternalContext,
@@ -68,8 +78,8 @@ vi.mock('./planningContextRepository', () => ({
 const {
   runPlanningContextBuildWorkerTick,
   nudgePlanningContextBuildWorker,
-} = await import('./planningContextBuildWorker');
-const { OverpassRequestError } = await import('./osmOverpassClient');
+} = await import('./planningContextBuildWorker.js');
+const { OverpassRequestError } = await import('./osmOverpassClient.js');
 
 const place = {
   id: 'static-demo-bengaluru',
@@ -160,11 +170,147 @@ describe('planningContextBuildWorker', () => {
       expect.objectContaining({ manageTransaction: false }),
     );
     expect(markBuildJobSucceeded).toHaveBeenCalled();
+    expect(logBuildJobEvent).toHaveBeenCalledWith(
+      'planning_context_build.success',
+      expect.objectContaining({
+        jobId: job.id,
+        planningContextId: job.planningContextId,
+      }),
+    );
     expect(recordUsage).toHaveBeenCalledWith(
       'user_planner',
       'external-context:build',
     );
     expect(heldClients).toBe(0);
+  });
+
+  it('invalidates cache for the built context only when caching is enabled', async () => {
+    isCacheEnabled.mockReturnValue(true);
+    claimNextQueuedBuildJob.mockResolvedValue(job);
+    fetchOverpassFeatures.mockResolvedValue([]);
+    commitReadyExternalContext.mockResolvedValue({
+      sites: 1,
+      landUse: 0,
+      constraints: 0,
+      transit: 0,
+      developmentActivity: 0,
+      skipped: 0,
+      context: { ...building, status: 'ready' },
+    });
+    markBuildJobSucceeded.mockResolvedValue({ ...job, status: 'succeeded' });
+
+    await runPlanningContextBuildWorkerTick();
+
+    expect(clearPlanningCacheForContext).toHaveBeenCalledWith(
+      job.planningContextId,
+    );
+  });
+
+  it('heartbeats the lease while Overpass is in flight when enabled', async () => {
+    vi.useFakeTimers();
+    try {
+      loadConfig.mockReturnValue({
+        planningContextJobMaxAttempts: 3,
+        planningContextWorkerPollMs: 750,
+        planningContextWorkerEnabled: true,
+        planningContextJobHeartbeatMs: 50,
+        planningContextJobLockMs: 300_000,
+      });
+      claimNextQueuedBuildJob.mockResolvedValue(job);
+      let resolveOverpass: (value: unknown[]) => void = () => {};
+      fetchOverpassFeatures.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveOverpass = resolve;
+          }),
+      );
+      commitReadyExternalContext.mockResolvedValue({
+        sites: 0,
+        landUse: 0,
+        constraints: 0,
+        transit: 0,
+        developmentActivity: 0,
+        skipped: 0,
+        context: { ...building, status: 'ready' },
+      });
+      markBuildJobSucceeded.mockResolvedValue({ ...job, status: 'succeeded' });
+
+      const tickPromise = runPlanningContextBuildWorkerTick();
+      await vi.advanceTimersByTimeAsync(120);
+      expect(extendBuildJobLease).toHaveBeenCalledWith(job.id);
+
+      resolveOverpass([]);
+      await tickPromise;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('skips commit when heartbeat reports the lease was lost', async () => {
+    vi.useFakeTimers();
+    try {
+      loadConfig.mockReturnValue({
+        planningContextJobMaxAttempts: 3,
+        planningContextWorkerPollMs: 750,
+        planningContextWorkerEnabled: true,
+        planningContextJobHeartbeatMs: 50,
+        planningContextJobLockMs: 300_000,
+      });
+      claimNextQueuedBuildJob.mockResolvedValue(job);
+      extendBuildJobLease.mockResolvedValue(false);
+      let resolveOverpass: (value: unknown[]) => void = () => {};
+      fetchOverpassFeatures.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveOverpass = resolve;
+          }),
+      );
+
+      const tickPromise = runPlanningContextBuildWorkerTick();
+      await vi.advanceTimersByTimeAsync(60);
+      resolveOverpass([]);
+      await tickPromise;
+
+      expect(commitReadyExternalContext).not.toHaveBeenCalled();
+      expect(markBuildJobSucceeded).not.toHaveBeenCalled();
+      expect(markBuildJobAndContextFailed).not.toHaveBeenCalled();
+      expect(logBuildJobEvent).toHaveBeenCalledWith(
+        'planning_context_build.failure',
+        expect.objectContaining({
+          jobId: job.id,
+          errorMessage: expect.stringMatching(/lease was lost/i),
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rolls back and skips success when markBuildJobSucceeded returns null', async () => {
+    claimNextQueuedBuildJob.mockResolvedValue(job);
+    fetchOverpassFeatures.mockResolvedValue([]);
+    commitReadyExternalContext.mockResolvedValue({
+      sites: 1,
+      landUse: 0,
+      constraints: 0,
+      transit: 0,
+      developmentActivity: 0,
+      skipped: 0,
+      context: { ...building, status: 'ready' },
+    });
+    markBuildJobSucceeded.mockResolvedValue(null);
+
+    await runPlanningContextBuildWorkerTick();
+
+    expect(query).toHaveBeenCalledWith('ROLLBACK');
+    expect(recordUsage).not.toHaveBeenCalled();
+    expect(clearPlanningCacheForContext).not.toHaveBeenCalled();
+    expect(logBuildJobEvent).toHaveBeenCalledWith(
+      'planning_context_build.failure',
+      expect.objectContaining({
+        errorMessage: expect.stringMatching(/lease was lost/i),
+      }),
+    );
   });
 
   it('does not mark a successful build failed when metering throws', async () => {
@@ -186,6 +332,14 @@ describe('planningContextBuildWorker', () => {
 
     expect(markBuildJobSucceeded).toHaveBeenCalled();
     expect(markBuildJobAndContextFailed).not.toHaveBeenCalled();
+    expect(logBuildJobEvent).toHaveBeenCalledWith(
+      'planning_context_build.metering_failure',
+      expect.objectContaining({
+        jobId: job.id,
+        userId: 'user_planner',
+        errorMessage: 'billing down',
+      }),
+    );
   });
 
   it('marks job and context failed atomically when Overpass errors', async () => {
@@ -201,6 +355,13 @@ describe('planningContextBuildWorker', () => {
       expect.objectContaining({ id: job.planningContextId }),
       expect.stringContaining('upstream'),
     );
+    expect(logBuildJobEvent).toHaveBeenCalledWith(
+      'planning_context_build.failure',
+      expect.objectContaining({
+        jobId: job.id,
+        errorMessage: expect.stringContaining('upstream'),
+      }),
+    );
     expect(commitReadyExternalContext).not.toHaveBeenCalled();
     expect(recordUsage).not.toHaveBeenCalled();
   });
@@ -210,6 +371,8 @@ describe('planningContextBuildWorker', () => {
       planningContextJobMaxAttempts: 3,
       planningContextWorkerPollMs: 750,
       planningContextWorkerEnabled: true,
+      planningContextJobHeartbeatMs: 0,
+      planningContextJobLockMs: 300_000,
     });
     claimNextQueuedBuildJob.mockResolvedValue({
       ...job,
@@ -231,6 +394,8 @@ describe('planningContextBuildWorker', () => {
       planningContextJobMaxAttempts: 3,
       planningContextWorkerPollMs: 750,
       planningContextWorkerEnabled: false,
+      planningContextJobHeartbeatMs: 0,
+      planningContextJobLockMs: 300_000,
     });
 
     nudgePlanningContextBuildWorker();

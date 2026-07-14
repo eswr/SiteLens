@@ -6,9 +6,9 @@ import type {
 } from '@sitelens/shared';
 import { EXTERNAL_OSM_DISCLAIMER, LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import type { PoolClient } from 'pg';
-import { getPool } from '../db/pool';
-import { LAYER_DEFS } from '../lib/layerConfig';
-import type { NormalizedPlanningLayers } from './externalDataTypes';
+import { getPool } from '../db/pool.js';
+import { LAYER_DEFS } from '../lib/layerConfig.js';
+import type { NormalizedPlanningLayers } from './externalDataTypes.js';
 
 interface ContextRow {
   id: string;

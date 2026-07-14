@@ -1,7 +1,7 @@
 import '../loadEnv.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { deleteByPattern, getJson, setJson } from './cacheJson';
-import { closeRedisClient } from './cacheClient';
+import { deleteByPattern, getJson, setJson } from './cacheJson.js';
+import { closeRedisClient } from './cacheClient.js';
 
 // Live Redis round-trip tests. Skipped unless RUN_REDIS_TESTS=true AND REDIS_URL
 // is set (e.g. `REDIS_URL=redis://localhost:6389 npm run test:redis`), so the

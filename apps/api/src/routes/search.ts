@@ -6,16 +6,16 @@ import type {
   ApiErrorEnvelope,
   SearchResultItem,
 } from '@sitelens/shared';
-import { searchFeatures } from '../db/spatialRepository';
-import { sendDatabaseUnavailable } from '../lib/httpErrors';
-import { cached } from '../cache/cacheJson';
-import { CACHE_TTL, searchKey } from '../cache/cacheKeys';
-import { accessScope } from '../auth/capabilities';
-import { resolveBilling } from '../billing/billingService';
+import { searchFeatures } from '../db/spatialRepository.js';
+import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
+import { cached } from '../cache/cacheJson.js';
+import { CACHE_TTL, searchKey } from '../cache/cacheKeys.js';
+import { accessScope } from '../auth/capabilities.js';
+import { resolveBilling } from '../billing/billingService.js';
 import {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
-} from '../lib/planningContextParam';
+} from '../lib/planningContextParam.js';
 
 const searchQuery = Type.Object({
   q: Type.Optional(Type.String()),

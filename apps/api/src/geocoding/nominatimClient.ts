@@ -1,6 +1,6 @@
 import type { PlaceSearchResult } from '@sitelens/shared';
-import { loadConfig } from '../config';
-import { HttpError } from '../auth/requireCapability';
+import { loadConfig } from '../config.js';
+import { HttpError } from '../auth/requireCapability.js';
 
 const REQUEST_TIMEOUT_MS = 5000;
 

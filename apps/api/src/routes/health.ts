@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ApiEnvelope, HealthResponse } from '@sitelens/shared';
-import { API_VERSION } from '../config';
+import { API_VERSION } from '../config.js';
 
 /** Registers `GET /health` (also mounted under `/api` by the app factory). */
 export async function healthRoutes(app: FastifyInstance): Promise<void> {

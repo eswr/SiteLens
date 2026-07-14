@@ -3,20 +3,20 @@ import type {
   GeocodingFallbackReason,
   PlaceSearchResponse,
 } from '@sitelens/shared';
-import { loadConfig } from '../config';
-import { cached, getJson } from '../cache/cacheJson';
-import { CACHE_TTL, placeSearchKey } from '../cache/cacheKeys';
-import { HttpError } from '../auth/requireCapability';
-import { waitForGeocodingSlot } from './geocodingRateLimiter';
-import { searchNominatim } from './nominatimClient';
+import { loadConfig } from '../config.js';
+import { cached, getJson } from '../cache/cacheJson.js';
+import { CACHE_TTL, placeSearchKey } from '../cache/cacheKeys.js';
+import { HttpError } from '../auth/requireCapability.js';
+import { waitForGeocodingSlot } from './geocodingRateLimiter.js';
+import { searchNominatim } from './nominatimClient.js';
 import {
   getGeocodingUpstreamCooldown,
   markGeocodingUpstreamUnavailable,
-} from './geocodingUpstreamState';
+} from './geocodingUpstreamState.js';
 import {
   STATIC_DEMO_ATTRIBUTION,
   searchStaticDemoPlaces,
-} from './staticPlaceProvider';
+} from './staticPlaceProvider.js';
 
 export const MIN_QUERY_LENGTH = 3;
 export const MAX_LIMIT = 10;

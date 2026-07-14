@@ -39,6 +39,11 @@ export interface AppConfig {
   planningContextWorkerPollMs: number;
   /** Lease duration while a job is running (ms). */
   planningContextJobLockMs: number;
+  /**
+   * How often a long-running build extends its lease (ms).
+   * `0` disables heartbeat; default is roughly lockMs / 3.
+   */
+  planningContextJobHeartbeatMs: number;
   /** Max claim/reclaim attempts before the job is marked failed. */
   planningContextJobMaxAttempts: number;
 }
@@ -161,6 +166,12 @@ export function loadConfig(): AppConfig {
     Number.isFinite(parsedJobLock) && parsedJobLock > 0
       ? parsedJobLock
       : 300_000;
+  const parsedJobHeartbeat = Number(
+    process.env.PLANNING_CONTEXT_JOB_HEARTBEAT_MS,
+  );
+  const planningContextJobHeartbeatMs = Number.isFinite(parsedJobHeartbeat)
+    ? Math.max(0, Math.floor(parsedJobHeartbeat))
+    : Math.max(1_000, Math.floor(planningContextJobLockMs / 3));
   const parsedJobMaxAttempts = Number(
     process.env.PLANNING_CONTEXT_JOB_MAX_ATTEMPTS,
   );
@@ -202,6 +213,7 @@ export function loadConfig(): AppConfig {
     planningContextWorkerEnabled,
     planningContextWorkerPollMs,
     planningContextJobLockMs,
+    planningContextJobHeartbeatMs,
     planningContextJobMaxAttempts,
   };
 }

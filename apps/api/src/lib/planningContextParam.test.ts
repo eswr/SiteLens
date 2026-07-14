@@ -11,7 +11,7 @@ vi.mock('../externalData/planningContextRepository', () => ({
 const {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
-} = await import('./planningContextParam');
+} = await import('./planningContextParam.js');
 
 describe('resolvePlanningContextIdParam', () => {
   it('defaults omitted values to Sydney Demo', () => {

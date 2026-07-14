@@ -5,7 +5,7 @@ import type {
   CapabilityFlags,
   DemoUser,
 } from '@sitelens/shared';
-import { resolveBilling } from '../billing/billingService';
+import { resolveBilling } from '../billing/billingService.js';
 
 interface MeResponse {
   user: DemoUser | null;

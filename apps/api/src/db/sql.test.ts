@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rowToFeature, rowsToFeatureCollection, isDbConnectionError } from './sql';
+import { rowToFeature, rowsToFeatureCollection, isDbConnectionError } from './sql.js';
 
 describe('rowToFeature', () => {
   it('maps a row to a GeoJSON Feature', () => {

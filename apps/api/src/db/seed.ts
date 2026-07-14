@@ -1,8 +1,8 @@
 import '../loadEnv.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { ingestAll } from './ingestGeojson';
-import { closePool } from './pool';
+import { ingestAll } from './ingestGeojson.js';
+import { closePool } from './pool.js';
 
 /** Seed the database by ingesting the mock GeoJSON datasets. */
 export async function seed(): Promise<void> {

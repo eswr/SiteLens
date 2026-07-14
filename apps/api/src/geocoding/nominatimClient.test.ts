@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { searchNominatim } from './nominatimClient';
+import { searchNominatim } from './nominatimClient.js';
 
 function stubFetch(impl: () => Promise<Response>): void {
   vi.stubGlobal('fetch', vi.fn(impl));

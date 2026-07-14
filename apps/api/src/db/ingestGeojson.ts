@@ -8,20 +8,20 @@ import {
   LOCAL_DEMO_SYDNEY_CONTEXT_ID,
   LOCAL_DEMO_SYDNEY_DISCLAIMER,
 } from '@sitelens/shared';
-import { getPool, closePool } from './pool';
+import { getPool, closePool } from './pool.js';
 import {
   assertFeatureCollection,
   resolveFeatureId,
   validateFeature,
   type IngestFeature,
-} from './geojson';
-import { LAYER_DEFS } from '../lib/layerConfig';
-import { clearPlanningCache } from '../cache/clearCache';
+} from './geojson.js';
+import { LAYER_DEFS } from '../lib/layerConfig.js';
+import { clearPlanningCache } from '../cache/clearCache.js';
 import {
   closeRedisClient,
   isCacheEnabled,
   waitForCacheReady,
-} from '../cache/cacheClient';
+} from '../cache/cacheClient.js';
 
 const DATA_DIR = fileURLToPath(new URL('../../data/', import.meta.url));
 

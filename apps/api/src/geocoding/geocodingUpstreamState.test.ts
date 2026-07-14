@@ -3,7 +3,7 @@ import {
   getGeocodingUpstreamCooldown,
   markGeocodingUpstreamUnavailable,
   resetGeocodingUpstreamState,
-} from './geocodingUpstreamState';
+} from './geocodingUpstreamState.js';
 
 beforeEach(() => {
   resetGeocodingUpstreamState();

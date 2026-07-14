@@ -57,7 +57,7 @@ vi.mock('../externalData/planningContextRepository', () => ({
 
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../billing/billingRepository')>();
+    await importOriginal<typeof import('../billing/billingRepository.js')>();
   return {
     ...actual,
     getBillingContextForUser: async (userId: string | null) =>
@@ -67,7 +67,7 @@ vi.mock('../billing/billingRepository', async (importOriginal) => {
   };
 });
 
-const { buildApp } = await import('../app');
+const { buildApp } = await import('../app.js');
 
 const validPolygon = {
   type: 'Polygon',

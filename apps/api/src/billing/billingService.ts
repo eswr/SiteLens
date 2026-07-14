@@ -6,9 +6,9 @@ import type {
   DemoUser,
 } from '@sitelens/shared';
 import { hasFeature } from '@sitelens/shared';
-import { getBillingContextForUser, getUsage } from './billingRepository';
-import { getCapabilities } from '../auth/capabilities';
-import { HttpError } from '../auth/requireCapability';
+import { getBillingContextForUser, getUsage } from './billingRepository.js';
+import { getCapabilities } from '../auth/capabilities.js';
+import { HttpError } from '../auth/requireCapability.js';
 
 export interface RequestBilling {
   user: DemoUser | null;

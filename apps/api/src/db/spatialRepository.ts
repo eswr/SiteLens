@@ -7,15 +7,15 @@ import type {
   SpatialAnalysisResult,
 } from '@sitelens/shared';
 import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
-import { getPool } from './pool';
-import { isDbConnectionError, LAYER_TABLE } from './sql';
+import { getPool } from './pool.js';
+import { isDbConnectionError, LAYER_TABLE } from './sql.js';
 import {
   rowToFeature,
   rowsToFeatureCollection,
   type FeatureRow,
   type GeoFeature,
-} from './sql';
-import { getFeatureSubtitle, getFeatureTitle } from '../lib/featureText';
+} from './sql.js';
+import { getFeatureSubtitle, getFeatureTitle } from '../lib/featureText.js';
 
 const DEFAULT_SEARCH_LIMIT = 8;
 

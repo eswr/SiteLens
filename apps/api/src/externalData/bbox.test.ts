@@ -6,7 +6,7 @@ import {
   deriveContextBbox,
   fallbackBboxAroundCenter,
   nominatimBoxToContextBbox,
-} from './bbox';
+} from './bbox.js';
 
 describe('bbox helpers', () => {
   it('converts Nominatim box to west/south/east/north', () => {

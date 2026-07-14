@@ -1,6 +1,6 @@
 import type { FastifyReply } from 'fastify';
 import type { ApiErrorEnvelope } from '@sitelens/shared';
-import { loadConfig } from '../config';
+import { loadConfig } from '../config.js';
 
 /**
  * Send a 503 when the database is unavailable. In development, include a hint

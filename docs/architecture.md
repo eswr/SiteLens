@@ -79,7 +79,7 @@ Query (>= 3 chars, explicit submit)
 React + TypeScript + Vite + MapLibre GL + Turf.js + Recharts + Material UI + Zustand
 
 **Backend** (`apps/api`)
-Fastify + TypeScript (run with `tsx`), `pg` for database access
+Fastify + TypeScript (dev: `tsx watch`; prod: `node dist/server.js`), `pg` for database access
 
 **Database**
 PostgreSQL + PostGIS (via Docker Compose)

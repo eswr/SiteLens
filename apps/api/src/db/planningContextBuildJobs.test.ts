@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { claimNextQueuedBuildJob } from '../externalData/planningContextBuildJobRepository';
-import { closePool, getPool } from './pool';
+import { claimNextQueuedBuildJob } from '../externalData/planningContextBuildJobRepository.js';
+import { closePool, getPool } from './pool.js';
 
 // Integration tests hit a real Postgres. Skipped unless RUN_DB_TESTS=true
 // (e.g. `npm run test:db`) so the default suite never hangs.

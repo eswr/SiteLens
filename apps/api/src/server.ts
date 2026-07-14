@@ -1,12 +1,12 @@
 import './loadEnv.js';
-import { buildApp } from './app';
-import { loadConfig } from './config';
-import { closePool } from './db/pool';
-import { closeRedisClient, waitForCacheReady } from './cache/cacheClient';
+import { buildApp } from './app.js';
+import { loadConfig } from './config.js';
+import { closePool } from './db/pool.js';
+import { closeRedisClient, waitForCacheReady } from './cache/cacheClient.js';
 import {
   startPlanningContextBuildWorker,
   stopPlanningContextBuildWorker,
-} from './externalData/planningContextBuildWorker';
+} from './externalData/planningContextBuildWorker.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();

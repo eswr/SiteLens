@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
-import { loadConfig } from '../config';
+import { Redis } from 'ioredis';
+import { loadConfig } from '../config.js';
 
 let client: Redis | null = null;
 let initialized = false;

@@ -128,4 +128,27 @@ export const PLANNING_CACHE_PATTERNS = [
   `${NAMESPACE}:summary:*`,
 ];
 
+/** Escape Redis SCAN MATCH meta-characters in a planning context id. */
+function escapeRedisGlob(value: string): string {
+  return value.replace(/([*?[\]\\])/g, '\\$1');
+}
+
+/**
+ * Planning-cache key patterns scoped to one planning context.
+ * Place-search keys are intentionally omitted (not context-bound).
+ */
+export function planningCachePatternsForContext(
+  planningContextId: string,
+): string[] {
+  const id = escapeRedisGlob(planningContextId);
+  return [
+    `${NAMESPACE}:layers:${VERSION}:${id}`,
+    `${NAMESPACE}:parcels:${VERSION}:${id}:*`,
+    `${NAMESPACE}:parcel:${VERSION}:${id}:*`,
+    `${NAMESPACE}:search:${VERSION}:${id}:*`,
+    `${NAMESPACE}:analysis:${VERSION}:${id}:*`,
+    `${NAMESPACE}:summary:${VERSION}:${id}:*`,
+  ];
+}
+
 export const ALL_CACHE_PATTERN = `${NAMESPACE}:*`;

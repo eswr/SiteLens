@@ -2,17 +2,17 @@ import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import type { Static } from '@sinclair/typebox';
 import type { ApiEnvelope, ApiErrorEnvelope } from '@sitelens/shared';
-import { getParcelById, getParcels } from '../db/spatialRepository';
-import type { GeoFeature } from '../db/sql';
-import { sendDatabaseUnavailable } from '../lib/httpErrors';
-import { cached } from '../cache/cacheJson';
-import { CACHE_TTL, parcelDetailKey, parcelsKey } from '../cache/cacheKeys';
-import { accessScope } from '../auth/capabilities';
-import { resolveBilling } from '../billing/billingService';
+import { getParcelById, getParcels } from '../db/spatialRepository.js';
+import type { GeoFeature } from '../db/sql.js';
+import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
+import { cached } from '../cache/cacheJson.js';
+import { CACHE_TTL, parcelDetailKey, parcelsKey } from '../cache/cacheKeys.js';
+import { accessScope } from '../auth/capabilities.js';
+import { resolveBilling } from '../billing/billingService.js';
 import {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
-} from '../lib/planningContextParam';
+} from '../lib/planningContextParam.js';
 
 const parcelParams = Type.Object({ id: Type.String() });
 type ParcelParams = Static<typeof parcelParams>;

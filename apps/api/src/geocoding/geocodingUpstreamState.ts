@@ -1,5 +1,5 @@
 import type { GeocodingFallbackReason } from '@sitelens/shared';
-import { loadConfig } from '../config';
+import { loadConfig } from '../config.js';
 
 /**
  * Process-local upstream cooldown / circuit breaker for Nominatim.

@@ -1,10 +1,10 @@
-import { loadConfig } from '../config';
-import type { ContextBbox } from './externalDataTypes';
-import type { ExternalFeature } from './externalDataTypes';
+import { loadConfig } from '../config.js';
+import type { ContextBbox } from './externalDataTypes.js';
+import type { ExternalFeature } from './externalDataTypes.js';
 import {
   markOverpassFailure,
   waitForOverpassSlot,
-} from './overpassRateLimiter';
+} from './overpassRateLimiter.js';
 
 export class OverpassDisabledError extends Error {
   readonly code = 'OVERPASS_DISABLED';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SpatialAnalysisResult } from '@sitelens/shared';
-import { generatePlanningSummary } from './generatePlanningSummary';
+import { generatePlanningSummary } from './generatePlanningSummary.js';
 
 const richResult: SpatialAnalysisResult = {
   areaSqm: 120000,

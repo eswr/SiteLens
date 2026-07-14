@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { osmToPlanningContext } from './osmToPlanningContext';
-import type { ExternalFeature } from './externalDataTypes';
+import { osmToPlanningContext } from './osmToPlanningContext.js';
+import type { ExternalFeature } from './externalDataTypes.js';
 
 const features: ExternalFeature[] = [
   {

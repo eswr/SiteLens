@@ -7,14 +7,14 @@ import type {
   LayerSummary,
   PlanningLayerId,
 } from '@sitelens/shared';
-import { getLayerFeatures, getLayers } from '../db/spatialRepository';
-import { sendDatabaseUnavailable } from '../lib/httpErrors';
-import { cached } from '../cache/cacheJson';
-import { CACHE_TTL, layersKey } from '../cache/cacheKeys';
+import { getLayerFeatures, getLayers } from '../db/spatialRepository.js';
+import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
+import { cached } from '../cache/cacheJson.js';
+import { CACHE_TTL, layersKey } from '../cache/cacheKeys.js';
 import {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
-} from '../lib/planningContextParam';
+} from '../lib/planningContextParam.js';
 
 const LAYER_IDS = new Set<PlanningLayerId>([
   'parcels',

@@ -27,7 +27,9 @@ apps/*/.env.*.local
 !apps/*/.env.local.example
 !apps/*/.env.production.example
 
-# Portfolio PNGs under docs/screenshots/ are committed; capture temps are not.
+# Portfolio PNGs under docs/screenshots/ are committed.
+# Ignore capture temp + webm; ignore mp4 unless intentionally committing video
+# (README uses Loom for the public walkthrough by default).
 docs/screenshots/_video-tmp/
 docs/screenshots/*.webm
 docs/screenshots/*.mp4

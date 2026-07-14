@@ -5,8 +5,8 @@ import {
   getParcelById,
   getParcels,
   searchFeatures,
-} from './spatialRepository';
-import { closePool } from './pool';
+} from './spatialRepository.js';
+import { closePool } from './pool.js';
 
 // Integration tests hit a real Postgres/PostGIS. They are skipped unless
 // RUN_DB_TESTS=true (e.g. `npm run test:db`) so the default suite never hangs.
@@ -56,7 +56,7 @@ describe.skipIf(!runDbTests)('spatialRepository (integration)', () => {
   });
 
   it('searchFeatures returns only rows from the selected planning context', async () => {
-    const { getPool } = await import('./pool');
+    const { getPool } = await import('./pool.js');
     const pool = getPool();
     const contextId = 'external-osm:test-isolation:ctx';
     const uniqueName = `Isolation Parcel ${Date.now()}`;

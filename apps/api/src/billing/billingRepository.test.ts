@@ -4,9 +4,9 @@ import {
   getUsage,
   recordUsage,
   setDemoPlanForUser,
-} from './billingRepository';
-import { seedBilling } from '../db/seedBilling';
-import { closePool } from '../db/pool';
+} from './billingRepository.js';
+import { seedBilling } from '../db/seedBilling.js';
+import { closePool } from '../db/pool.js';
 
 // Live billing DB tests. Skipped unless RUN_DB_TESTS=true (needs migrated DB).
 const runDbTests = process.env.RUN_DB_TESTS === 'true';

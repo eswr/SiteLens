@@ -6,9 +6,9 @@ import type {
   ApiErrorEnvelope,
   PlaceSearchResponse,
 } from '@sitelens/shared';
-import { DEFAULT_NOMINATIM_USER_AGENT, loadConfig } from '../config';
-import { HttpError } from '../auth/requireCapability';
-import { MIN_QUERY_LENGTH, searchPlaces } from '../geocoding/geocodingService';
+import { DEFAULT_NOMINATIM_USER_AGENT, loadConfig } from '../config.js';
+import { HttpError } from '../auth/requireCapability.js';
+import { MIN_QUERY_LENGTH, searchPlaces } from '../geocoding/geocodingService.js';
 
 const geocodeQuery = Type.Object({
   q: Type.Optional(Type.String()),

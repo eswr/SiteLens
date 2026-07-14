@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import type { Pool as PgPool } from 'pg';
-import { loadConfig } from '../config';
+import { loadConfig } from '../config.js';
 
 let pool: PgPool | null = null;
 

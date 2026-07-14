@@ -28,7 +28,7 @@ vi.mock('./planningContextBuildWorker', () => ({
 }));
 vi.mock('./planningContextBuildJobRepository', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('./planningContextBuildJobRepository')>();
+    await importOriginal<typeof import('./planningContextBuildJobRepository.js')>();
   return {
     ...actual,
     findActiveBuildJob,
@@ -41,7 +41,7 @@ vi.mock('./planningContextRepository', () => ({
   markPlanningContextBuilding,
 }));
 
-const { enqueuePlanningContextBuild } = await import('./planningContextBuilder');
+const { enqueuePlanningContextBuild } = await import('./planningContextBuilder.js');
 
 const place = {
   id: 'static-demo-bengaluru',
@@ -183,7 +183,7 @@ describe('enqueuePlanningContextBuild', () => {
   });
 
   it('quota exceeded before live enqueue does not mark building', async () => {
-    const { HttpError } = await import('../auth/requireCapability');
+    const { HttpError } = await import('../auth/requireCapability.js');
     getPlanningContext.mockResolvedValue(null);
     findActiveBuildJob.mockResolvedValue(null);
 

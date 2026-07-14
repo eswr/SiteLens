@@ -1,5 +1,5 @@
-import type { SpatialAnalysisResult } from './analysis';
-import type { PlanningContextSource } from './planningContext';
+import type { SpatialAnalysisResult } from './analysis.js';
+import type { PlanningContextSource } from './planningContext.js';
 
 /**
  * Types for the deterministic planning summary.

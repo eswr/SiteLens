@@ -1,4 +1,4 @@
-import type { ExternalFeature } from './externalDataTypes';
+import type { ExternalFeature } from './externalDataTypes.js';
 import type {
   NormalizedActivityRow,
   NormalizedConstraintRow,
@@ -6,7 +6,7 @@ import type {
   NormalizedPlanningLayers,
   NormalizedSiteRow,
   NormalizedTransitRow,
-} from './externalDataTypes';
+} from './externalDataTypes.js';
 
 const MAJOR_HIGHWAYS = new Set([
   'motorway',

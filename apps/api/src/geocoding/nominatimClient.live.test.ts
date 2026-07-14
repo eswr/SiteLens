@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { searchNominatim } from './nominatimClient';
+import { searchNominatim } from './nominatimClient.js';
 
 // Live Nominatim test. Skipped unless RUN_GEOCODING_LIVE_TESTS=true, so it never
 // runs in the default test suite or on regular CI (it makes a real network call).

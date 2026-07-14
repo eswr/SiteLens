@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
 import type { AuthContext } from '@sitelens/shared';
-import { getUserForApiKey } from './demoUsers';
+import { getUserForApiKey } from './demoUsers.js';
 
 /** Extract the API key from `x-api-key` or `Authorization: Bearer <key>`. */
 function extractApiKey(request: FastifyRequest): string | undefined {

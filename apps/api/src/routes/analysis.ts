@@ -8,21 +8,21 @@ import type {
   GeoJsonMultiPolygon,
   GeoJsonPolygon,
 } from '@sitelens/shared';
-import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
-import { sendDatabaseUnavailable } from '../lib/httpErrors';
-import { cached } from '../cache/cacheJson';
-import { analysisKey, CACHE_TTL } from '../cache/cacheKeys';
-import { accessScope } from '../auth/capabilities';
+import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository.js';
+import { sendDatabaseUnavailable } from '../lib/httpErrors.js';
+import { cached } from '../cache/cacheJson.js';
+import { analysisKey, CACHE_TTL } from '../cache/cacheKeys.js';
+import { accessScope } from '../auth/capabilities.js';
 import {
   assertFeature,
   assertUsageWithinLimit,
   resolveBilling,
-} from '../billing/billingService';
-import { recordUsage } from '../billing/billingRepository';
+} from '../billing/billingService.js';
+import { recordUsage } from '../billing/billingRepository.js';
 import {
   assertPlanningContextExists,
   resolvePlanningContextIdParam,
-} from '../lib/planningContextParam';
+} from '../lib/planningContextParam.js';
 
 const analyzeAreaBody = Type.Object({
   geometry: Type.Object({

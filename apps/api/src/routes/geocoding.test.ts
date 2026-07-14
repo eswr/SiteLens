@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { PlaceSearchResult } from '@sitelens/shared';
-import { resetGeocodingUpstreamState } from '../geocoding/geocodingUpstreamState';
+import { resetGeocodingUpstreamState } from '../geocoding/geocodingUpstreamState.js';
 
 const { nominatim } = vi.hoisted(() => ({
   nominatim: {
@@ -14,8 +14,8 @@ const { nominatim } = vi.hoisted(() => ({
 
 vi.mock('../geocoding/nominatimClient', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../geocoding/nominatimClient')>();
-  const { HttpError } = await import('../auth/requireCapability');
+    await importOriginal<typeof import('../geocoding/nominatimClient.js')>();
+  const { HttpError } = await import('../auth/requireCapability.js');
   return {
     ...actual,
     searchNominatim: vi.fn(async (_query: string, limit: number) => {
@@ -49,7 +49,7 @@ const { cacheState } = vi.hoisted(() => ({
   cacheState: { store: new Map<string, unknown>() },
 }));
 vi.mock('../cache/cacheJson', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../cache/cacheJson')>();
+  const actual = await importOriginal<typeof import('../cache/cacheJson.js')>();
   return {
     ...actual,
     getJson: async <T>(key: string) => {
@@ -90,7 +90,7 @@ vi.mock('../cache/cacheJson', async (importOriginal) => {
   };
 });
 
-const { buildApp } = await import('../app');
+const { buildApp } = await import('../app.js');
 
 const oneResult: PlaceSearchResult = {
   id: '123',

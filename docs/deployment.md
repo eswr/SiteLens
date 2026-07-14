@@ -110,7 +110,7 @@ fly secrets set \
 fly deploy
 ```
 
-- Image builds from the root `Dockerfile` (`tsx` runs TypeScript; no compile step).
+- Image builds from the root `Dockerfile` (multi-stage: `tsc` → `node dist/server.js`; no `tsx` in runtime).
 - Health check: `GET /health` (also `/api/health`).
 - [`fly.toml`](../fly.toml) uses a **single** machine (`[[vm]] count = 1`,
   `min_machines_running = 1`) so the portfolio demo stays warm without an HA
@@ -121,19 +121,27 @@ fly deploy
 
 ### 4. Migrate and seed (managed database)
 
+**Local/dev** uses `tsx` scripts (`db:migrate`, `db:seed:billing`,
+`ingest:geojson`, `cache:clear`). **Production image / Fly SSH** has no `tsx` —
+use the `:prod` scripts that run compiled `dist/` entrypoints instead.
+
 Run migrate / billing seed / GeoJSON ingest against the managed `DATABASE_URL`
-from a local shell (export `DATABASE_URL` + `DB_SSL=true`). Skip relying on the
-Fly-private `REDIS_URL` from your laptop — see Upstash note above. Clear cache
-from Fly (`fly ssh console -a sitelens-api` then `npm run cache:clear -w apps/api`)
-or after the API has been serving traffic (verify script exercises cache hits).
+from a local shell (export `DATABASE_URL` + `DB_SSL=true`) with the **tsx**
+scripts after `npm ci` (dev deps present). Or from inside the API image / Fly:
 
 ```bash
+# From laptop (dev deps + source available):
 export DATABASE_URL='postgres://…'
 export DB_SSL=true
 npm run db:migrate -w apps/api
 npm run db:seed:billing -w apps/api
 npm run ingest:geojson -w apps/api
-# cache:clear: use fly ssh console, or a public REDIS_URL — not the fly-*.upstash.io host
+
+# From production image / fly ssh console (no tsx — use dist):
+npm run db:migrate:prod -w apps/api
+npm run db:seed:billing:prod -w apps/api
+npm run ingest:geojson:prod -w apps/api
+# cache:clear:prod — or a public REDIS_URL from laptop; not fly-*.upstash.io
 ```
 
 ### 5. Verify the deployed API
@@ -236,13 +244,16 @@ Vite. A mismatch causes CORS failures for `/api/me`, `/api/geocode/search`,
 ### Step C — Run migrations and seed
 
 Against the **deployed** `DATABASE_URL` (same env as the API process / one-off
-job with those vars):
+job with those vars). Prefer **`:prod`** scripts when running inside the Docker
+image / `fly ssh` (no `tsx`). From a laptop checkout with `npm ci`, the plain
+tsx scripts also work.
 
 ```bash
-npm run db:migrate -w apps/api
-npm run db:seed:billing -w apps/api
-npm run ingest:geojson -w apps/api
-npm run cache:clear -w apps/api
+# Production image / Fly SSH:
+npm run db:migrate:prod -w apps/api
+npm run db:seed:billing:prod -w apps/api
+npm run ingest:geojson:prod -w apps/api
+npm run cache:clear:prod -w apps/api
 ```
 
 ### Step D — Verify API

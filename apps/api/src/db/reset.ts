@@ -1,10 +1,10 @@
 import '../loadEnv.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { getPool, closePool } from './pool';
-import { runMigrations } from './migrate';
-import { SPATIAL_TABLE_DROP_ORDER } from './sql';
-import { loadConfig } from '../config';
+import { getPool, closePool } from './pool.js';
+import { runMigrations } from './migrate.js';
+import { SPATIAL_TABLE_DROP_ORDER } from './sql.js';
+import { loadConfig } from '../config.js';
 
 /** Drop all app tables (dev only) and re-run migrations. */
 export async function resetDatabase(): Promise<void> {

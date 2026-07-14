@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlaceSearchResult } from '@sitelens/shared';
-import { HttpError } from '../auth/requireCapability';
-import { resetGeocodingUpstreamState } from './geocodingUpstreamState';
+import { HttpError } from '../auth/requireCapability.js';
+import { resetGeocodingUpstreamState } from './geocodingUpstreamState.js';
 
 const { nominatim } = vi.hoisted(() => ({
   nominatim: {
@@ -48,7 +48,7 @@ const { cacheState } = vi.hoisted(() => ({
   cacheState: { store: new Map<string, unknown>() },
 }));
 vi.mock('../cache/cacheJson', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../cache/cacheJson')>();
+  const actual = await importOriginal<typeof import('../cache/cacheJson.js')>();
   return {
     ...actual,
     getJson: async <T>(key: string) => {
@@ -92,8 +92,8 @@ vi.mock('../cache/cacheJson', async (importOriginal) => {
 const {
   searchPlaces,
   GEOCODING_ATTRIBUTION,
-} = await import('./geocodingService');
-const { STATIC_DEMO_ATTRIBUTION } = await import('./staticPlaceProvider');
+} = await import('./geocodingService.js');
+const { STATIC_DEMO_ATTRIBUTION } = await import('./staticPlaceProvider.js');
 
 const oneResult: PlaceSearchResult = {
   id: '123',

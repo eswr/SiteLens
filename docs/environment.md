@@ -110,6 +110,7 @@ ENABLE_DEMO_BILLING=true
 | `PLANNING_CONTEXT_WORKER_ENABLED` | `true` | Start the in-process build-job worker on API boot (`server.ts`). |
 | `PLANNING_CONTEXT_WORKER_POLL_MS` | `750` | Interval between worker ticks when scanning for claimable jobs. |
 | `PLANNING_CONTEXT_JOB_LOCK_MS` | `300000` | Lease duration (ms) while a job is `running` before it can be reclaimed. |
+| `PLANNING_CONTEXT_JOB_HEARTBEAT_MS` | `lockMs / 3` | How often a long build extends its lease. Set `0` to disable heartbeat. |
 | `PLANNING_CONTEXT_JOB_MAX_ATTEMPTS` | `3` | Max claim/reclaim attempts before the job and context are marked failed. |
 
 ### Worldwide place search (geocoding)

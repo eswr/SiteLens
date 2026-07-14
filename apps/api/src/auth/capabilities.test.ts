@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { BillingContext, BillingPlanId, DemoUser } from '@sitelens/shared';
 import { getPlan } from '@sitelens/shared';
-import { accessScope, getCapabilities } from './capabilities';
-import { getUserById, getUserForApiKey } from './demoUsers';
+import { accessScope, getCapabilities } from './capabilities.js';
+import { getUserById, getUserForApiKey } from './demoUsers.js';
 
 function contextFor(planId: BillingPlanId): BillingContext {
   const plan = getPlan(planId);

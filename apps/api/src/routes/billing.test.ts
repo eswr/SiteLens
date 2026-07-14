@@ -8,7 +8,7 @@ const { billingState } = vi.hoisted(() => ({
 
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('../billing/billingRepository')>();
+    await importOriginal<typeof import('../billing/billingRepository.js')>();
   const { getPlan } = await import('@sitelens/shared');
   const ctx = (planId: 'free' | 'pro' | 'enterprise') => {
     const plan = getPlan(planId);
@@ -33,7 +33,7 @@ vi.mock('../billing/billingRepository', async (importOriginal) => {
   };
 });
 
-const { buildApp } = await import('../app');
+const { buildApp } = await import('../app.js');
 
 let app: FastifyInstance;
 

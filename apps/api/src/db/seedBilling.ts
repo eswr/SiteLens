@@ -2,8 +2,8 @@ import '../loadEnv.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import type { BillingPlanId } from '@sitelens/shared';
-import { getPool, closePool } from './pool';
-import { demoApiKeys } from '../auth/demoUsers';
+import { getPool, closePool } from './pool.js';
+import { demoApiKeys } from '../auth/demoUsers.js';
 
 /** Seed demo accounts + subscriptions matching the demo users' default plans. */
 export async function seedBilling(): Promise<number> {

@@ -1,6 +1,6 @@
 import type { CacheStatus } from '@sitelens/shared';
-import { getRedisClient, isCacheEnabled, logCacheError } from './cacheClient';
-import { loadConfig } from '../config';
+import { getRedisClient, isCacheEnabled, logCacheError } from './cacheClient.js';
+import { loadConfig } from '../config.js';
 
 export interface CacheReadResult<T> {
   value: T | null;

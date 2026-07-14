@@ -5,62 +5,84 @@
 SiteLens is an **npm-workspaces monorepo**: `apps/web` (React + TypeScript +
 Vite dashboard with a MapLibre GL map), `apps/api` (Fastify + TypeScript API),
 and `packages/shared` (`@sitelens/shared` shared types). Run `npm install` once
-at the repo root; it installs and links all workspaces.
+at the repo root; it installs and links all workspaces (`postinstall` builds
+`packages/shared` → `dist`).
 
-- Dev servers (run from the repo root): `npm run dev:web` (Vite, port `5173`;
-  `npm run dev` is an alias) and `npm run dev:api` (Fastify via `tsx watch`,
-  port `4000`). They run independently.
-- Root scripts fan out to workspaces: `typecheck`, `lint` (oxlint), `test`
-  (Vitest — API only), and `build` all use `-ws --if-present`.
-- The web app still loads static mock GeoJSON from `apps/web/public/data`; the
-  API serves its own copy from `apps/api/data`. The frontend does not call the
-  API yet.
-- The map uses the no-token public style `https://demotiles.maplibre.org/style.json`,
-  so rendering the basemap requires outbound network access to that host.
-- `@sitelens/shared` is a **source** package: its `exports` point at
-  `src/index.ts` (no build step). Consumers use `moduleResolution: "bundler"`,
-  so importing `@sitelens/shared` resolves to TypeScript source directly.
-- The API is run with `tsx`; its `build`/`typecheck` are `tsc --noEmit` (no
-  compiled output). Fastify v5 types the error-handler `error` as `unknown` —
-  annotate it as `FastifyError`.
+### Full-stack architecture (default portfolio path)
+
+When `VITE_API_BASE_URL` is set (e.g. `http://localhost:4000`) plus optional
+`VITE_DEMO_API_KEY`, the **web client calls the Fastify API** for:
+
+- `/api/me`, billing / entitlements
+- layers GeoJSON, parcels, search
+- `POST /api/analyze-area` (**PostGIS** implementation — Turf fallback only on
+  failure/403 for Sydney Demo)
+- `POST /api/planning-summary` (**deterministic** summary, gated/cached — local
+  fallback on 403/failure; not a stub endpoint)
+- `GET /api/geocode/search` (Nominatim proxy — browser never hits Nominatim)
+- planning-context list / detail / build, and job poll
+  (`GET /api/planning-contexts/jobs/:jobId`)
+- queue health: `GET /api/planning-contexts/jobs/health`
+
+**Planning contexts:** default `local-demo-sydney` (ingested GeoJSON) plus async
+Overpass builds (`POST /api/planning-contexts/build`). An in-process worker
+claims jobs with leases, optional lease heartbeat, structured JSON lifecycle
+logs (`claim` / `retry` / `success` / `failure` / `metering_failure`), and
+**context-scoped** Redis invalidation after a successful build.
+
+### Dual mode
+
+Omit `VITE_API_BASE_URL` → **frontend-only** offline demo (bundled Sydney Demo
+GeoJSON under `apps/web/public/data` + local Turf + local deterministic
+summary). That mode does not call the API; it is the fallback, not the primary
+portfolio architecture.
+
+### Dev / build / test
+
+- Dev servers (repo root): `npm run dev:web` (Vite `:5173`; `npm run dev` alias)
+  and `npm run dev:api` (builds `packages/shared` once, then Fastify via
+  `tsx watch` on `:4000`). While editing shared sources, run `npm run dev:shared`
+  (`tsc --watch`) in another terminal so API/web pick up `dist` changes.
+- Root `build` order: `packages/shared` → `apps/api` → `apps/web`. Shared and
+  API both emit `dist/` (`tsc`, NodeNext). Production/Docker runs
+  `node dist/server.js` (`npm start`). `tsx` is a **devDependency** only —
+  local DB helpers use `db:migrate` / `ingest:geojson` (tsx); the production
+  image uses `db:migrate:prod`, `db:seed:billing:prod`, `ingest:geojson:prod`,
+  `cache:clear:prod` (`node dist/...`).
+- Root `typecheck` / `lint` / `test` fan out with `-ws --if-present`. Web has
+  Vitest + Testing Library (`npm run test -w apps/web`); API uses Vitest.
+- Relative ESM imports use `.js` extensions under API/shared
+  `moduleResolution: "NodeNext"`.
 - The web app's `tsconfig.app.json` enables `verbatimModuleSyntax`, so type-only
-  imports MUST use `import type { ... }` (this also applies to the API tsconfig).
-- The web app uses a modern Material UI major version where `Typography` does
-  not accept `lineHeight` as a direct prop — set it via the `sx` prop instead.
+  imports MUST use `import type { ... }` (also on the API).
+- MUI `Typography` does not accept `lineHeight` as a direct prop — use `sx`.
+- Map basemap: `https://demotiles.maplibre.org/style.json` (needs network).
 
 ### Backend database (PostgreSQL + PostGIS)
 
-The API is backed by PostGIS running in Docker (`infra/docker-compose.yml`,
-image `postgis/postgis:16-3.4`, host port `54329`). The DB is NOT part of the
-dependency update script — bring it up explicitly when working on the API.
+The API is backed by PostGIS in Docker (`infra/docker-compose.yml`,
+`postgis/postgis:16-3.4`, host port `54329`). Bring it up explicitly when
+working on the API.
 
 - Full backend setup: `npm run db:up` → `npm run db:migrate` →
   `npm run ingest:geojson` → `npm run db:seed:billing` → `npm run dev:api`.
-  `db:up` starts **both** PostgreSQL/PostGIS (`54329`) and **Redis** (`6389`).
-  (`npm run db:seed` runs ingestion + billing seed together.)
-- Billing/entitlements are DB-backed (migration `004`, plans Free/Pro/Enterprise);
-  capabilities derive from the billing plan + role. If the billing DB is
-  unavailable the API falls back to the demo user's default plan. Demo plan
-  switching: `POST /api/billing/demo-plan` (needs auth; prod-gated by
-  `ENABLE_DEMO_BILLING`). The Stripe webhook runs without real secrets.
-- Redis caching is optional: it's enabled only when `REDIS_URL` is set (e.g. via
-  `apps/api/.env.local`, gitignored). With no Redis the API returns `cache:"disabled"`;
-  when Redis is down it returns DB results with `cache:"error"` (never hangs —
-  the client uses `enableOfflineQueue:false` and auto-reconnects). Default
-  `npm run test` needs neither Docker nor Redis; `npm run test:redis` (needs
-  `REDIS_URL` + Redis up) and `npm run test:db` cover live integration.
-- **Docker is required and may not be preinstalled.** If `docker` is missing,
-  install Docker Engine (docker-in-docker), and because this is Docker 29 with
-  fuse-overlayfs, set `/etc/docker/daemon.json` to
-  `{"storage-driver":"fuse-overlayfs","features":{"containerd-snapshotter":false}}`,
-  use `iptables-legacy`, and start `dockerd`. If `docker` commands hit a
-  socket permission error as the non-root user, `sudo chmod 666 /var/run/docker.sock`.
-- `npm run test` does NOT need the database — DB integration tests
-  (`src/db/spatialRepository.test.ts`) are skipped unless `RUN_DB_TESTS=true`
-  (`npm run test:db -w apps/api`, which needs the DB up). Route tests mock the
-  repository, so they pass without Postgres.
-- DB-backed routes (`/api/layers`, `/api/parcels`, `/api/search`) return `503`
-  when the database is unavailable — bring the DB up rather than expecting a
-  fallback. `analyze-area` / `planning-summary` remain `501` placeholders.
-- `pg` is CommonJS; the API tsconfig uses `moduleResolution: "bundler"` and is
-  run via `tsx`, so `import { Pool } from 'pg'` works at build and runtime.
+  `db:up` starts PostgreSQL/PostGIS (`54329`) and Redis (`6389`).
+  (`npm run db:seed` = ingest + billing seed.)
+- Migrations are **raw SQL** under `apps/api/db/migrations/` (PostGIS / GIST /
+  partial indexes). The runner (`apps/api/src/db/migrate.ts`) uses a session
+  advisory lock, tracks `schema_migrations(filename, checksum, applied_at)`,
+  fails if an applied file’s checksum drifts, and wraps each migration in a
+  transaction when safe. Validate without applying: `npm run db:migrate:check`.
+  Do **not** introduce an ORM rewrite for migrations.
+- Billing/entitlements are DB-backed (migration `004`, Free/Pro/Enterprise).
+  Demo plan switching: `POST /api/billing/demo-plan` (auth; prod-gated by
+  `ENABLE_DEMO_BILLING`).
+- Redis optional when `REDIS_URL` is set. Without Redis → `cache:"disabled"`;
+  Redis down → DB results with `cache:"error"`. `npm run test` needs neither;
+  `npm run test:redis` / `npm run test:db` cover live suites.
+- **Docker** may need install (Engine 29 + fuse-overlayfs tips in prior cloud
+  notes). `sudo chmod 666 /var/run/docker.sock` if socket perms block the user.
+- Spatial routes return `503` when the DB is unavailable — bring the DB up;
+  there is no silent API spatial fallback. `analyze-area` and
+  `planning-summary` are implemented, not placeholders.
+- `pg` is CommonJS; NodeNext ESM interop supports `import { Pool } from 'pg'`.

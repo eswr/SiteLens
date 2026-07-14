@@ -1,5 +1,5 @@
 import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
-import { getPlanningContext } from '../externalData/planningContextRepository';
+import { getPlanningContext } from '../externalData/planningContextRepository.js';
 
 /** Resolve planningContextId from query/body. Omitted → Sydney demo. */
 export function resolvePlanningContextIdParam(

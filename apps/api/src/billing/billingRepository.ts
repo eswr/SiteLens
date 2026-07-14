@@ -5,8 +5,8 @@ import type {
   SubscriptionState,
 } from '@sitelens/shared';
 import { getPlan, isBillingPlanId } from '@sitelens/shared';
-import { getPool } from '../db/pool';
-import { getUserById } from '../auth/demoUsers';
+import { getPool } from '../db/pool.js';
+import { getUserById } from '../auth/demoUsers.js';
 
 let loggedFallback = false;
 
