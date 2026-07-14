@@ -81,7 +81,7 @@ ENABLE_DEMO_BILLING=true
 | --- | --- | --- |
 | `NODE_ENV` | `development` | `production` enables prod behavior (e.g. gates demo billing). |
 | `PORT` | `4000` | API listen port. |
-| `WEB_ORIGIN` | `http://localhost:5173` (non-prod) | Allowed CORS origin(s) — must **exactly** match the frontend origin(s). Comma-separated list supported (e.g. Vercel + `http://localhost:5173`). A Vite fallback port like `:5174` is a different origin and will fail with “Failed to fetch” unless listed. **Required in `NODE_ENV=production`** (startup throws if missing/blank; no allow-any fallback). |
+| `WEB_ORIGIN` | `http://localhost:5173` (non-prod) | Allowed CORS origin(s) — must **exactly** match the frontend origin(s). Comma-separated list supported (e.g. Vercel + `http://localhost:5173`). A Vite fallback port like `:5174` is a different origin and will fail with “Failed to fetch” unless listed. **Required in `NODE_ENV=production`** (startup throws if missing/blank; no allow-any fallback). In addition to exact entries, the API always allows SiteLens Vercel previews matching `https://sitelens-*-easwarendra-kokas-projects.vercel.app`. |
 | `DATABASE_URL` | `postgres://sitelens:sitelens@localhost:54329/sitelens` | PostgreSQL/PostGIS connection string. |
 | `DB_SSL` | `false` | Set `true` for managed Postgres requiring TLS. |
 | `REDIS_URL` | _(empty)_ | **Optional.** Caching is disabled when unset; the API still works. |

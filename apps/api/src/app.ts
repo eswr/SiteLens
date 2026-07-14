@@ -28,10 +28,18 @@ export interface BuildAppOptions {
   enableRateLimit?: boolean;
 }
 
+/**
+ * Constrained Vercel preview hosts for this project's team deployments:
+ * `https://sitelens-*-easwarendra-kokas-projects.vercel.app`
+ * (exact production aliases still go in `WEB_ORIGIN`).
+ */
+export const VERCEL_PREVIEW_ORIGIN_RE =
+  /^https:\/\/sitelens-[a-z0-9]+-easwarendra-kokas-projects\.vercel\.app$/i;
+
 /** Parse a single origin or comma-separated list for `@fastify/cors`. */
 export function parseCorsOrigin(
   webOrigin: string | undefined,
-): boolean | string | string[] {
+): boolean | Array<string | RegExp> {
   if (!webOrigin || webOrigin.trim().length === 0) {
     return true;
   }
@@ -42,10 +50,8 @@ export function parseCorsOrigin(
   if (origins.length === 0) {
     return true;
   }
-  if (origins.length === 1) {
-    return origins[0];
-  }
-  return origins;
+  // Exact WEB_ORIGIN entries plus SiteLens Vercel preview host pattern.
+  return [...origins, VERCEL_PREVIEW_ORIGIN_RE];
 }
 
 /**

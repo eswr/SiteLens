@@ -252,7 +252,10 @@ Follow [`docs/frontend-deploy-verification.md`](frontend-deploy-verification.md)
 
 If the browser reports CORS errors:
 
-1. Fix API `WEB_ORIGIN` to match the frontend origin exactly.
+1. Fix API `WEB_ORIGIN` to match the frontend origin exactly (production alias
+   such as `https://sitelens-demo.vercel.app`). SiteLens Vercel previews matching
+   `https://sitelens-*-easwarendra-kokas-projects.vercel.app` are allowed by
+   pattern without listing each deploy host.
 2. Redeploy / restart the Fly app.
 3. Hard-refresh the frontend.
 
