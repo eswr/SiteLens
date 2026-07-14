@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as cacheClient from '../cache/cacheClient.js';
 import {
+  assertProviderSpacerReady,
   getProviderCooldown,
   markProviderFailure,
   resetProviderSpacer,
@@ -140,5 +141,24 @@ describe('providerSpacer (redis mocked)', () => {
     await expect(waitForProviderSlot('nominatim', 1000)).rejects.toThrow(
       /PROVIDER_RATE_LIMIT_BACKEND=redis but Redis is not available/,
     );
+  });
+
+  it('assertProviderSpacerReady rejects in production when Redis is unavailable', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.WEB_ORIGIN = 'https://example.com';
+    process.env.PROVIDER_RATE_LIMIT_BACKEND = 'redis';
+    vi.spyOn(cacheClient, 'getRedisClient').mockReturnValue(null);
+
+    await expect(assertProviderSpacerReady()).rejects.toThrow(
+      /PROVIDER_RATE_LIMIT_BACKEND=redis but Redis is not available at startup/,
+    );
+  });
+
+  it('assertProviderSpacerReady is a no-op for local auto/memory', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.WEB_ORIGIN = 'http://localhost:5173';
+    process.env.PROVIDER_RATE_LIMIT_BACKEND = 'memory';
+    vi.spyOn(cacheClient, 'getRedisClient').mockReturnValue(null);
+    await expect(assertProviderSpacerReady()).resolves.toBeUndefined();
   });
 });

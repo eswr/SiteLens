@@ -114,7 +114,12 @@ fly deploy
   - **app:** `npm run start -w apps/api` (HTTP API; does not consume build jobs when `PLANNING_CONTEXT_WORKER_MODE=pg-boss`)
   - **worker:** `npm run worker:planning-context:prod -w apps/api` (pg-boss consumer)
 - Health check: `GET /health` (also `/api/health`). Queue health:
-  `GET /api/planning-contexts/jobs/health` (includes `workerMode` / `pgBossEnabled`).
+  `GET /api/planning-contexts/jobs/health` (includes `workerMode` /
+  `pgBossEnabled`, process `workerHeartbeatAt` /
+  `workerHeartbeatAgeSeconds`, and `pgBoss.workerHealthy`).
+- **Before scaling API count > 1:** either configure `@fastify/rate-limit` with a
+  Redis store, or keep `fly scale count app=1` and scale only the worker
+  (`fly scale count worker=N`). Inbound rate limits are still process-local.
 - **Docker runtime smoke** (compiled `node dist/server.js`, not `tsx`):
 
 ```bash
@@ -142,7 +147,27 @@ RUN_MIGRATE_CHECK=1 npm run smoke:docker:api
   restart (`fly apps restart sitelens-api`).
 
 Manual local verification of the split worker path is documented in
-[`apps/api/README.md`](../apps/api/README.md) (pg-boss smoke).
+[`apps/api/README.md`](../apps/api/README.md) (pg-boss smoke + ops runbook).
+
+### Ops runbook (planning-context / providers)
+
+| Concern | How to check / act |
+| --- | --- |
+| API health | `GET /health` or `/api/health` → `200` |
+| Worker heartbeat | `GET /api/planning-contexts/jobs/health` → `workerHeartbeatAt`, `workerHeartbeatAgeSeconds`; in `pg-boss` mode `pgBoss.workerHealthy` is `false` when heartbeat is missing/older than 60s (HTTP stays 200 for the portfolio demo) |
+| Queue health | Same endpoint: ledger `queued` / `running` / `failedLast24h` are product truth; `pgBoss.*` depths are approximate |
+| Provider spacer mode | Boot logs `provider_spacer.mode` (`redis`/`memory`). Prod Fly sets `PROVIDER_RATE_LIMIT_BACKEND=redis` and fails startup if Redis is unavailable |
+| Retry stuck queued jobs | Ledger→pg-boss reconcile loop (worker) re-enqueues `queued` rows older than ~20s with `singletonKey=buildJobId`. Or `POST /api/planning-contexts/build` again for the place (may reuse active job) |
+| Clear provider cooldown | Delete Redis keys under `PROVIDER_RATE_LIMIT_NAMESPACE` (`*:cooldown:overpass` / `*:cooldown:nominatim`), or wait for TTL. Local memory: restart the process |
+| pg-boss smoke | See [`apps/api/README.md`](../apps/api/README.md) — API + worker with `PLANNING_CONTEXT_WORKER_MODE=pg-boss` |
+
+**Recommended profiles**
+
+| Profile | Worker | Provider spacer |
+| --- | --- | --- |
+| local | `in-process` | `auto` |
+| production-shaped | `pg-boss` | `redis` |
+| test | `disabled` or explicit | `memory` |
 
 ### 4. Migrate and seed (managed database)
 

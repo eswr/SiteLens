@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   claimNextQueuedBuildJob,
+  claimBuildJobByIdForWorker,
   markBuildJobAndContextFailed,
   markBuildJobSucceeded,
   extendBuildJobLease,
@@ -15,8 +16,11 @@ const {
   isCacheEnabled,
   clearPlanningCacheForContext,
   loadConfig,
+  getProviderCooldown,
+  enqueuePlanningContextBuildJob,
 } = vi.hoisted(() => ({
   claimNextQueuedBuildJob: vi.fn(),
+  claimBuildJobByIdForWorker: vi.fn(),
   markBuildJobAndContextFailed: vi.fn(async () => true),
   markBuildJobSucceeded: vi.fn(),
   extendBuildJobLease: vi.fn(async () => true),
@@ -29,6 +33,8 @@ const {
   getPool: vi.fn(),
   isCacheEnabled: vi.fn(() => false),
   clearPlanningCacheForContext: vi.fn(async () => 0),
+  getProviderCooldown: vi.fn(async () => 0),
+  enqueuePlanningContextBuildJob: vi.fn(async () => 'boss-deferred'),
   loadConfig: vi.fn(() => ({
     planningContextJobMaxAttempts: 3,
     planningContextWorkerPollMs: 750,
@@ -67,6 +73,7 @@ vi.mock('./osmOverpassClient', () => ({
 vi.mock('./osmToPlanningContext', () => ({ osmToPlanningContext }));
 vi.mock('./planningContextBuildJobRepository', () => ({
   claimNextQueuedBuildJob,
+  claimBuildJobByIdForWorker,
   markBuildJobAndContextFailed,
   markBuildJobSucceeded,
   extendBuildJobLease,
@@ -76,10 +83,17 @@ vi.mock('./planningContextRepository', () => ({
   commitReadyExternalContext,
   getPlanningContext,
 }));
+vi.mock('../providers/providerSpacer.js', () => ({
+  getProviderCooldown,
+}));
+vi.mock('../worker/bossClient.js', () => ({
+  enqueuePlanningContextBuildJob,
+}));
 
 const {
   runPlanningContextBuildWorkerTick,
   nudgePlanningContextBuildWorker,
+  processQueuedBuildJobById,
 } = await import('./planningContextBuildWorker.js');
 const { OverpassRequestError } = await import('./osmOverpassClient.js');
 
@@ -119,6 +133,11 @@ describe('planningContextBuildWorker', () => {
   const release = vi.fn();
   const query = vi.fn();
   let heldClients = 0;
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -407,5 +426,40 @@ describe('planningContextBuildWorker', () => {
     await Promise.resolve();
 
     expect(claimNextQueuedBuildJob).not.toHaveBeenCalled();
+  });
+
+  it('defers pg-boss claim when Overpass cooldown is active (ledger stays queued)', async () => {
+    vi.useFakeTimers();
+    loadConfig.mockReturnValue({
+      planningContextJobMaxAttempts: 3,
+      planningContextWorkerPollMs: 750,
+      planningContextWorkerEnabled: true,
+      planningContextWorkerMode: 'pg-boss' as const,
+      planningContextJobHeartbeatMs: 0,
+      planningContextJobLockMs: 300_000,
+      externalContextSyntheticFallbackEnabled: false,
+    });
+    getProviderCooldown.mockResolvedValue(5_500);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      await processQueuedBuildJobById('job-cooldown');
+
+      expect(claimBuildJobByIdForWorker).not.toHaveBeenCalled();
+      expect(fetchOverpassFeatures).not.toHaveBeenCalled();
+      expect(enqueuePlanningContextBuildJob).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(250);
+      expect(enqueuePlanningContextBuildJob).toHaveBeenCalledWith(
+        'job-cooldown',
+        { startAfter: 6 },
+      );
+      const logged = logSpy.mock.calls
+        .map((c) => String(c[0] ?? ''))
+        .join('\n');
+      expect(logged).toContain('planning_context_build.cooldown_defer');
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });

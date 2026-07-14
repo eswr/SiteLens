@@ -125,16 +125,20 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 
 ### `GET /api/planning-contexts/jobs/health`
 
-- **Purpose:** job-queue observability for the in-process build worker.
+- **Purpose:** job-queue observability for planning-context builds (in-process
+  poller or pg-boss worker).
 - **Auth:**
   - **Portfolio demo** (`ENABLE_DEMO_BILLING=true`, including production Fly
     demo): public. Response is operational (not secret), with
     `Cache-Control: no-store`.
   - **Production-shaped** (`NODE_ENV=production` and `ENABLE_DEMO_BILLING=false`):
     requires an **admin** API key (`demo-admin-key` / admin role).
-- **Response:** `{ data }` includes at least `workerEnabled`, `queued`,
-  `running`, `failedLast24h`, `oldestQueuedAt`, plus lock/poll/heartbeat
-  config and related counters.
+- **Response:** `{ data }` includes `workerEnabled`, `workerMode`,
+  `pgBossEnabled`, ledger counters (`queued` / `running` /
+  `failedLast24h` / …), lease config, process heartbeat fields
+  (`workerHeartbeatAt`, `workerHeartbeatAgeSeconds`), and optional
+  `pgBoss: { pending, active, retry, failed, workerHealthy }`. HTTP stays
+  `200` when the worker heartbeat is stale; check `pgBoss.workerHealthy`.
 - **Errors:** database unavailable → `503`.
 
 ### `GET /api/planning-contexts/jobs/:jobId`

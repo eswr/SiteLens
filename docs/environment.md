@@ -110,7 +110,7 @@ ENABLE_DEMO_BILLING=true
 | `EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2` | `0.01` | Max bbox area (deg²) accepted for Overpass extracts; larger place bboxes are clamped around the center. |
 | `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. `0` forces rebuild on every build (useful for deterministic e2e cancel tests). |
 | `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | When Overpass is disabled or fails, build jobs can fall back to clearly labeled synthetic features (logged as `planning_context_build.synthetic_fallback`). Off by default; enable for deterministic CI/e2e. |
-| `PLANNING_CONTEXT_WORKER_MODE` | unset → `in-process` (or `disabled` if `PLANNING_CONTEXT_WORKER_ENABLED=false`) | `in-process` \| `pg-boss` \| `disabled`. Production-shaped deploys use `pg-boss` + a worker process. |
+| `PLANNING_CONTEXT_WORKER_MODE` | unset → `in-process` (or `disabled` if `PLANNING_CONTEXT_WORKER_ENABLED=false`) | `in-process` \| `pg-boss` \| `disabled`. Profiles: **local** `in-process` + provider `auto`; **production-shaped** `pg-boss` + provider `redis`; **test** `disabled` (or explicit) + provider `memory`. |
 | `PG_BOSS_SCHEMA` | `pgboss` | Postgres schema for the pg-boss execution queue. |
 | `PG_BOSS_QUEUE_PLANNING_CONTEXT` | `planning-context-build` | Queue name for planning-context build jobs. |
 | `PG_BOSS_WORKER_CONCURRENCY` | `1` | Concurrent pg-boss handlers in the worker process. |

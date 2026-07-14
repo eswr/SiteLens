@@ -39,7 +39,10 @@ import {
   MIN_SUGGESTION_QUERY_LENGTH,
 } from '../../store/placeSearchStore';
 import { usePlanningContextStore } from '../../store/planningContextStore';
-import { usePlanningContexts } from '../../query/planningContextQueries';
+import {
+  usePlanningContextDetail,
+  usePlanningContexts,
+} from '../../query/planningContextQueries';
 import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import { DemoAccessSwitcher } from './AccessControls';
@@ -683,14 +686,20 @@ function PlanningContextSection() {
   );
   const selectContext = usePlanningContextStore((state) => state.selectContext);
   const isLoading = usePlanningContextStore((state) => state.isLoading);
+  const buildingStub = usePlanningContextStore((state) => state.buildingStub);
+  const isBuilding = usePlanningContextStore((state) => state.isBuilding);
   const {
     data: queriedContexts,
     isLoading: listLoading,
     isFetching: listFetching,
   } = usePlanningContexts();
+  const { data: queriedDetail } = usePlanningContextDetail(selectedContextId, {
+    enabled:
+      Boolean(selectedContextId) && !isBuilding && buildingStub == null,
+  });
 
   useEffect(() => {
-    // Bootstrap selection/detail once; subsequent list freshness comes from Query.
+    // Bootstrap selection once; list/detail freshness comes from Query.
     void loadContexts();
   }, [loadContexts]);
 
@@ -701,17 +710,48 @@ function PlanningContextSection() {
     usePlanningContextStore.setState((state) => ({
       contexts: queriedContexts,
       isLoading: false,
-      // Keep selected detail ownership in the store; only refresh list rows.
       selectedContext:
         queriedContexts.find((c) => c.id === state.selectedContextId) ??
         state.selectedContext,
     }));
   }, [queriedContexts]);
 
+  useEffect(() => {
+    if (!queriedDetail) {
+      return;
+    }
+    usePlanningContextStore.setState((state) => {
+      if (state.selectedContextId !== queriedDetail.context.id) {
+        return state;
+      }
+      if (state.isBuilding || state.buildingStub) {
+        return state;
+      }
+      return {
+        selectedContext: queriedDetail.context,
+        selectedCounts: queriedDetail.counts,
+        countsLoading: false,
+        contexts: state.contexts.map((c) =>
+          c.id === queriedDetail.context.id ? queriedDetail.context : c,
+        ),
+      };
+    });
+  }, [queriedDetail]);
+
   return (
     <SectionCard>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
         Planning context
+        {listFetching && !listLoading ? (
+          <Typography
+            component="span"
+            variant="caption"
+            color="text.secondary"
+            sx={{ ml: 1 }}
+          >
+            refreshing…
+          </Typography>
+        ) : null}
       </Typography>
       <TextField
         select
@@ -719,9 +759,7 @@ function PlanningContextSection() {
         size="small"
         label="Context"
         value={selectedContextId}
-        disabled={
-          isLoading || listLoading || listFetching || contexts.length === 0
-        }
+        disabled={isLoading || listLoading || contexts.length === 0}
         onChange={(event) => selectContext(event.target.value)}
         slotProps={{
           htmlInput: { 'aria-label': 'Select planning context' },

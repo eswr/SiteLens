@@ -320,6 +320,40 @@ export async function getProviderCooldownInfo(
   return { remainingMs, reason: state.cooldownReason };
 }
 
+/**
+ * Fail fast at process boot when production requires a Redis-backed spacer.
+ * Local `auto` / `memory` behavior is unchanged (no throw).
+ */
+export async function assertProviderSpacerReady(): Promise<void> {
+  const config = loadConfig();
+  if (
+    !config.isProduction ||
+    config.providerRateLimitBackend !== 'redis'
+  ) {
+    return;
+  }
+
+  const redis = getRedisClient();
+  if (!isRedisReady(redis)) {
+    throw new Error(
+      'PROVIDER_RATE_LIMIT_BACKEND=redis but Redis is not available at startup',
+    );
+  }
+
+  const namespace = config.providerRateLimitNamespace;
+  const smokeKey = `${namespace}:startup-smoke`;
+  try {
+    // Tiny namespace-scoped smoke: SET then DEL (or EVAL no-op on slot key).
+    await redis.set(smokeKey, '1', 'PX', 1_000);
+    await redis.del(smokeKey);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `PROVIDER_RATE_LIMIT_BACKEND=redis but Redis smoke failed for namespace "${namespace}": ${message}`,
+    );
+  }
+}
+
 /** Reset spacer state (tests). */
 export function resetProviderSpacer(): void {
   for (const provider of Object.keys(memoryState) as ProviderName[]) {

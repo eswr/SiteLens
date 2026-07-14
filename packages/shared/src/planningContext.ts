@@ -122,6 +122,18 @@ export interface PlanningContextBuildJobQueueHealthResponse {
   maxAttempts: number;
   /** Lease heartbeat interval (ms); `0` means heartbeat is disabled. */
   heartbeatMs: number;
+  /**
+   * Last process-level heartbeat from the pg-boss worker (`null` when missing).
+   * ISO-8601 timestamp.
+   */
+  workerHeartbeatAt: string | null;
+  /** Age of `workerHeartbeatAt` in whole seconds (`null` when missing). */
+  workerHeartbeatAgeSeconds: number | null;
+  /**
+   * Where the heartbeat value was read from. Production-shaped deploys should
+   * report `redis`; `memory` means same-process fallback only.
+   */
+  workerHeartbeatSource: 'redis' | 'memory' | 'missing';
   queued: number;
   running: number;
   /** Running jobs whose lease is null or expired (eligible for reclaim). */
@@ -137,6 +149,12 @@ export interface PlanningContextBuildJobQueueHealthResponse {
     active: number;
     retry: number;
     failed: number;
+    /**
+     * False when workerMode is pg-boss and the process heartbeat is missing
+     * or older than 60s. Portfolio health stays HTTP 200; this surfaces
+     * degraded worker liveness in JSON.
+     */
+    workerHealthy: boolean;
   } | null;
 }
 

@@ -150,6 +150,27 @@ test.describe('SiteLens demo flow smoke', () => {
   }) => {
     page.setDefaultTimeout(45_000);
 
+    // Isolate this run so reused contexts / shared Dubai place ids cannot
+    // skip the watch UI across parallel or repeated e2e runs.
+    const uniquePlaceId = `e2e-cancel-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
+    await page.route('**/api/planning-contexts/build', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      const payload = route.request().postDataJSON() as {
+        place?: { id?: string };
+      };
+      if (payload?.place) {
+        payload.place.id = uniquePlaceId;
+      }
+      await route.continue({
+        postData: JSON.stringify(payload),
+      });
+    });
+
     // Synthetic fallback can finish before the Cancel click lands; keep job
     // polls non-terminal until cancel succeeds so the button stays mounted.
     let holdJobAsRunning = true;

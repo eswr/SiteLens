@@ -338,10 +338,58 @@ export async function runPlanningContextBuildWorkerTick(): Promise<void> {
 /**
  * pg-boss handler path: claim the ledger row by id, then process.
  * No-ops when the job is terminal / already claimed.
+ *
+ * When Overpass cooldown is active in pg-boss mode, leaves the ledger row
+ * `queued` and schedules a delayed re-enqueue (does not mark `running`).
  */
 export async function processQueuedBuildJobById(
   buildJobId: string,
 ): Promise<void> {
+  const mode = loadConfig().planningContextWorkerMode;
+  if (mode === 'pg-boss') {
+    const { getProviderCooldown } = await import(
+      '../providers/providerSpacer.js'
+    );
+    const remainingMs = await getProviderCooldown('overpass');
+    if (remainingMs > 0) {
+      const delaySeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          event: 'planning_context_build.cooldown_defer',
+          jobId: buildJobId,
+          remainingMs,
+          delaySeconds,
+        }),
+      );
+      // Complete this pg-boss job without claiming the ledger, then re-enqueue
+      // after a short settle so singletonKey is released. If the worker exits
+      // during that window the timer is lost; the reconcile loop recovers
+      // stale `queued` ledger rows onto pg-boss.
+      const settleMs = 250;
+      setTimeout(() => {
+        void import('../worker/bossClient.js')
+          .then(({ enqueuePlanningContextBuildJob }) =>
+            enqueuePlanningContextBuildJob(buildJobId, {
+              startAfter: delaySeconds,
+            }),
+          )
+          .catch((error) => {
+            console.warn(
+              JSON.stringify({
+                level: 'warn',
+                event: 'planning_context_build.cooldown_reenqueue_failed',
+                jobId: buildJobId,
+                errorMessage:
+                  error instanceof Error ? error.message : String(error),
+              }),
+            );
+          });
+      }, settleMs);
+      return;
+    }
+  }
+
   const { claimBuildJobByIdForWorker } = await import(
     './planningContextBuildJobRepository.js'
   );

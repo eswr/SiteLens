@@ -280,6 +280,49 @@ export async function claimNextQueuedBuildJob(
   return claimed;
 }
 
+export interface QueuedBuildJobForDispatch {
+  id: string;
+  planningContextId: string;
+  status: 'queued';
+  updatedAt: string;
+  createdAt: string;
+}
+
+/**
+ * List queued ledger jobs that may be missing from pg-boss (stale dispatch).
+ * Only returns `status = 'queued'` rows older than `olderThanSeconds`.
+ */
+export async function listQueuedBuildJobsForDispatch(options: {
+  olderThanSeconds: number;
+  limit: number;
+}): Promise<QueuedBuildJobForDispatch[]> {
+  const olderThanSeconds = Math.max(0, options.olderThanSeconds);
+  const limit = Math.max(1, Math.min(100, Math.floor(options.limit)));
+  const pool = getPool();
+  const result = await pool.query<{
+    id: string;
+    planning_context_id: string;
+    status: string;
+    updated_at: Date | string;
+    created_at: Date | string;
+  }>(
+    `SELECT id, planning_context_id, status, updated_at, created_at
+       FROM planning_context_build_jobs
+      WHERE status = 'queued'
+        AND updated_at < now() - ($1::double precision * interval '1 second')
+      ORDER BY created_at ASC
+      LIMIT $2`,
+    [olderThanSeconds, limit],
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    planningContextId: row.planning_context_id,
+    status: 'queued' as const,
+    updatedAt: toIso(row.updated_at),
+    createdAt: toIso(row.created_at),
+  }));
+}
+
 /**
  * Claim a specific queued ledger job for the pg-boss worker.
  * Returns null when the job is missing, terminal, or already claimed.
@@ -370,13 +413,40 @@ export async function getBuildJobQueueHealth(): Promise<PlanningContextBuildJobQ
   const rows = await getBuildJobQueueHealthQuery.run(undefined, getPool());
   const row = rows[0];
 
+  const {
+    formatWorkerHeartbeatFields,
+    isWorkerHeartbeatHealthy,
+    readWorkerHeartbeat,
+  } = await import('../worker/workerHeartbeat.js');
+  const heartbeat = await readWorkerHeartbeat();
+  const heartbeatAtMs = heartbeat.atMs;
+  const nowMs = Date.now();
+  const heartbeatFields = formatWorkerHeartbeatFields(
+    heartbeatAtMs,
+    nowMs,
+    heartbeat.source,
+  );
+
   let pgBoss: PlanningContextBuildJobQueueHealthResponse['pgBoss'] = null;
   if (config.planningContextWorkerMode === 'pg-boss') {
     try {
       const { getPgBossQueueStats } = await import('../worker/bossClient.js');
-      pgBoss = await getPgBossQueueStats();
+      const stats = await getPgBossQueueStats();
+      pgBoss = {
+        pending: stats?.pending ?? 0,
+        active: stats?.active ?? 0,
+        retry: stats?.retry ?? 0,
+        failed: stats?.failed ?? 0,
+        workerHealthy: isWorkerHeartbeatHealthy(heartbeatAtMs, nowMs),
+      };
     } catch {
-      pgBoss = null;
+      pgBoss = {
+        pending: 0,
+        active: 0,
+        retry: 0,
+        failed: 0,
+        workerHealthy: isWorkerHeartbeatHealthy(heartbeatAtMs, nowMs),
+      };
     }
   }
 
@@ -388,6 +458,9 @@ export async function getBuildJobQueueHealth(): Promise<PlanningContextBuildJobQ
     lockMs: config.planningContextJobLockMs,
     maxAttempts: config.planningContextJobMaxAttempts,
     heartbeatMs: config.planningContextJobHeartbeatMs,
+    workerHeartbeatAt: heartbeatFields.workerHeartbeatAt,
+    workerHeartbeatAgeSeconds: heartbeatFields.workerHeartbeatAgeSeconds,
+    workerHeartbeatSource: heartbeatFields.workerHeartbeatSource,
     queued: Number(row?.queued ?? 0),
     running: Number(row?.running ?? 0),
     runningExpiredLease: Number(row?.running_expired_lease ?? 0),

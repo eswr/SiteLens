@@ -2,12 +2,21 @@ import '../loadEnv.js';
 import { closeRedisClient, waitForCacheReady } from '../cache/cacheClient.js';
 import { loadConfig } from '../config.js';
 import { closePool } from '../db/pool.js';
+import {
+  startPlanningContextBuildReconcileLoop,
+  stopPlanningContextBuildReconcileLoop,
+} from '../externalData/reconcilePlanningContextBuildDispatch.js';
 import { processQueuedBuildJobById } from '../externalData/planningContextBuildWorker.js';
+import { assertProviderSpacerReady } from '../providers/providerSpacer.js';
 import {
   startBoss,
   stopBoss,
   type PlanningContextBuildJobPayload,
 } from './bossClient.js';
+import {
+  startWorkerHeartbeat,
+  stopWorkerHeartbeat,
+} from './workerHeartbeat.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -17,7 +26,39 @@ async function main(): Promise<void> {
     );
   }
 
-  void waitForCacheReady();
+  await waitForCacheReady();
+  await assertProviderSpacerReady();
+
+  // Smoke-only: seed a process-local Overpass cooldown before consuming jobs
+  // (memory spacer is not shared with the API process). Never honor in production.
+  const smokeCooldownMs = Number(
+    process.env.SMOKE_SEED_OVERPASS_COOLDOWN_MS ?? '',
+  );
+  if (Number.isFinite(smokeCooldownMs) && smokeCooldownMs > 0) {
+    if (config.isProduction) {
+      console.warn(
+        JSON.stringify({
+          level: 'warn',
+          event: 'planning_context_worker.smoke_seed_cooldown_ignored',
+          reason: 'SMOKE_SEED_OVERPASS_COOLDOWN_MS is not allowed in production',
+          remainingMs: smokeCooldownMs,
+        }),
+      );
+    } else {
+      const { markProviderFailure } = await import(
+        '../providers/providerSpacer.js'
+      );
+      await markProviderFailure('overpass', smokeCooldownMs, 'smoke_seed');
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          event: 'planning_context_worker.smoke_seed_cooldown',
+          remainingMs: smokeCooldownMs,
+        }),
+      );
+    }
+  }
+
   const boss = await startBoss();
   const queue = config.pgBossQueuePlanningContext;
   const concurrency = Math.max(1, config.pgBossWorkerConcurrency);
@@ -25,6 +66,9 @@ async function main(): Promise<void> {
     0.25,
     config.pgBossPollIntervalMs / 1000,
   );
+
+  startWorkerHeartbeat();
+  startPlanningContextBuildReconcileLoop();
 
   console.log(
     JSON.stringify({
@@ -81,6 +125,8 @@ async function main(): Promise<void> {
           signal,
         }),
       );
+      stopWorkerHeartbeat();
+      stopPlanningContextBuildReconcileLoop();
       void stopBoss()
         .then(() => closeRedisClient())
         .then(() => closePool())
@@ -91,6 +137,8 @@ async function main(): Promise<void> {
 
 void main().catch((error) => {
   console.error(error);
+  stopWorkerHeartbeat();
+  stopPlanningContextBuildReconcileLoop();
   void stopBoss()
     .then(() => closeRedisClient())
     .then(() => closePool())

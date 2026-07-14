@@ -36,6 +36,16 @@ vi.mock('../api/planningContextsApi', () => ({
   listPlanningContexts,
 }));
 
+// Queries own server reads/mutations; they delegate to the mocked API module.
+vi.mock('../query/queryClient', async () => {
+  const { QueryClient } = await import('@tanstack/react-query');
+  return {
+    queryClient: new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    }),
+  };
+});
+
 const {
   CANCEL_WATCH_NOTICE,
   EMPTY_BUILD_NOTICE,

@@ -56,7 +56,9 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Confirm licensing/attribution for any commercial geospatial providers
 - [ ] Monitor `external-context:build` metering (Free 0 / Pro monthly / Enterprise unlimited) and `planning_context_build_jobs` queue depth / failures
 - [ ] Treat jobs/health `pgBoss` stats as approximate only; wire billing-grade queue metrics if needed
-- [ ] Replace concurrency-1 Overpass cooldown sleeps with delayed re-enqueue when shared cooldown is active
+- [x] Ledger→pg-boss reconcile for stale `queued` jobs + process worker heartbeat on jobs/health (`pgBoss.workerHealthy`)
+- [x] On Overpass provider cooldown in pg-boss mode, defer claim and re-enqueue with `startAfter` (ledger stays `queued`)
+- [x] Startup fail-fast via `assertProviderSpacerReady()` when production + `PROVIDER_RATE_LIMIT_BACKEND=redis`
 - [ ] Decide whether Redis cooldown **write** failures should fail closed (today: warn only so the original provider error is not masked; slot waits already fail closed in production with `PROVIDER_RATE_LIMIT_BACKEND=redis`)
 
 ## Geocoding (worldwide place search)

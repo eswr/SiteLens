@@ -7,6 +7,7 @@ import {
   startPlanningContextBuildWorker,
   stopPlanningContextBuildWorker,
 } from './externalData/planningContextBuildWorker.js';
+import { assertProviderSpacerReady } from './providers/providerSpacer.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -16,9 +17,10 @@ async function main(): Promise<void> {
   });
 
   try {
+    // Eager cache connect + fail-fast when production requires Redis spacer.
+    await waitForCacheReady();
+    await assertProviderSpacerReady();
     await app.listen({ port: config.port, host: '0.0.0.0' });
-    // Eagerly connect the cache so the first request doesn't race the handshake.
-    void waitForCacheReady();
     if (config.planningContextWorkerMode === 'in-process') {
       startPlanningContextBuildWorker(config.planningContextWorkerPollMs);
     }

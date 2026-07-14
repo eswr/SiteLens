@@ -8,14 +8,17 @@ import {
   EXTERNAL_OSM_DISCLAIMER,
   LOCAL_DEMO_SYDNEY_CONTEXT_ID,
 } from '@sitelens/shared';
-import {
-  buildPlanningContext,
-  getPlanningContextBuildJob,
-  getPlanningContextDetail,
-  listPlanningContexts,
-} from '../api/planningContextsApi';
 import type { PlaceSearchResult } from '../api/geocodingApi';
 import { ApiError, isApiConfigured } from '../api/client';
+import {
+  fetchPlanningContextBuildJob,
+  fetchPlanningContextDetail,
+  fetchPlanningContextsList,
+  invalidatePlanningContextsAfterBuild,
+  refetchPlanningContextDetail,
+  refetchPlanningContextsList,
+  requestBuildPlanningContext,
+} from '../query/planningContextQueries';
 import { useMapStore } from './mapStore';
 import { useAnalysisStore } from './analysisStore';
 import { useAiSummaryStore } from './aiSummaryStore';
@@ -128,7 +131,7 @@ async function refreshSelectedDetail(contextId: string): Promise<{
     return { context: SYDNEY_FALLBACK, counts: null };
   }
   try {
-    const detail = await getPlanningContextDetail(contextId);
+    const detail = await fetchPlanningContextDetail(contextId);
     return { context: detail.context, counts: detail.counts };
   } catch {
     const listed = usePlanningContextStore
@@ -240,7 +243,10 @@ export const usePlanningContextStore = create<PlanningContextState>(
         return;
       }
 
-      const detail = await getPlanningContextDetail(contextId);
+      await invalidatePlanningContextsAfterBuild(contextId);
+      const detail = await refetchPlanningContextDetail(contextId).catch(() =>
+        fetchPlanningContextDetail(contextId),
+      );
       if (get().watchingCancelled) {
         return;
       }
@@ -248,7 +254,9 @@ export const usePlanningContextStore = create<PlanningContextState>(
         return;
       }
 
-      const contexts = await listPlanningContexts().catch(() => get().contexts);
+      const contexts = await refetchPlanningContextsList().catch(
+        () => get().contexts,
+      );
       const merged = contexts.some((c) => c.id === detail.context.id)
         ? contexts.map((c) =>
             c.id === detail.context.id ? detail.context : c,
@@ -317,7 +325,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
         }
         set({ isLoading: true, countsLoading: true });
         try {
-          const contexts = await listPlanningContexts();
+          const contexts = await fetchPlanningContextsList();
           const list = contexts.length > 0 ? contexts : [SYDNEY_FALLBACK];
           const preferred = get().selectedContextId;
           const ready = (c: PlanningContext) => c.status === 'ready';
@@ -433,7 +441,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
         });
 
         try {
-          const enqueued = await buildPlanningContext(place);
+          const enqueued = await requestBuildPlanningContext(place);
           const jobId = enqueued.jobId;
           const buildingStub = optimisticBuildingContext(
             enqueued.contextId,
@@ -450,7 +458,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
             });
             let terminalReused = enqueued.reused === true;
             try {
-              const { job } = await getPlanningContextBuildJob(jobId);
+              const { job } = await fetchPlanningContextBuildJob(jobId);
               terminalReused = job.reused === true || enqueued.reused === true;
             } catch {
               // keep enqueue reused flag

@@ -135,10 +135,15 @@ describe('planning context routes', () => {
   it('returns build job queue health', async () => {
     queueHealthMock.mockResolvedValueOnce({
       workerEnabled: true,
+      workerMode: 'pg-boss',
+      pgBossEnabled: true,
       pollMs: 750,
       lockMs: 300_000,
       maxAttempts: 3,
       heartbeatMs: 100_000,
+      workerHeartbeatAt: '2026-07-14T08:00:00.000Z',
+      workerHeartbeatAgeSeconds: 5,
+      workerHeartbeatSource: 'redis',
       queued: 1,
       running: 0,
       runningExpiredLease: 0,
@@ -146,6 +151,13 @@ describe('planning context routes', () => {
       failedLast24h: 0,
       oldestQueuedAt: '2026-07-14T08:00:00.000Z',
       oldestRunningAt: null,
+      pgBoss: {
+        pending: 0,
+        active: 0,
+        retry: 0,
+        failed: 0,
+        workerHealthy: true,
+      },
     });
     const res = await app.inject({
       method: 'GET',
@@ -158,6 +170,10 @@ describe('planning context routes', () => {
       queued: 1,
       failedLast24h: 0,
       succeededRecent: 2,
+      workerHeartbeatAt: '2026-07-14T08:00:00.000Z',
+      workerHeartbeatAgeSeconds: 5,
+      workerHeartbeatSource: 'redis',
+      pgBoss: { workerHealthy: true },
     });
     expect(getJobMock).not.toHaveBeenCalled();
   });

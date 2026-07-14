@@ -268,11 +268,30 @@ curl -sS -X POST http://localhost:4000/api/planning-contexts/build \
 `GET /api/planning-contexts/jobs/health` `pgBoss` counts are **best-effort /
 approximate** (portfolio observability). Treat ledger aggregates
 (`queued` / `running` / …) as the product truth; do not use pg-boss health
-fields as billing-grade queue metrics.
+fields as billing-grade queue metrics. The worker process writes a heartbeat
+every 10s; when `workerMode=pg-boss` and the heartbeat is missing or older than
+60s, `pgBoss.workerHealthy` is `false` (HTTP status remains 200).
 
-**Known worker debt:** with `PG_BOSS_WORKER_CONCURRENCY=1`, a long Overpass
-provider-cooldown sleep can occupy the only worker. Later: detect cooldown
-before fetch and re-enqueue with delay instead of sleeping inside the handler.
+**Recovery:** the worker runs a reconcile loop that re-enqueues ledger jobs
+stuck in `queued` for ~20s+ onto pg-boss. The queue uses policy `short` so
+`singletonKey=buildJobId` uniquely constrains `created` jobs (`send` returns
+`null` on dedupe → log `reconciled_dispatch_deduped`). When Overpass cooldown
+is active, reconcile also passes `startAfter` so it does not create an
+immediately runnable duplicate beside a delayed job.
+
+**Cooldown smoke helper:** set `SMOKE_SEED_OVERPASS_COOLDOWN_MS=<ms>` on the
+worker process (non-production only) to seed a process-local Overpass cooldown
+before consuming (useful with `PROVIDER_RATE_LIMIT_BACKEND=memory`). Ignored
+when `NODE_ENV=production`.
+
+**Provider cooldown:** in `pg-boss` mode, if Overpass cooldown is active the
+worker leaves the ledger row `queued` and re-enqueues with `startAfter` after a
+250 ms settle (log `planning_context_build.cooldown_defer`) instead of
+claiming/`running`. A shutdown in that settle window can drop the timer; the
+reconcile loop is the recovery path for those orphaned `queued` rows.
+
+**Startup:** production + `PROVIDER_RATE_LIMIT_BACKEND=redis` calls
+`assertProviderSpacerReady()` before listen / `boss.work` (fail closed).
 
 ## Local development
 
