@@ -20,6 +20,26 @@ export interface BuildAppOptions {
   isProduction?: boolean;
 }
 
+/** Parse a single origin or comma-separated list for `@fastify/cors`. */
+export function parseCorsOrigin(
+  webOrigin: string | undefined,
+): boolean | string | string[] {
+  if (!webOrigin || webOrigin.trim().length === 0) {
+    return true;
+  }
+  const origins = webOrigin
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (origins.length === 0) {
+    return true;
+  }
+  if (origins.length === 1) {
+    return origins[0];
+  }
+  return origins;
+}
+
 /**
  * Build a configured Fastify instance. Kept side-effect free (no `listen`) so
  * tests can use `app.inject(...)`.
@@ -35,7 +55,9 @@ export async function buildApp(
     },
   });
 
-  await app.register(cors, { origin: options.webOrigin ?? true });
+  // WEB_ORIGIN may be a single origin or a comma-separated list (e.g. Vercel + local Vite).
+  const corsOrigin = parseCorsOrigin(options.webOrigin);
+  await app.register(cors, { origin: corsOrigin });
 
   registerRequestLogger(app);
   registerAuth(app);

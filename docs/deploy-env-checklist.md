@@ -13,7 +13,7 @@ Documented portfolio hosts: **Fly.io** (API), **Vercel** (web), **Neon**
 ```txt
 NODE_ENV=production
 PORT=4000
-WEB_ORIGIN=https://sitelens-demo.vercel.app
+WEB_ORIGIN=https://sitelens-demo.vercel.app,http://localhost:5173
 
 DATABASE_URL=<neon-postgres-url>
 DB_SSL=true
@@ -43,8 +43,10 @@ STRIPE_WEBHOOK_SECRET=
 
 ### Notes
 
-- `WEB_ORIGIN` must **exactly** match the deployed frontend origin (e.g.
-  `https://sitelens-demo.vercel.app`). Wrong CORS = browser API calls fail.
+- `WEB_ORIGIN` must match allowed frontend origin(s). Use a comma-separated
+  list for Vercel + local Vite (e.g.
+  `https://sitelens-demo.vercel.app,http://localhost:5173`). Wrong CORS =
+  browser API calls fail.
 - `GEOCODING_STATIC_FALLBACK_ENABLED=true` is **intentional** for the public
   portfolio demo: some cloud/VPN/shared networks are blocked by public
   Nominatim (`403 Access denied`). The API then returns labeled `static-demo`

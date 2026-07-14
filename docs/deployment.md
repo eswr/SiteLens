@@ -227,10 +227,11 @@ Provider settings (non-Docker hosts):
 
 On Fly, prefer `fly deploy` (Docker) instead of a bare start command.
 
-Set `WEB_ORIGIN` to the **exact** deployed frontend origin (scheme + host, no
-trailing slash), e.g. `https://sitelens-demo.vercel.app`. A mismatch causes CORS
-failures for `/api/me`, `/api/geocode/search`, `/api/analyze-area`, and
-`/api/planning-summary`.
+Set `WEB_ORIGIN` to allowed frontend origin(s) — a single origin or a
+comma-separated list (scheme + host, no trailing slash), e.g.
+`https://sitelens-demo.vercel.app,http://localhost:5173` for Vercel + local
+Vite. A mismatch causes CORS failures for `/api/me`, `/api/geocode/search`,
+`/api/analyze-area`, and `/api/planning-summary`.
 
 ### Step C — Run migrations and seed
 
