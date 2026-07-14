@@ -112,8 +112,9 @@ fly deploy
 
 - Image builds from the root `Dockerfile` (`tsx` runs TypeScript; no compile step).
 - Health check: `GET /health` (also `/api/health`).
-- [`fly.toml`](../fly.toml) sets `min_machines_running = 1` so the portfolio demo
-  keeps one machine warm (avoids cold-start waits after idle).
+- [`fly.toml`](../fly.toml) uses a **single** machine (`[[vm]] count = 1`,
+  `min_machines_running = 1`) so the portfolio demo stays warm without an HA
+  replica. If a deploy ever creates a second machine: `fly scale count app=1`.
 - If the Vercel hostname is not known yet, set a provisional `WEB_ORIGIN`, deploy
   the frontend, then `fly secrets set WEB_ORIGIN=https://<exact-origin>` and
   restart (`fly apps restart sitelens-api`).

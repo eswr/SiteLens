@@ -18,7 +18,7 @@ primary_region = 'sjc'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  # Keep one machine warm so the portfolio demo avoids cold-start gaps.
+  # Portfolio demo: keep exactly one warm machine (scale count 1 — no HA replica).
   min_machines_running = 1
   processes = ['app']
 
@@ -29,7 +29,9 @@ primary_region = 'sjc'
     method = 'GET'
     path = '/health'
 
+# Single shared-cpu VM for the portfolio demo (do not raise count for HA).
 [[vm]]
   memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
+  count = 1

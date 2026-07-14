@@ -16,13 +16,17 @@ dist-ssr
 *.local
 
 # Env files (keep *.example templates)
-.env
-.env.local
-.env.production
-.env.*.local
-!.env.example
-!.env.local.example
-!.env.production.example
+# Ignore all env files in apps/* directories
+apps/*/.env
+apps/*/.env.local
+apps/*/.env.production
+apps/*/.env.*.local
+
+# But keep example files
+!apps/*/.env.example
+!apps/*/.env.local.example
+!apps/*/.env.production.example
+
 
 apps/api/.env.production
 
