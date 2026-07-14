@@ -87,7 +87,8 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 
 ### `GET /api/planning-contexts/:id`
 
-- **Purpose:** fetch one planning context metadata row.
+- **Purpose:** fetch one planning context plus layer feature counts.
+- **Response:** `{ data: { context: PlanningContext, counts: PlanningContextFeatureCounts } }`.
 - **Errors:** unknown id → `404`.
 
 ### `POST /api/planning-contexts/build`

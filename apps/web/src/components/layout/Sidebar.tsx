@@ -28,6 +28,7 @@ import {
 import { useLayerStore } from '../../store/layerStore';
 import { useSearchStore } from '../../store/searchStore';
 import { useMapStore } from '../../store/mapStore';
+import PlanningContextHealthCard from '../planning/PlanningContextHealthCard';
 import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
 import { useUiStore } from '../../store/uiStore';
 import { useAiSummaryStore } from '../../store/aiSummaryStore';
@@ -663,14 +664,6 @@ function PlacesSearchInner() {
   );
 }
 
-function sourceChipLabel(source: string): string {
-  if (source === 'local-demo') return 'Local demo';
-  if (source === 'external-osm') return 'External OSM';
-  if (source === 'synthetic-fallback') return 'Synthetic fallback';
-  if (source === 'external-overture') return 'External Overture';
-  return source;
-}
-
 function PlanningContextSection() {
   const loadContexts = usePlanningContextStore((state) => state.loadContexts);
   const contexts = usePlanningContextStore((state) => state.contexts);
@@ -679,6 +672,13 @@ function PlanningContextSection() {
   );
   const selectedContext = usePlanningContextStore(
     (state) => state.selectedContext,
+  );
+  const selectedCounts = usePlanningContextStore(
+    (state) => state.selectedCounts,
+  );
+  const countsLoading = usePlanningContextStore((state) => state.countsLoading);
+  const lastBuildReused = usePlanningContextStore(
+    (state) => state.lastBuildReused,
   );
   const selectContext = usePlanningContextStore((state) => state.selectContext);
   const isLoading = usePlanningContextStore((state) => state.isLoading);
@@ -716,20 +716,12 @@ function PlanningContextSection() {
         ))}
       </TextField>
       {selectedContext && (
-        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          <Chip
-            size="small"
-            variant="outlined"
-            label={sourceChipLabel(selectedContext.source)}
-            color={
-              selectedContext.source === 'local-demo' ? 'default' : 'info'
-            }
-            sx={{ alignSelf: 'flex-start' }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            {selectedContext.disclaimer}
-          </Typography>
-        </Box>
+        <PlanningContextHealthCard
+          context={selectedContext}
+          counts={selectedCounts}
+          countsLoading={countsLoading}
+          lastBuildReused={lastBuildReused}
+        />
       )}
       {!isApiConfigured() && (
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>

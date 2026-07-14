@@ -1,6 +1,7 @@
 import type {
   BuildPlanningContextResponse,
   PlanningContext,
+  PlanningContextDetailResponse,
 } from '@sitelens/shared';
 import type { PlaceSearchResult } from './geocodingApi';
 import { apiGet, apiPostWithMeta } from './client';
@@ -10,11 +11,11 @@ export async function listPlanningContexts(): Promise<PlanningContext[]> {
   return apiGet<PlanningContext[]>('/api/planning-contexts');
 }
 
-/** Fetch a single planning context by id. */
-export async function getPlanningContext(
+/** Fetch one planning context plus layer feature counts. */
+export async function getPlanningContextDetail(
   id: string,
-): Promise<PlanningContext> {
-  return apiGet<PlanningContext>(
+): Promise<PlanningContextDetailResponse> {
+  return apiGet<PlanningContextDetailResponse>(
     `/api/planning-contexts/${encodeURIComponent(id)}`,
   );
 }

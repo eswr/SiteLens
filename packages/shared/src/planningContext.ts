@@ -62,9 +62,13 @@ export interface PlanningContextFeatureCounts {
   developmentActivity: number;
 }
 
-export interface BuildPlanningContextResponse {
+/** Detail payload for `GET /api/planning-contexts/:id` (and build without reuse). */
+export interface PlanningContextDetailResponse {
   context: PlanningContext;
   counts: PlanningContextFeatureCounts;
+}
+
+export interface BuildPlanningContextResponse extends PlanningContextDetailResponse {
   /** True when a fresh ready context was returned without calling Overpass. */
   reused?: boolean;
 }

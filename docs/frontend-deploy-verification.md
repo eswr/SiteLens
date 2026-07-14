@@ -6,21 +6,28 @@ Open the deployed frontend URL (full-stack build with `VITE_API_BASE_URL` set).
 
 - Header shows Demo Planner · Pro.
 - Map loads with MapLibre basemap.
-- Sydney planning layers are visible.
-- Planning features search works.
-- Places tab exists separately.
-- Searching "Bengaluru" returns either:
+- Sydney Demo is the default planning context; planning layers are visible.
+- Planning features search works against the selected context.
+- Places tab exists separately from Planning features.
+- Searching "Bengaluru" (or "Dubai") returns either:
   - Provider: Nominatim, or
   - Provider: Demo fallback with clear fallback message.
 - Browser Network tab shows no direct call to `nominatim.openstreetmap.org`.
-- Selecting Bengaluru flies/fits map and shows Place card.
-- Draw AOI over Sydney.
-- Analysis uses PostGIS API.
+- Selecting Bengaluru/Dubai shows the Place card (does not auto-build a context).
+- With Planner · Pro, click **Build planning context for this place**.
+- After build succeeds:
+  - Context selector switches to the new ready external context.
+  - Planning Context Health card shows provider (Overpass), status (ready),
+    feature counts, last-built time, and data-quality badges
+    (Open-map derived, Not official planning data).
+  - Rebuilding the same place while fresh shows a Reused chip (no new Overpass call).
+- Draw an AOI **over the generated context** (not over Sydney).
+- Analysis uses PostGIS API scoped to that planning context.
 - Repeat analysis shows cache hit.
-- Generate planning summary.
-- Summary uses deterministic backend engine.
-- Switch Viewer/Free.
-- AOI analysis falls back locally with entitlement warning.
+- Generate planning summary for the AOI; summary uses the deterministic backend engine.
+- Switch Viewer/Free:
+  - Build external context is gated.
+  - AOI analysis falls back locally with entitlement warning.
 
 ## CORS check
 
@@ -29,6 +36,9 @@ From the browser Network tab, these requests must succeed against
 
 - `GET /api/me`
 - `GET /api/geocode/search?q=Bengaluru&limit=3`
+- `GET /api/planning-contexts`
+- `GET /api/planning-contexts/:id`
+- `POST /api/planning-contexts/build`
 - `POST /api/analyze-area`
 - `POST /api/planning-summary`
 

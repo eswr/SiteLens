@@ -17,10 +17,7 @@ import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore } from '../../store/analysisStore';
 import { usePlaceSearchStore } from '../../store/placeSearchStore';
-import {
-  EMPTY_BUILD_NOTICE,
-  usePlanningContextStore,
-} from '../../store/planningContextStore';
+import { usePlanningContextStore } from '../../store/planningContextStore';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
 import { isApiConfigured } from '../../api/client';
@@ -221,9 +218,6 @@ function PlaceDetails() {
   );
   const isBuilding = usePlanningContextStore((state) => state.isBuilding);
   const buildError = usePlanningContextStore((state) => state.buildError);
-  const lastBuildCounts = usePlanningContextStore(
-    (state) => state.lastBuildCounts,
-  );
   const clearBuildError = usePlanningContextStore(
     (state) => state.clearBuildError,
   );
@@ -353,21 +347,6 @@ function PlaceDetails() {
         <Alert severity="warning" onClose={() => clearBuildError()}>
           {buildError}
         </Alert>
-      )}
-      {lastBuildCounts &&
-        lastBuildCounts.sites +
-          lastBuildCounts.landUse +
-          lastBuildCounts.constraints +
-          lastBuildCounts.transit +
-          lastBuildCounts.developmentActivity ===
-          0 && <Alert severity="info">{EMPTY_BUILD_NOTICE}</Alert>}
-      {lastBuildCounts && (
-        <Typography variant="caption" color="text.secondary">
-          Built context counts — sites: {lastBuildCounts.sites}, land use:{' '}
-          {lastBuildCounts.landUse}, constraints: {lastBuildCounts.constraints},
-          transit: {lastBuildCounts.transit}, activity proxies:{' '}
-          {lastBuildCounts.developmentActivity}.
-        </Typography>
       )}
 
       <Button

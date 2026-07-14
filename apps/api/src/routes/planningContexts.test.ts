@@ -1,13 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
-const { buildMock, recordUsageMock, listMock, getMock } = vi.hoisted(() => ({
-  buildMock: vi.fn(),
-  recordUsageMock: vi.fn(async () => {}),
-  listMock: vi.fn(),
-  getMock: vi.fn(),
-}));
-
+const { buildMock, recordUsageMock, listMock, getMock, countMock } = vi.hoisted(
+  () => ({
+    buildMock: vi.fn(),
+    recordUsageMock: vi.fn(async () => {}),
+    listMock: vi.fn(),
+    getMock: vi.fn(),
+    countMock: vi.fn(),
+  }),
+);
 vi.mock('../externalData/planningContextBuilder', () => ({
   buildExternalPlanningContext: buildMock,
   PlanningContextBuildError: class PlanningContextBuildError extends Error {
@@ -24,6 +26,7 @@ vi.mock('../externalData/planningContextBuilder', () => ({
 vi.mock('../externalData/planningContextRepository', () => ({
   listPlanningContexts: listMock,
   getPlanningContext: getMock,
+  countContextFeatures: countMock,
 }));
 
 vi.mock('../billing/billingRepository', async (importOriginal) => {
@@ -69,6 +72,13 @@ beforeEach(() => {
   getMock.mockImplementation(async (id: string) =>
     id === 'local-demo-sydney' ? sydney : null,
   );
+  countMock.mockResolvedValue({
+    sites: 12,
+    landUse: 5,
+    constraints: 3,
+    transit: 8,
+    developmentActivity: 4,
+  });
 });
 
 describe('planning context routes', () => {
@@ -82,6 +92,33 @@ describe('planning context routes', () => {
     expect(
       res.json().data.some((c: { status: string }) => c.status === 'failed'),
     ).toBe(false);
+  });
+
+  it('returns context detail with feature counts', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/planning-contexts/local-demo-sydney',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().data.context.id).toBe('local-demo-sydney');
+    expect(res.json().data.counts).toEqual({
+      sites: 12,
+      landUse: 5,
+      constraints: 3,
+      transit: 8,
+      developmentActivity: 4,
+    });
+    expect(countMock).toHaveBeenCalledWith('local-demo-sydney');
+  });
+
+  it('returns 404 for unknown planning context id', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/planning-contexts/missing-context',
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('NOT_FOUND');
+    expect(countMock).not.toHaveBeenCalled();
   });
 
   it('forbids Free/Viewer from building external context', async () => {

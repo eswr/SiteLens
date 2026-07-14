@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import type {
   BuildPlanningContextResponse,
   PlanningContext,
+  PlanningContextFeatureCounts,
 } from '@sitelens/shared';
 import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import {
   buildPlanningContext,
+  getPlanningContextDetail,
   listPlanningContexts,
 } from '../api/planningContextsApi';
 import type { PlaceSearchResult } from '../api/geocodingApi';
@@ -73,16 +75,37 @@ function clearTransientUi(): void {
   useSearchStore.getState().invalidateIndex();
 }
 
+async function refreshSelectedDetail(contextId: string): Promise<{
+  context: PlanningContext;
+  counts: PlanningContextFeatureCounts | null;
+}> {
+  if (!isApiConfigured()) {
+    return { context: SYDNEY_FALLBACK, counts: null };
+  }
+  try {
+    const detail = await getPlanningContextDetail(contextId);
+    return { context: detail.context, counts: detail.counts };
+  } catch {
+    const listed = usePlanningContextStore
+      .getState()
+      .contexts.find((c) => c.id === contextId);
+    return { context: listed ?? SYDNEY_FALLBACK, counts: null };
+  }
+}
+
 interface PlanningContextState {
   contexts: PlanningContext[];
   selectedContextId: string;
   selectedContext: PlanningContext | null;
+  selectedCounts: PlanningContextFeatureCounts | null;
+  countsLoading: boolean;
+  /** Set only for the most recent build in this session. */
+  lastBuildReused: boolean | null;
   isLoading: boolean;
   isBuilding: boolean;
   buildError: string | null;
   /** Immediate post-build notice (e.g. empty feature counts). */
   buildNotice: string | null;
-  lastBuildCounts: BuildPlanningContextResponse['counts'] | null;
   dataRevision: number;
   loadContexts: () => Promise<void>;
   selectContext: (contextId: string) => void;
@@ -98,11 +121,13 @@ export const usePlanningContextStore = create<PlanningContextState>(
     contexts: [SYDNEY_FALLBACK],
     selectedContextId: readStoredId(),
     selectedContext: SYDNEY_FALLBACK,
+    selectedCounts: null,
+    countsLoading: false,
+    lastBuildReused: null,
     isLoading: false,
     isBuilding: false,
     buildError: null,
     buildNotice: null,
-    lastBuildCounts: null,
     dataRevision: 0,
 
     loadContexts: async () => {
@@ -111,16 +136,16 @@ export const usePlanningContextStore = create<PlanningContextState>(
           contexts: [SYDNEY_FALLBACK],
           selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
           selectedContext: SYDNEY_FALLBACK,
+          selectedCounts: null,
+          countsLoading: false,
+          lastBuildReused: null,
         });
         return;
       }
-      set({ isLoading: true });
+      set({ isLoading: true, countsLoading: true });
       try {
         const contexts = await listPlanningContexts();
-        const list =
-          contexts.length > 0
-            ? contexts
-            : [SYDNEY_FALLBACK];
+        const list = contexts.length > 0 ? contexts : [SYDNEY_FALLBACK];
         const preferred = get().selectedContextId;
         const ready = (c: PlanningContext) => c.status === 'ready';
         const selected =
@@ -134,13 +159,30 @@ export const usePlanningContextStore = create<PlanningContextState>(
           selectedContextId: selected.id,
           selectedContext: selected,
           isLoading: false,
+          lastBuildReused: null,
+        });
+        const selectedId = selected.id;
+        const detail = await refreshSelectedDetail(selectedId);
+        if (get().selectedContextId !== selectedId) {
+          return;
+        }
+        set({
+          selectedContext: detail.context,
+          selectedCounts: detail.counts,
+          countsLoading: false,
+          contexts: list.map((c) =>
+            c.id === detail.context.id ? detail.context : c,
+          ),
         });
       } catch {
         set({
           contexts: [SYDNEY_FALLBACK],
           selectedContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
           selectedContext: SYDNEY_FALLBACK,
+          selectedCounts: null,
+          countsLoading: false,
           isLoading: false,
+          lastBuildReused: null,
         });
       }
     },
@@ -164,9 +206,25 @@ export const usePlanningContextStore = create<PlanningContextState>(
       set((state) => ({
         selectedContextId: context.id,
         selectedContext: context,
+        selectedCounts: null,
+        countsLoading: true,
+        lastBuildReused: null,
         dataRevision: state.dataRevision + 1,
         buildError: null,
       }));
+      void refreshSelectedDetail(context.id).then((detail) => {
+        if (get().selectedContextId !== context.id) {
+          return;
+        }
+        set({
+          selectedContext: detail.context,
+          selectedCounts: detail.counts,
+          countsLoading: false,
+          contexts: get().contexts.map((c) =>
+            c.id === detail.context.id ? detail.context : c,
+          ),
+        });
+      });
     },
 
     buildContextFromSelectedPlace: async (place) => {
@@ -181,7 +239,7 @@ export const usePlanningContextStore = create<PlanningContextState>(
         isBuilding: true,
         buildError: null,
         buildNotice: null,
-        lastBuildCounts: null,
+        lastBuildReused: null,
       });
       try {
         const result = await buildPlanningContext(place);
@@ -189,11 +247,13 @@ export const usePlanningContextStore = create<PlanningContextState>(
           () => get().contexts,
         );
         const merged = contexts.some((c) => c.id === result.context.id)
-          ? contexts
+          ? contexts.map((c) =>
+              c.id === result.context.id ? result.context : c,
+            )
           : [result.context, ...contexts];
         persistId(result.context.id);
         clearTransientUi();
-        // Keep place selected so counts/disclaimer stay visible, but fly to context.
+        // Keep place selected so build UI stays visible, but fly to context.
         useMapStore.getState().requestFlyToFeature({
           center: result.context.center,
           bbox: result.context.bbox,
@@ -203,8 +263,10 @@ export const usePlanningContextStore = create<PlanningContextState>(
           contexts: merged,
           selectedContextId: result.context.id,
           selectedContext: result.context,
+          selectedCounts: result.counts,
+          countsLoading: false,
+          lastBuildReused: result.reused === true,
           isBuilding: false,
-          lastBuildCounts: result.counts,
           buildNotice: isEmptyBuildCounts(result.counts)
             ? EMPTY_BUILD_NOTICE
             : null,

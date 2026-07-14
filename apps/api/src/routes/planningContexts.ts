@@ -6,6 +6,7 @@ import type {
   ApiErrorEnvelope,
   BuildPlanningContextResponse,
   PlanningContext,
+  PlanningContextDetailResponse,
 } from '@sitelens/shared';
 import {
   assertFeature,
@@ -19,6 +20,7 @@ import {
   PlanningContextBuildError,
 } from '../externalData/planningContextBuilder';
 import {
+  countContextFeatures,
   getPlanningContext,
   listPlanningContexts,
 } from '../externalData/planningContextRepository';
@@ -76,8 +78,9 @@ export async function planningContextsRoutes(
           reply.code(404);
           return body;
         }
-        const body: ApiEnvelope<PlanningContext> = {
-          data: context,
+        const counts = await countContextFeatures(context.id);
+        const body: ApiEnvelope<PlanningContextDetailResponse> = {
+          data: { context, counts },
           meta: {
             requestId: request.id,
             planningContextId: context.id,
