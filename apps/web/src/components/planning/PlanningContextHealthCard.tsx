@@ -38,14 +38,7 @@ function totalCounts(counts: PlanningContextFeatureCounts): number {
   );
 }
 
-function formatLastBuilt(context: PlanningContext): string {
-  if (
-    context.source === 'local-demo' ||
-    context.source === 'synthetic-fallback'
-  ) {
-    return 'Bundled fixture';
-  }
-
+function formatTimestampValue(context: PlanningContext): string {
   const date = new Date(context.updatedAt);
   if (Number.isNaN(date.getTime())) {
     return 'Unknown';
@@ -55,6 +48,28 @@ function formatLastBuilt(context: PlanningContext): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
+}
+
+/** Status-aware caption so "Last built" is never shown while a build is in flight. */
+function formatTimestampLine(context: PlanningContext): string {
+  if (
+    context.source === 'local-demo' ||
+    context.source === 'synthetic-fallback'
+  ) {
+    return 'Bundled fixture';
+  }
+
+  const value = formatTimestampValue(context);
+  if (context.status === 'building') {
+    return `Build started: ${value}`;
+  }
+  if (context.status === 'failed') {
+    return `Failed at: ${value}`;
+  }
+  if (context.status === 'stale') {
+    return `Last updated: ${value}`;
+  }
+  return `Last built: ${value}`;
 }
 
 function CountCell({ label, value }: { label: string; value: number }) {
@@ -205,7 +220,7 @@ export default function PlanningContextHealthCard({
       )}
 
       <Typography variant="caption" color="text.secondary">
-        Last built: {formatLastBuilt(context)}
+        {formatTimestampLine(context)}
       </Typography>
 
       <Typography variant="caption" color="text.secondary">

@@ -27,8 +27,10 @@ apps/*/.env.*.local
 !apps/*/.env.local.example
 !apps/*/.env.production.example
 
-
-apps/api/.env.production
+# Portfolio PNGs under docs/screenshots/ are committed; capture temps are not.
+docs/screenshots/_video-tmp/
+docs/screenshots/*.webm
+docs/screenshots/*.mp4
 
 # Test coverage
 coverage

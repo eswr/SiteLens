@@ -66,76 +66,101 @@ env, [`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
 - Demo auth, roles, plans, and billing gates
 - Backend-owned deterministic AI summary service
 - Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy (with labeled static-demo fallback when public Nominatim is unavailable; Places autocomplete is local-only — live geocoding only on explicit Search)
-- Dynamic external planning contexts built on demand from open map data (Overpass) for any selected place — backend-proxied, cached in PostGIS, scoped search/AOI/summary
+- Dynamic external planning contexts built on demand from open map data (Overpass) for any selected place — async job enqueue + worker, PostGIS cache, scoped search/AOI/summary
+- In-process planning-context build worker with job leasing, singleflight, and frontend polling
 - CI/CD and deployment-readiness
 
 SiteLens no longer requires hardcoded demo cities for verification. A user can
-select a worldwide place, then explicitly build a planning context from external
-open map data. The backend fetches and caches provider data, normalizes it into
-SiteLens layers, stores it in PostGIS, and scopes search/AOI analysis/planning
-summaries to that generated context.
+select a worldwide place, then explicitly **enqueue** a planning-context build.
+The API returns a job id immediately; an in-process worker fetches Overpass data
+**without** holding a DB pool client, normalizes features, writes them in a short
+PostGIS transaction, and marks the job succeeded/failed. The frontend polls
+`GET /api/planning-contexts/jobs/:jobId` and shows Health status
+(`building` → `ready`) while the build runs. Search, AOI analysis, and planning
+summaries then scope to that generated context.
 
 External contexts are not official zoning, cadastre, or development-application
 datasets. They are open-map-derived urban context layers intended to demonstrate
-the data pipeline, spatial normalization, PostGIS analysis, caching, and AI
-summary workflow. Sydney Demo remains the bundled synthetic portfolio fallback.
+the data pipeline, async jobs, spatial normalization, PostGIS analysis, caching,
+and AI summary workflow. Sydney Demo remains the bundled synthetic portfolio
+fallback.
 
 Public Overpass endpoints may rate-limit or block shared/cloud/VPN networks.
 SiteLens treats this as provider availability, not a browser issue. Production
-deployments should use a self-hosted or contracted provider and a background
-job queue.
+deployments should use a self-hosted or contracted provider and a dedicated
+background job queue (the in-process worker is a portfolio demo).
 
 ## Overview
 
-SiteLens is a React + TypeScript geospatial planning app for exploring planning
-data on an interactive map: toggle planning layers, search spatial features,
-inspect a feature's metadata, draw an area of interest, run Turf.js spatial
-analysis, view Recharts analytics, and generate a deterministic AI-assisted
-planning summary.
+SiteLens is a full-stack geospatial planning intelligence platform: toggle
+planning layers, search spatial features, inspect metadata, draw an area of
+interest, run PostGIS (or local Turf) spatial analysis, view Recharts analytics,
+and generate a deterministic AI-assisted planning summary. It also supports
+**async external planning-context builds** for worldwide places via a backend
+Overpass job pipeline.
 
 It is organized as an **npm-workspaces monorepo** with a React/Vite web app, a
 Fastify + TypeScript API, and a shared types package. The API is backed by
-**PostgreSQL + PostGIS** — layers, parcels, and search come from spatial tables,
-and AOI spatial analysis runs in PostGIS. When `VITE_API_BASE_URL` is set the
-web app runs analysis through the API (with a local Turf.js fallback); otherwise
-it runs fully client-side.
+**PostgreSQL + PostGIS** and optional **Redis**. When `VITE_API_BASE_URL` is set
+the web app talks to the API (with local fallbacks); otherwise it runs
+frontend-only against bundled Sydney Demo GeoJSON.
 
 ## Monorepo Structure
 
 ```txt
 sitelens/
   apps/
-    web/        # React + Vite frontend (the dashboard)
-    api/        # Fastify + TypeScript API (mock-data endpoints + placeholders)
+    web/        # React + Vite dashboard (MapLibre + Zustand + MUI)
+    api/        # Fastify + PostGIS API, Redis cache, async build worker
   packages/
     shared/     # @sitelens/shared — shared API/domain types
-  docs/         # portfolio + backend docs
+  docs/         # portfolio + backend docs + screenshots
   package.json  # npm workspaces root
 ```
 
-- **`apps/web`** (`@sitelens/web`) — the existing dashboard; unchanged behavior,
-  still loads static GeoJSON from `apps/web/public/data`.
-- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000`, backed by
-  PostgreSQL + PostGIS, with health, layers, parcels, and search routes plus
-  typed/validated placeholder analysis endpoints. See
-  [`apps/api/README.md`](apps/api/README.md).
+- **`apps/web`** (`@sitelens/web`) — dashboard; full-stack mode when
+  `VITE_API_BASE_URL` is set, otherwise bundled Sydney Demo GeoJSON.
+- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000`: layers, parcels,
+  search, geocoding proxy, analyze-area, planning-summary, planning contexts,
+  async build jobs + in-process worker. See [`apps/api/README.md`](apps/api/README.md).
 - **`packages/shared`** (`@sitelens/shared`) — shared TypeScript types (API
-  envelopes, planning layer types, analysis request/response contracts).
+  envelopes, planning context/job contracts, analysis/summary types).
 
 ## Live Demo
 
 - **App:** https://sitelens-demo.vercel.app
 - **API:** https://sitelens-api.fly.dev
-- **Loom walkthrough:** _(placeholder — add your recording link; see [`docs/demo-checklist.md`](docs/demo-checklist.md))_
+- **Local demo video:** [`docs/screenshots/async-build-demo.mp4`](docs/screenshots/async-build-demo.mp4)
+- **Loom walkthrough:** _(upload the local demo video to Loom and paste the share link here)_
 
 ## Screenshots
 
-> Placeholders — add real captures under `docs/screenshots/` (see [`docs/demo-checklist.md`](docs/demo-checklist.md)).
+![Planning context health](docs/screenshots/planning-context-health.png)
+![Place search and build context](docs/screenshots/place-search-build-context.png)
+![Async build running](docs/screenshots/async-build-running.png)
+![Generated context AOI analysis](docs/screenshots/generated-context-aoi-analysis.png)
+![Planning summary on generated context](docs/screenshots/planning-summary-generated-context.png)
 
-![Dashboard with planning layers](docs/screenshots/dashboard.png)
-![Feature selection and details](docs/screenshots/feature-selection.png)
-![Area of interest analysis](docs/screenshots/aoi-analysis.png)
-![AI-assisted planning summary](docs/screenshots/ai-summary.png)
+Recapture locally (API on `:4000` with worker + Vite on `:5173` pointing at that
+API):
+
+```bash
+# one-time browser binary for Playwright
+npx playwright install chromium
+
+# ffmpeg is required to convert the recorded WebM into MP4
+VITE_API_BASE_URL=http://localhost:4000 VITE_DEMO_API_KEY=demo-planner-key \
+  npm run dev -w apps/web -- --port 5173 --strictPort
+# separate terminal:
+CAPTURE_BASE_URL=http://localhost:5173 npm run capture:demo
+```
+
+The PNG screenshots are intended to be committed. The temporary
+`docs/screenshots/_video-tmp/` directory and `.webm` files are gitignored.
+
+To force a visible `Status: building` shot instead of a fast reuse, age the
+existing external context past `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` (or delete
+it) before running the capture script.
 
 ## Why I Built This
 
@@ -148,34 +173,32 @@ without exposing proprietary work.
 
 - React + TypeScript frontend architecture
 - MapLibre/Mapbox-style map interactions and layer management
-- GeoJSON layer rendering
-- Search across spatial features
-- Feature inspection
-- Custom area-of-interest drawing
-- Turf.js spatial analysis
-- Recharts analytics
+- Fastify API design with typed shared contracts
+- PostGIS-backed layers, search, and AOI analysis
+- Redis caching with entitlement-scoped keys
+- Demo auth, roles, plans, and billing gates
+- Async Overpass → normalize → PostGIS planning-context build jobs
+- Frontend job polling with Health UI (`building` / `ready` / failure rollback)
 - Deterministic AI-assisted planning summary with visible source metrics
 - Material UI dashboard UX and clean Zustand state management
 
 ## Features
 
-- **Interactive map** — MapLibre GL JS centered on Sydney, navigation controls,
-  resize-aware, non-blocking workflow status badge.
-- **Planning layers** — parcels, zoning, constraints, transit, development
-  activity; each toggleable, with a legend.
-- **Search** — case-insensitive, debounced search across feature attributes;
-  selecting a result reveals hidden layers and flies/fits the map to it.
-- **Feature inspection** — prioritized "key facts" + metadata, with zoom/clear
-  actions and a selected-feature highlight.
-- **Area of Interest** — custom click-to-add-points draw mode (no heavy drawing
-  library) with draft/complete rendering.
-- **Spatial analysis** — Turf.js: area, intersecting parcels + average
-  development score, zoning breakdown, constraints, nearby transit, and
-  development activity by status.
-- **Analytics** — Recharts dashboard (zoning, development activity, constraint
-  risk, development-score card).
-- **AI-assisted summary** — deterministic, on-device planning narrative
-  generated from the analysis metrics, with the exact source metrics shown.
+- **Interactive map** — MapLibre GL JS, navigation controls, resize-aware status.
+- **Planning layers** — parcels/sites, land use, constraints, transit, development
+  activity; toggleable with a legend (Sydney Demo or generated context).
+- **Planning contexts** — bundled Sydney Demo plus on-demand external OSM
+  contexts; Health card shows provider, status, counts, reuse/quality badges.
+- **Async context builds** — Places → Build enqueues a job; worker runs Overpass
+  off the DB client; UI polls until ready/failed.
+- **Search** — planning-feature search scoped to the selected context; Places
+  autocomplete is local (live Nominatim only on explicit Search).
+- **Feature inspection** — key facts + metadata, zoom/clear, selection highlight.
+- **Area of Interest** — click-to-add-points draw mode with draft/complete rendering.
+- **Spatial analysis** — PostGIS when API mode is on; Turf.js local fallback.
+- **Analytics** — Recharts (zoning/land use, activity, constraints, scores).
+- **AI-assisted summary** — backend-owned deterministic narrative with source
+  metrics (local fallback on 403 / offline).
 
 ## Tech Stack
 
@@ -184,10 +207,11 @@ without exposing proprietary work.
 - [Material UI](https://mui.com/) (layout, theming, icons)
 - [MapLibre GL JS](https://maplibre.org/) (interactive map)
 - [Zustand](https://zustand.docs.pmnd.rs/) (state management)
-- [Turf.js](https://turfjs.org/) (spatial analysis)
+- [Turf.js](https://turfjs.org/) (local spatial analysis fallback)
 - [Recharts](https://recharts.org/) (analytics charts)
-- [PostgreSQL + PostGIS](https://postgis.net/) (spatial database) and
-  [Redis](https://redis.io/) (response cache), via Docker Compose
+- [Fastify](https://fastify.dev/) API
+- [PostgreSQL + PostGIS](https://postgis.net/) and [Redis](https://redis.io/)
+- Overpass / OSM (backend-proxied external planning contexts)
 
 ## Architecture
 
@@ -206,13 +230,13 @@ without exposing proprietary work.
 
 ## Demo Walkthrough
 
-1. Toggle planning layers.
-2. Search for a parcel or transit feature.
-3. Select a feature and inspect metadata.
-4. Draw an area of interest.
-5. Review spatial analysis.
-6. Open analytics charts.
-7. Generate an AI-assisted planning summary.
+1. Start on **Sydney Demo** — toggle layers, search, inspect a feature.
+2. Switch to **Places**, select **Bengaluru**, click **Build planning context**.
+3. Watch the Health card show `building` while the job is `queued`/`running`.
+4. When `ready`, review feature counts (Open-map derived / Not official).
+5. Draw an AOI on the generated context and review PostGIS analysis.
+6. Generate the planning summary (external-context caveats).
+7. Switch to **Viewer · Free** to show the build/analyze entitlement gate.
 
 A recording checklist and talking points live in [`docs/demo-checklist.md`](docs/demo-checklist.md).
 
@@ -452,17 +476,22 @@ add evals + prompt/version logging, and human review for high-risk outputs.
 
 ## Limitations
 
-- Mock GeoJSON only; not connected to authoritative planning/cadastral sources.
-- Spatial analysis uses simple intersection and centroid-distance heuristics.
+- External contexts are open-map-derived urban context — **not** official zoning,
+  cadastre, or development-application datasets.
+- Bundled Sydney Demo is synthetic portfolio data.
+- Spatial analysis uses intersection / proximity heuristics, not regulatory rules.
 - The planning summary is deterministic template logic (backend-owned with a
   local fallback), not a real language model.
-- No persistence, backend, authentication, or multi-user support.
+- Demo API-key auth and plan switching are portfolio-only (not production auth).
+- The async build worker is in-process (demo queue); production should use a
+  dedicated worker/queue and a contracted Overpass (or equivalent).
+- Public Overpass/Nominatim may rate-limit shared/cloud/VPN networks.
 - Basemap is the public MapLibre demo style (no paid token).
 
 ## Future Improvements
 
-- Real basemap/tiles and richer cartography.
-- Backend + database (e.g. PostGIS) for live planning datasets.
-- Persisted areas of interest and shareable analysis links.
+- Real basemap / vector tiles (`ST_AsMVT`) per planning context.
+- Dedicated job queue + queue health observability.
+- Context-scoped Redis invalidation and rate limits on expensive routes.
+- Saved AOI reports and context comparison views.
 - Optional real LLM integration behind the same source-metric transparency UX.
-- Deployment automation and CI.

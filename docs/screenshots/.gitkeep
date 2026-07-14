@@ -1,6 +1,9 @@
-# Placeholder so the screenshots folder is tracked in git.
-# Add portfolio screenshots here (referenced from the README):
-#   dashboard.png
-#   feature-selection.png
-#   aoi-analysis.png
-#   ai-summary.png
+# Portfolio PNG screenshots (committed; referenced from the README):
+# - planning-context-health.png
+# - place-search-build-context.png
+# - async-build-running.png
+# - generated-context-aoi-analysis.png
+# - planning-summary-generated-context.png
+#
+# Local-only / gitignored: _video-tmp/, *.webm, *.mp4
+# Recapture: npm run capture:demo (see README Screenshots section).

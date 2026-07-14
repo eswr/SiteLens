@@ -27,6 +27,10 @@
     "ingest:geojson": "npm run ingest:geojson -w apps/api",
     "cache:clear": "npm run cache:clear -w apps/api",
     "smoke:fullstack": "bash scripts/smoke-fullstack.sh",
-    "verify:deployed:api": "bash scripts/verify-deployed-api.sh"
+    "verify:deployed:api": "bash scripts/verify-deployed-api.sh",
+    "capture:demo": "node scripts/capture-demo-assets.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
   }
 }

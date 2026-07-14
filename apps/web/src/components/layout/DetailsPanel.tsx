@@ -14,6 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PublicIcon from '@mui/icons-material/Public';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore } from '../../store/analysisStore';
 import { usePlaceSearchStore } from '../../store/placeSearchStore';
@@ -28,6 +29,34 @@ import AnalysisEngineChip from '../analysis/AnalysisEngineChip';
 import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
 import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
 import type { SelectedFeature } from '../../types/map';
+import type { PlanningContext } from '@sitelens/shared';
+import type { PlaceSearchResult } from '../../api/geocodingApi';
+
+/** True when the selected place is the one backing the current planning context. */
+function placeMatchesSelectedContext(
+  place: PlaceSearchResult,
+  context: PlanningContext | null,
+): boolean {
+  if (!context || context.source === 'local-demo') {
+    return false;
+  }
+  if (context.place?.id && context.place.id === place.id) {
+    return true;
+  }
+  // Loose fallback when the context place id is missing (older rows / stubs).
+  if (
+    context.place?.provider &&
+    context.place.provider === place.provider &&
+    context.place.label === place.label
+  ) {
+    return true;
+  }
+  const [lng, lat] = context.center;
+  return (
+    Math.abs(lng - place.longitude) < 1e-4 &&
+    Math.abs(lat - place.latitude) < 1e-4
+  );
+}
 
 function formatKey(key: string): string {
   const withSpaces = key
@@ -217,6 +246,9 @@ function PlaceDetails() {
     (state) => state.buildContextFromSelectedPlace,
   );
   const isBuilding = usePlanningContextStore((state) => state.isBuilding);
+  const selectedContext = usePlanningContextStore(
+    (state) => state.selectedContext,
+  );
   const buildError = usePlanningContextStore((state) => state.buildError);
   const clearBuildError = usePlanningContextStore(
     (state) => state.clearBuildError,
@@ -244,6 +276,18 @@ function PlaceDetails() {
           : null;
   const isDemoFallback =
     selectedPlace.provider === 'static-demo' || Boolean(fallback?.active);
+
+  const matchesContext = placeMatchesSelectedContext(
+    selectedPlace,
+    selectedContext,
+  );
+  const contextBuilding =
+    isBuilding ||
+    (matchesContext && selectedContext?.status === 'building');
+  const contextReady =
+    matchesContext &&
+    selectedContext?.status === 'ready' &&
+    !contextBuilding;
 
   return (
     <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -314,11 +358,14 @@ function PlaceDetails() {
 
       <Button
         size="small"
-        variant="contained"
-        disabled={!isApiConfigured() || isBuilding || !canBuild}
+        variant={contextReady ? 'outlined' : 'contained'}
+        color={contextReady ? 'inherit' : 'primary'}
+        disabled={!isApiConfigured() || contextBuilding || !canBuild}
         startIcon={
-          isBuilding ? (
+          contextBuilding ? (
             <CircularProgress size={14} color="inherit" />
+          ) : contextReady ? (
+            <RefreshIcon fontSize="small" />
           ) : (
             <TravelExploreIcon fontSize="small" />
           )
@@ -328,10 +375,17 @@ function PlaceDetails() {
           void buildContextFromSelectedPlace(selectedPlace);
         }}
       >
-        {isBuilding
+        {contextBuilding
           ? 'Building planning context…'
-          : 'Build planning context for this place'}
+          : contextReady
+            ? 'Refresh if stale'
+            : 'Build planning context for this place'}
       </Button>
+      {contextReady && (
+        <Typography variant="caption" color="text.secondary">
+          This place already has a ready planning context selected.
+        </Typography>
+      )}
       {!isApiConfigured() && (
         <Typography variant="caption" color="text.secondary">
           External planning contexts require backend API mode.
