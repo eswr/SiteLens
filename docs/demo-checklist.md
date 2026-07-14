@@ -31,18 +31,29 @@ and plans:
 Requires backend API mode (`VITE_API_BASE_URL` set).
 
 1. In the sidebar Search card, switch from **Planning features** to **Places**.
-2. Type a worldwide place (e.g. "Bengaluru" or "London") and press Enter / click
-   **Search places**. (Place search runs only on explicit submit, min 3 chars.)
-3. First search shows `cache miss`; repeating the same search shows `cache hit`.
-4. Selecting a result flies/fits the map to the place, drops a marker, and shows
-   a Place card in the details panel with provider + attribution.
-5. If public Nominatim blocks this network (`403`), expect a transparent
+2. Type `Be` — a **local** suggestion for Bengaluru should appear immediately
+   with no `/api/geocode/search` network call (and no browser call to Nominatim).
+3. ArrowDown + Enter (or click a suggestion) flies/fits the map, drops a marker,
+   and shows a Place card with `Source: Demo suggestion` / provider chip.
+4. For live geocoding, type a place (e.g. "London") and press **Search places**
+   or click **Search live geocoder for "…"** (min 3 chars). Live geocoding runs
+   only on that explicit submit — not on every keystroke.
+5. First live search shows `cache miss`; repeating the same search shows
+   `cache hit`. Results also feed future local autocomplete ("From last search").
+6. If public Nominatim blocks this network (`403`), expect a transparent
    **Demo fallback** chip (`provider: "static-demo"`), a short info message, and
    still-usable fly-to / details — not a broken Places tab.
-6. Note the split: **Planning features** still searches the local PostGIS
+7. Note the split: **Planning features** still searches the local PostGIS
    dataset, and AOI analysis still applies only to that local dataset — place
    search is independent. Open browser devtools → Network: no request goes to
    nominatim.openstreetmap.org from the browser (only the SiteLens API).
+
+The Places tab includes an autocomplete-style UX, but it does not call public
+Nominatim on every keystroke. Suggestions are local: bundled demo places,
+recent selections, and results from this session’s explicit searches. Live
+geocoding runs only when the user presses Enter/Search or chooses “Search live
+geocoder,” keeping the demo provider-friendly and compliant with public
+Nominatim usage limits.
 
 ## Billing / Plan Demo
 

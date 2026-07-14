@@ -16,6 +16,11 @@ describe('searchStaticDemoPlaces', () => {
     });
   });
 
+  it('matches the common English spelling bangalore', () => {
+    const results = searchStaticDemoPlaces('bangalore', 5);
+    expect(results[0]?.id).toBe('static-demo-bengaluru');
+  });
+
   it('ranks exact/startsWith matches ahead of looser contains matches', () => {
     const results = searchStaticDemoPlaces('paris', 5);
     expect(results[0]?.label.toLowerCase().startsWith('paris')).toBe(true);

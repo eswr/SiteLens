@@ -29,13 +29,54 @@ import { useAuthStore } from '../../store/authStore';
 import {
   usePlaceSearchStore,
   MIN_PLACE_QUERY_LENGTH,
+  MIN_SUGGESTION_QUERY_LENGTH,
 } from '../../store/placeSearchStore';
 import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import { DemoAccessSwitcher } from './AccessControls';
 import type { IndexedFeature } from '../../utils/featureIndex';
-import type { PlaceSearchResult } from '../../api/geocodingApi';
+import type {
+  PlaceSearchResult,
+  PlaceSuggestion,
+  PlaceSuggestionSource,
+} from '../../api/geocodingApi';
 import type { PlanningLayerId } from '../../types/planning';
+
+const SUGGESTION_SOURCE_LABEL: Record<PlaceSuggestionSource, string> = {
+  'static-demo': 'Demo suggestion',
+  recent: 'Recent',
+  'cached-search-result': 'From last search',
+};
+
+function providerChipLabel(provider: PlaceSearchResult['provider']): string {
+  return provider === 'static-demo' ? 'Demo fallback' : 'Nominatim';
+}
+
+function flyToPlace(
+  place: Pick<
+    PlaceSearchResult,
+    'latitude' | 'longitude' | 'boundingBox'
+  >,
+  requestFlyToFeature: (payload: {
+    center: [number, number];
+    bbox?: [number, number, number, number];
+    geometryType: string;
+  }) => void,
+) {
+  const bbox = place.boundingBox
+    ? ([
+        place.boundingBox[2],
+        place.boundingBox[0],
+        place.boundingBox[3],
+        place.boundingBox[1],
+      ] as [number, number, number, number])
+    : undefined;
+  requestFlyToFeature({
+    center: [place.longitude, place.latitude],
+    bbox,
+    geometryType: bbox ? 'Polygon' : 'Point',
+  });
+}
 
 function LayerColorDot({
   layerId,
@@ -225,9 +266,33 @@ const PLACE_CACHE_LABEL: Record<string, string> = {
 };
 
 function PlacesSearchInner() {
-  const [input, setInput] = useState('');
+  const query = usePlaceSearchStore((state) => state.query);
+  const updateQuery = usePlaceSearchStore((state) => state.updateQuery);
   const search = usePlaceSearchStore((state) => state.search);
   const selectPlace = usePlaceSearchStore((state) => state.selectPlace);
+  const selectSuggestion = usePlaceSearchStore(
+    (state) => state.selectSuggestion,
+  );
+  const selectHighlightedSuggestion = usePlaceSearchStore(
+    (state) => state.selectHighlightedSuggestion,
+  );
+  const highlightNextSuggestion = usePlaceSearchStore(
+    (state) => state.highlightNextSuggestion,
+  );
+  const highlightPreviousSuggestion = usePlaceSearchStore(
+    (state) => state.highlightPreviousSuggestion,
+  );
+  const clearSuggestions = usePlaceSearchStore(
+    (state) => state.clearSuggestions,
+  );
+  const highlightSuggestion = usePlaceSearchStore(
+    (state) => state.highlightSuggestion,
+  );
+  const suggestions = usePlaceSearchStore((state) => state.suggestions);
+  const isSuggesting = usePlaceSearchStore((state) => state.isSuggesting);
+  const highlightedSuggestionIndex = usePlaceSearchStore(
+    (state) => state.highlightedSuggestionIndex,
+  );
   const requestFlyToFeature = useMapStore((state) => state.requestFlyToFeature);
   const results = usePlaceSearchStore((state) => state.results);
   const isLoading = usePlaceSearchStore((state) => state.isLoading);
@@ -236,35 +301,35 @@ function PlacesSearchInner() {
   const attribution = usePlaceSearchStore((state) => state.attribution);
   const provider = usePlaceSearchStore((state) => state.provider);
   const fallback = usePlaceSearchStore((state) => state.fallback);
-  const providerChipLabel =
-    provider === 'static-demo' ? 'Demo fallback' : 'Nominatim';
 
   const apiConfigured = isApiConfigured();
+  const trimmedQuery = query.trim();
   const canSubmit =
-    apiConfigured && input.trim().length >= MIN_PLACE_QUERY_LENGTH && !isLoading;
+    apiConfigured &&
+    trimmedQuery.length >= MIN_PLACE_QUERY_LENGTH &&
+    !isLoading;
+  const showSuggestionPanel =
+    isSuggesting || trimmedQuery.length >= MIN_SUGGESTION_QUERY_LENGTH;
+  const activeDescendantId =
+    highlightedSuggestionIndex >= 0
+      ? `place-suggestion-${highlightedSuggestionIndex}`
+      : undefined;
 
   const submit = () => {
     if (!isLoading) {
-      void search(input);
+      clearSuggestions();
+      void search(query);
     }
   };
 
-  const handleSelect = (place: PlaceSearchResult) => {
+  const handleSelectResult = (place: PlaceSearchResult) => {
     selectPlace(place);
-    // Reuse the shared fly-to path; place bbox is [south, north, west, east].
-    const bbox = place.boundingBox
-      ? ([
-          place.boundingBox[2],
-          place.boundingBox[0],
-          place.boundingBox[3],
-          place.boundingBox[1],
-        ] as [number, number, number, number])
-      : undefined;
-    requestFlyToFeature({
-      center: [place.longitude, place.latitude],
-      bbox,
-      geometryType: bbox ? 'Polygon' : 'Point',
-    });
+    flyToPlace(place, requestFlyToFeature);
+  };
+
+  const handleSelectSuggestion = (suggestion: PlaceSuggestion) => {
+    selectSuggestion(suggestion);
+    flyToPlace(suggestion, requestFlyToFeature);
   };
 
   if (!apiConfigured) {
@@ -278,15 +343,49 @@ function PlacesSearchInner() {
 
   return (
     <>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: 'block', mb: 1 }}
+      >
+        Suggestions are local: bundled demo places, recent selections, and
+        results from this session’s explicit searches. Live geocoding runs only
+        when you press Search.
+      </Typography>
       <Stack direction="row" spacing={1}>
         <TextField
           fullWidth
           size="small"
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
+          value={query}
+          onChange={(event) => updateQuery(event.target.value)}
           onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              highlightNextSuggestion();
+              return;
+            }
+            if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              highlightPreviousSuggestion();
+              return;
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              clearSuggestions();
+              return;
+            }
             if (event.key === 'Enter') {
               event.preventDefault();
+              if (
+                isSuggesting &&
+                highlightedSuggestionIndex >= 0 &&
+                suggestions[highlightedSuggestionIndex]
+              ) {
+                const suggestion = suggestions[highlightedSuggestionIndex]!;
+                selectHighlightedSuggestion();
+                flyToPlace(suggestion, requestFlyToFeature);
+                return;
+              }
               submit();
             }
           }}
@@ -299,10 +398,137 @@ function PlacesSearchInner() {
                 </InputAdornment>
               ),
             },
-            htmlInput: { 'aria-label': 'Search worldwide places' },
+            htmlInput: {
+              'aria-label': 'Search worldwide places',
+              'aria-autocomplete': 'list',
+              'aria-expanded': suggestions.length > 0,
+              'aria-controls':
+                suggestions.length > 0
+                  ? 'place-suggestion-listbox'
+                  : undefined,
+              'aria-activedescendant': activeDescendantId,
+              role: 'combobox',
+            },
           }}
         />
       </Stack>
+
+      {showSuggestionPanel && (
+        <Box
+          sx={{
+            mt: 1,
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+            overflow: 'hidden',
+            backgroundColor: 'background.paper',
+          }}
+        >
+          {suggestions.length > 0 && (
+            <>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ px: 1.5, pt: 1, display: 'block' }}
+              >
+                Suggestions
+              </Typography>
+              <List
+                id="place-suggestion-listbox"
+                role="listbox"
+                dense
+                disablePadding
+                aria-label="Place suggestions"
+              >
+                {suggestions.map((suggestion, index) => {
+                  const highlighted = index === highlightedSuggestionIndex;
+                  return (
+                    <ListItemButton
+                      id={`place-suggestion-${index}`}
+                      key={`${suggestion.source}-${suggestion.id}`}
+                      role="option"
+                      aria-selected={highlighted}
+                      selected={highlighted}
+                      onMouseEnter={() => highlightSuggestion(index)}
+                      onClick={() => handleSelectSuggestion(suggestion)}
+                      sx={{
+                        borderRadius: 0,
+                        alignItems: 'flex-start',
+                        gap: 1,
+                        py: 1,
+                      }}
+                    >
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600 }}
+                          noWrap
+                        >
+                          {suggestion.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          noWrap
+                          sx={{ display: 'block' }}
+                        >
+                          {suggestion.displayName}
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            mt: 0.5,
+                          }}
+                        >
+                          <Chip
+                            label={SUGGESTION_SOURCE_LABEL[suggestion.source]}
+                            size="small"
+                            variant="outlined"
+                            color={
+                              suggestion.source === 'static-demo'
+                                ? 'warning'
+                                : 'default'
+                            }
+                            sx={{ height: 18, fontSize: '0.65rem' }}
+                          />
+                          <Chip
+                            label={providerChipLabel(suggestion.provider)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ height: 18, fontSize: '0.65rem' }}
+                          />
+                        </Box>
+                      </Box>
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </>
+          )}
+          <Box sx={{ px: 1.5, py: 1, borderTop: 1, borderColor: 'divider' }}>
+            {trimmedQuery.length >= MIN_PLACE_QUERY_LENGTH ? (
+              <Button
+                fullWidth
+                size="small"
+                variant="text"
+                disabled={!canSubmit}
+                startIcon={<SearchIcon fontSize="small" />}
+                onClick={submit}
+                sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
+              >
+                Search live geocoder for &ldquo;{trimmedQuery}&rdquo;
+              </Button>
+            ) : (
+              <Typography variant="caption" color="text.secondary">
+                Type at least 3 characters to search the live geocoder.
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      )}
+
       <Button
         fullWidth
         size="small"
@@ -359,7 +585,7 @@ function PlacesSearchInner() {
             </Typography>
             {provider && (
               <Chip
-                label={providerChipLabel}
+                label={providerChipLabel(provider)}
                 size="small"
                 variant="outlined"
                 color={provider === 'static-demo' ? 'warning' : 'default'}
@@ -380,14 +606,10 @@ function PlacesSearchInner() {
               const typeLabel = [place.category, place.type]
                 .filter(Boolean)
                 .join(' · ');
-              const placeProviderLabel =
-                place.provider === 'static-demo'
-                  ? 'Demo fallback'
-                  : 'Nominatim';
               return (
                 <ListItemButton
                   key={place.id}
-                  onClick={() => handleSelect(place)}
+                  onClick={() => handleSelectResult(place)}
                   sx={{ borderRadius: 1, alignItems: 'flex-start', gap: 1 }}
                 >
                   <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -406,7 +628,7 @@ function PlacesSearchInner() {
                     )}
                   </Box>
                   <Chip
-                    label={placeProviderLabel}
+                    label={providerChipLabel(place.provider)}
                     size="small"
                     variant="outlined"
                     sx={{ flexShrink: 0, height: 20 }}

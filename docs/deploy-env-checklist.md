@@ -45,8 +45,9 @@ STRIPE_WEBHOOK_SECRET=
 
 - `WEB_ORIGIN` must match allowed frontend origin(s). Use a comma-separated
   list for Vercel + local Vite (e.g.
-  `https://sitelens-demo.vercel.app,http://localhost:5173`). Wrong CORS =
-  browser API calls fail.
+  `https://sitelens-demo.vercel.app,http://localhost:5173,http://localhost:5174`).
+  Wrong CORS = browser API calls fail with “Failed to fetch”. Prefer keeping
+  local Vite on `:5173` (`npm run dev:web:prod-api` uses `--strictPort`).
 - `GEOCODING_STATIC_FALLBACK_ENABLED=true` is **intentional** for the public
   portfolio demo: some cloud/VPN/shared networks are blocked by public
   Nominatim (`403 Access denied`). The API then returns labeled `static-demo`

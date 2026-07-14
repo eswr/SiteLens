@@ -77,7 +77,10 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 - **Purpose:** worldwide place search (geocoding) via a backend **Nominatim /
   OpenStreetMap** proxy, with an optional bundled **static-demo** fallback when
   the live provider is blocked or unavailable. The browser never calls Nominatim
-  directly.
+  directly. This route is for **explicit submit/search only** — the Places UI
+  autocomplete is local (bundled demo places, recent selections, and this
+  session’s explicit search results) and must not typeahead against public
+  Nominatim.
 - **Auth:** none (public).
 - **Params:** `q` required, min 3 chars; `limit` default 5, max 10 (clamped).
 - **Cache:** yes, Redis (`sitelens:place-search:v1:<provider>:<limit>:<hash>` —

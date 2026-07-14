@@ -53,6 +53,10 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Decide whether static-demo fallback stays enabled in production (default off) or is removed after a real provider is wired
 - [ ] Keep visible provider attribution (OSM/Nominatim or static-demo copy) wherever place results appear
 - [ ] Tune place-search cache TTL and monitor upstream error/latency / fallback rates
+- [ ] If true remote place autocomplete is required, use a provider that allows it
+  (self-hosted Nominatim, Pelias, Mapbox Search/Geocoding, Google Places, or
+  another paid autocomplete API). Do **not** typeahead against public Nominatim;
+  the demo Places UX keeps suggestions local and live geocoding on explicit submit.
 
 ## Observability
 

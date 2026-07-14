@@ -199,6 +199,9 @@ function SelectedFeatureDetails({ feature }: { feature: SelectedFeature }) {
 
 function PlaceDetails() {
   const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
+  const selectedSuggestionSource = usePlaceSearchStore(
+    (state) => state.selectedSuggestionSource,
+  );
   const attribution = usePlaceSearchStore((state) => state.attribution);
   const fallback = usePlaceSearchStore((state) => state.fallback);
   const clearSelectedPlace = usePlaceSearchStore(
@@ -214,6 +217,14 @@ function PlaceDetails() {
     selectedPlace.provider === 'static-demo'
       ? 'Demo fallback'
       : 'Nominatim';
+  const sourceLabel =
+    selectedSuggestionSource === 'static-demo'
+      ? 'Demo suggestion'
+      : selectedSuggestionSource === 'recent'
+        ? 'Recent'
+        : selectedSuggestionSource === 'cached-search-result'
+          ? 'From last search'
+          : null;
   const isDemoFallback =
     selectedPlace.provider === 'static-demo' || Boolean(fallback?.active);
 
@@ -228,7 +239,15 @@ function PlaceDetails() {
           backgroundColor: 'background.paper',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1,
+            mb: 1,
+          }}
+        >
           <PublicIcon fontSize="small" sx={{ color: '#2563eb' }} />
           <Chip
             label={`Provider: ${providerLabel}`}
@@ -236,6 +255,16 @@ function PlaceDetails() {
             variant="outlined"
             color={selectedPlace.provider === 'static-demo' ? 'warning' : 'default'}
           />
+          {sourceLabel && (
+            <Chip
+              label={`Source: ${sourceLabel}`}
+              size="small"
+              variant="outlined"
+              color={
+                selectedSuggestionSource === 'static-demo' ? 'warning' : 'default'
+              }
+            />
+          )}
           {typeLabel && (
             <Chip
               label={typeLabel}
@@ -254,9 +283,14 @@ function PlaceDetails() {
           {selectedPlace.longitude.toFixed(4)}
         </Typography>
         {isDemoFallback && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            This place came from the bundled demo fallback because the live
-            geocoding provider was unavailable.
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 1, display: 'block' }}
+          >
+            {selectedSuggestionSource === 'static-demo'
+              ? 'This is a bundled demo suggestion, not a live geocoding result.'
+              : 'This place came from the bundled demo fallback because the live geocoding provider was unavailable.'}
           </Typography>
         )}
       </Box>

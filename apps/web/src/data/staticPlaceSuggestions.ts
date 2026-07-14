@@ -1,30 +1,14 @@
-import type { PlaceSearchResult } from '@sitelens/shared';
-
-/** Attribution for the bundled offline portfolio fallback dataset. */
-export const STATIC_DEMO_ATTRIBUTION =
-  'Static demo place dataset for offline portfolio fallback. Map data © OpenStreetMap contributors.';
-
-interface StaticPlaceSeed {
-  id: string;
-  label: string;
-  displayName: string;
-  latitude: number;
-  longitude: number;
-  boundingBox?: [number, number, number, number];
-  category: string;
-  type: string;
-  importance: number;
-}
+import type { PlaceSuggestion } from '../api/geocodingApi';
 
 /**
- * Curated demo places for networks where public Nominatim is blocked.
- * This is not live worldwide geocoding — only a transparent portfolio fallback.
+ * Curated client-side demo places for local autocomplete.
+ * Matches the backend static-demo fallback dataset. Not live geocoding.
  */
-const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
+export const STATIC_PLACE_SUGGESTIONS: PlaceSuggestion[] = [
   {
     id: 'static-demo-bengaluru',
     label: 'Bengaluru, Karnataka, India',
-    // Include the common English spelling so fallback search matches "bangalore".
+    // Include the common English spelling so local autocomplete matches "bangalore".
     displayName: 'Bengaluru (Bangalore), Karnataka, India',
     latitude: 12.9716,
     longitude: 77.5946,
@@ -32,6 +16,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.9,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-london',
@@ -43,6 +29,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.95,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-sydney',
@@ -54,6 +42,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.92,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-new-york',
@@ -65,6 +55,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.96,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-tokyo',
@@ -76,6 +68,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.94,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-singapore',
@@ -87,6 +81,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.91,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-paris',
@@ -98,6 +94,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.93,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-berlin',
@@ -109,6 +107,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.9,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-toronto',
@@ -120,6 +120,8 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.89,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
   {
     id: 'static-demo-dubai',
@@ -131,61 +133,7 @@ const STATIC_DEMO_PLACES: StaticPlaceSeed[] = [
     category: 'place',
     type: 'city',
     importance: 0.88,
+    provider: 'static-demo',
+    source: 'static-demo',
   },
 ];
-
-function normalizeQuery(query: string): string {
-  return query.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function toResult(seed: StaticPlaceSeed): PlaceSearchResult {
-  return {
-    ...seed,
-    provider: 'static-demo',
-  };
-}
-
-/**
- * Search the bundled static demo place dataset. Matching is substring-based on
- * label/displayName with exact and startsWith ranked ahead of contains.
- */
-export function searchStaticDemoPlaces(
-  query: string,
-  limit: number,
-): PlaceSearchResult[] {
-  const normalized = normalizeQuery(query);
-  if (!normalized || limit <= 0) {
-    return [];
-  }
-
-  type Ranked = { score: number; place: PlaceSearchResult };
-  const ranked: Ranked[] = [];
-
-  for (const seed of STATIC_DEMO_PLACES) {
-    const label = seed.label.toLowerCase();
-    const display = seed.displayName.toLowerCase();
-    let score = 0;
-    if (label === normalized || display === normalized) {
-      score = 300;
-    } else if (label.startsWith(normalized) || display.startsWith(normalized)) {
-      score = 200;
-    } else if (label.includes(normalized) || display.includes(normalized)) {
-      score = 100;
-    } else {
-      // Token match (e.g. "new york" hits "New York, New York, United States").
-      const tokens = normalized.split(' ').filter(Boolean);
-      if (
-        tokens.length > 0 &&
-        tokens.every((token) => label.includes(token) || display.includes(token))
-      ) {
-        score = 80;
-      }
-    }
-    if (score > 0) {
-      ranked.push({ score: score + seed.importance, place: toResult(seed) });
-    }
-  }
-
-  ranked.sort((a, b) => b.score - a.score);
-  return ranked.slice(0, limit).map((entry) => entry.place);
-}

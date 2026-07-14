@@ -60,6 +60,20 @@ function buildHeaders(base: Record<string, string> = {}): Record<string, string>
   return headers;
 }
 
+/** Browser "Failed to fetch" usually means CORS, offline API, or mixed content. */
+function networkFailureMessage(error: unknown): string {
+  const raw =
+    error instanceof Error ? error.message : 'Network request failed';
+  if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+    return (
+      `Failed to reach the API at ${API_BASE_URL || '(unset)'}. ` +
+      'If you are on localhost, use http://localhost:5173 (prod CORS allows that ' +
+      'origin) or confirm the API WEB_ORIGIN includes this page’s origin.'
+    );
+  }
+  return raw;
+}
+
 /** Error thrown for failed API requests, carrying status/code when available. */
 export class ApiError extends Error {
   readonly status?: number;
@@ -116,9 +130,7 @@ export async function apiPostWithMeta<T>(
       body: JSON.stringify(body),
     });
   } catch (error) {
-    throw new ApiError(
-      error instanceof Error ? error.message : 'Network request failed',
-    );
+    throw new ApiError(networkFailureMessage(error));
   }
 
   let json: unknown = null;
@@ -159,9 +171,7 @@ export async function apiGetWithMeta<T>(
       headers: buildHeaders(),
     });
   } catch (error) {
-    throw new ApiError(
-      error instanceof Error ? error.message : 'Network request failed',
-    );
+    throw new ApiError(networkFailureMessage(error));
   }
 
   let json: unknown = null;

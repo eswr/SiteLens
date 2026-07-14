@@ -61,7 +61,7 @@ env, [`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
 - Redis caching and cache-safe entitlement scopes
 - Demo auth, roles, plans, and billing gates
 - Backend-owned deterministic AI summary service
-- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy (with labeled static-demo fallback when public Nominatim is unavailable)
+- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy (with labeled static-demo fallback when public Nominatim is unavailable; Places autocomplete is local-only — live geocoding only on explicit Search)
 - CI/CD and deployment-readiness
 
 ## Overview
@@ -346,7 +346,9 @@ with `npm run db:seed:billing`.
 - `planning-summary` is a **backend-owned deterministic** summary (no LLM).
 - Places search proxies Nominatim and may return labeled **static-demo**
   fallback when the public provider blocks the host — never a browser-side
-  Nominatim call.
+  Nominatim call. Places autocomplete is local (demo places, recent
+  selections, and this session’s explicit search results); live geocoding runs
+  only on Search / “Search live geocoder,” not on every keystroke.
 - If the database is unavailable, DB-backed routes return `503`; AOI analysis
   falls back to Turf with a warning. Redis degrades gracefully when down.
 - Demo auth/billing keys are portfolio-only. Real Stripe Checkout/Portal and

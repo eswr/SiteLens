@@ -1,3 +1,10 @@
+import type {
+  GeocodingProvider,
+  PlaceSearchFallback,
+  PlaceSearchResult,
+  PlaceSuggestion,
+  PlaceSuggestionSource,
+} from '@sitelens/shared';
 import {
   ApiError,
   apiGetWithMeta,
@@ -5,27 +12,13 @@ import {
   type CacheStatus,
 } from './client';
 
-export type GeocodingProvider = 'nominatim' | 'static-demo';
-
-export interface PlaceSearchResult {
-  id: string;
-  label: string;
-  displayName: string;
-  latitude: number;
-  longitude: number;
-  /** `[south, north, west, east]` (Nominatim order). */
-  boundingBox?: [number, number, number, number];
-  category?: string;
-  type?: string;
-  importance?: number;
-  provider: GeocodingProvider;
-}
-
-export interface PlaceSearchFallback {
-  active: boolean;
-  reason: string;
-  message: string;
-}
+export type {
+  GeocodingProvider,
+  PlaceSearchFallback,
+  PlaceSearchResult,
+  PlaceSuggestion,
+  PlaceSuggestionSource,
+};
 
 interface PlaceSearchData {
   results: PlaceSearchResult[];

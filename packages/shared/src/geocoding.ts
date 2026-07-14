@@ -35,6 +35,31 @@ export interface PlaceSearchResult {
   provider: GeocodingProvider;
 }
 
+/**
+ * Local autocomplete suggestion sources. These never come from remote
+ * Nominatim typeahead — only bundled demo places, recent selections, and
+ * results from this session's explicit searches.
+ */
+export type PlaceSuggestionSource =
+  | 'static-demo'
+  | 'recent'
+  | 'cached-search-result';
+
+export interface PlaceSuggestion {
+  id: string;
+  label: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+  /** `[south, north, west, east]` (Nominatim `boundingbox` order). */
+  boundingBox?: [number, number, number, number];
+  category?: string;
+  type?: string;
+  importance?: number;
+  provider: GeocodingProvider;
+  source: PlaceSuggestionSource;
+}
+
 export interface PlaceSearchFallback {
   active: boolean;
   reason: GeocodingFallbackReason;

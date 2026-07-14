@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "npm run dev -w apps/web",
     "dev:web": "npm run dev -w apps/web",
+    "dev:web:prod-api": "bash scripts/dev-web-prod-api.sh",
     "dev:api": "npm run dev -w apps/api",
     "build": "npm run build -ws --if-present",
     "build:web": "npm run build -w apps/web",

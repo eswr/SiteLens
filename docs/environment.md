@@ -74,7 +74,7 @@ ENABLE_DEMO_BILLING=true
 | --- | --- | --- |
 | `NODE_ENV` | `development` | `production` enables prod behavior (e.g. gates demo billing). |
 | `PORT` | `4000` | API listen port. |
-| `WEB_ORIGIN` | `http://localhost:5173` | Allowed CORS origin — must **exactly** match the frontend origin when deployed. |
+| `WEB_ORIGIN` | `http://localhost:5173` | Allowed CORS origin(s) — must **exactly** match the frontend origin(s). Comma-separated list supported (e.g. Vercel + `http://localhost:5173`). A Vite fallback port like `:5174` is a different origin and will fail with “Failed to fetch” unless listed. |
 | `DATABASE_URL` | `postgres://sitelens:sitelens@localhost:54329/sitelens` | PostgreSQL/PostGIS connection string. |
 | `DB_SSL` | `false` | Set `true` for managed Postgres requiring TLS. |
 | `REDIS_URL` | _(empty)_ | **Optional.** Caching is disabled when unset; the API still works. |
@@ -102,10 +102,17 @@ ENABLE_DEMO_BILLING=true
   failing the Places UI. Live and fallback responses use separate cache keys.
 - Place search is **separate** from local planning-feature search and does not
   affect AOI analysis (which stays on the local PostGIS dataset).
+- The Places tab includes an autocomplete-style UX, but it does not call public
+  Nominatim on every keystroke. Suggestions are local: bundled demo places,
+  recent selections, and results from this session’s explicit searches. Live
+  geocoding runs only when the user presses Enter/Search or chooses “Search live
+  geocoder,” keeping the demo provider-friendly and compliant with public
+  Nominatim usage limits.
 - Set `NOMINATIM_USER_AGENT` to a real identifying value before deploying.
-  Production options: self-host Nominatim, or switch to Mapbox Geocoding /
-  Pelias / a commercial provider, plus a distributed Redis-backed rate limiter /
-  circuit breaker (process-local cooldown is demo-oriented).
+  Production options for true remote autocomplete: self-hosted Nominatim with
+  your own policy, Pelias, Mapbox Search/Geocoding, Google Places, or a paid
+  geocoding/autocomplete provider — plus a distributed Redis-backed rate
+  limiter / circuit breaker (process-local cooldown is demo-oriented).
 
 ### Public Nominatim returns 403
 
