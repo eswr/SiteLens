@@ -47,30 +47,83 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 
 - **Purpose:** search spatial features (`ILIKE`).
 - **Auth:** optional; **plan-limited** result count (Free 5 / Pro 8 / Enterprise 20).
-- **Cache:** yes, plan-scoped (`sitelens:search:v1:<plan>:<hash>`).
-- **Example:** `GET /api/search?q=central`.
-- **Response:** `{ data: SearchResultItem[], meta: { count, cache, access } }`.
+- **Cache:** yes, context + plan scoped
+  (`sitelens:search:v1:<planningContextId>:<plan>:<hash>`).
+- **Example:** `GET /api/search?q=central&planningContextId=local-demo-sydney`.
+- **Response:** `{ data: SearchResultItem[], meta: { count, cache, access, planningContextId } }`.
+- **Default:** `planningContextId` omitted → `local-demo-sydney`.
 
 ### `POST /api/analyze-area`
 
-- **Purpose:** PostGIS spatial analysis of an AOI polygon.
+- **Purpose:** PostGIS spatial analysis of an AOI polygon within a planning context.
 - **Auth + plan:** requires `analysis:run` (Pro/Enterprise) → `403` otherwise;
   metered per plan (`429 ENTITLEMENT_LIMIT_EXCEEDED` when exhausted).
-- **Cache:** yes, plan-scoped (`sitelens:analysis:v1:<plan>:<hash>`).
+- **Cache:** yes, context + plan scoped
+  (`sitelens:analysis:v1:<planningContextId>:<plan>:<hash>`).
 - **Request:**
   ```json
-  { "geometry": { "type": "Polygon", "coordinates": [[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]] } }
+  {
+    "planningContextId": "local-demo-sydney",
+    "geometry": { "type": "Polygon", "coordinates": [[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]] }
+  }
   ```
-- **Response:** `{ data: { result: SpatialAnalysisResult, engine: "postgis" }, meta: { cache, computedAt, access } }`.
+- **Response:** `{ data: { result: SpatialAnalysisResult, engine: "postgis" }, meta: { cache, computedAt, access, planningContextId } }`.
 
 ### `POST /api/planning-summary`
 
 - **Purpose:** backend-owned **deterministic** planning summary (no LLM).
 - **Auth + plan:** requires `summary:generate` (Pro/Enterprise) → `403`
   otherwise; metered per plan (`429 ENTITLEMENT_LIMIT_EXCEEDED`). Invalid body → `400`.
-- **Cache:** yes, plan-scoped (`sitelens:summary:v1:<plan>:<hash>`).
-- **Request:** `{ "analysisResult": SpatialAnalysisResult, "context": { "sourceEngine": "postgis" } }`.
-- **Response:** `{ data: { summary: PlanningSummary, engine: "deterministic-backend" }, meta: { cache, computedAt, access } }`.
+- **Cache:** yes, context + plan scoped
+  (`sitelens:summary:v1:<planningContextId>:<plan>:<hash>`).
+- **Request:** `{ "analysisResult": SpatialAnalysisResult, "context": { "sourceEngine": "postgis", "planningContextId": "…" } }`.
+- **Response:** `{ data: { summary: PlanningSummary, engine: "deterministic-backend" }, meta: { cache, computedAt, access, planningContextId } }`.
+
+### `GET /api/planning-contexts`
+
+- **Purpose:** list available planning contexts (Sydney Demo + generated external).
+- **Auth:** none.
+- **Response:** `{ data: PlanningContext[] }`.
+
+### `GET /api/planning-contexts/:id`
+
+- **Purpose:** fetch one planning context metadata row.
+- **Errors:** unknown id → `404`.
+
+### `POST /api/planning-contexts/build`
+
+- **Purpose:** explicitly build an **external OSM** planning context for a
+  selected worldwide place (backend Overpass proxy → normalize → PostGIS).
+- **Auth + plan:** requires `external-context:build` (Pro/Enterprise) → `403`
+  otherwise. Free/Viewer cannot build. Builds are metered: Free `0` / Pro monthly
+  quota / Enterprise unlimited. Quota is checked only before a live Overpass
+  fetch; usage is recorded only after a successful **new** build (not fresh reuse).
+- **Important:** live Overpass fetch happens only on this explicit action — never
+  on keystrokes or map moves. Fresh contexts are reused from PostGIS. Concurrent
+  builds for the same context use a per-context advisory lock (`409 BUILD_IN_PROGRESS`).
+- **Request:**
+  ```json
+  {
+    "source": "external-osm",
+    "place": {
+      "id": "static-demo-bengaluru",
+      "label": "Bengaluru, Karnataka, India",
+      "displayName": "Bengaluru, Karnataka, India",
+      "latitude": 12.9716,
+      "longitude": 77.5946,
+      "boundingBox": [12.7, 13.2, 77.3, 77.9],
+      "provider": "static-demo"
+    }
+  }
+  ```
+- **Response:** `{ data: { context: PlanningContext, counts: {...}, reused?: boolean } }`.
+- **Errors:** invalid place/bbox → `400`; build already in progress → `409`;
+  quota exceeded → `429`; Overpass unavailable → `503`/`429`.
+
+### `GET /api/layers/:layerId/geojson?planningContextId=`
+
+- **Purpose:** GeoJSON FeatureCollection for one layer within a planning context
+  (used by the map + search index in API mode).
 
 ### `GET /api/geocode/search?q=&limit=`
 

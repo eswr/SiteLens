@@ -202,3 +202,9 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const { data } = await apiPostWithMeta<T>(path, body);
   return data;
 }
+
+/** GET `path` and unwrap just the `{ data }` payload. */
+export async function apiGet<T>(path: string): Promise<T> {
+  const { data } = await apiGetWithMeta<T>(path);
+  return data;
+}

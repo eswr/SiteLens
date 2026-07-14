@@ -6,7 +6,7 @@ Planning and property users need to understand place-based decisions quickly, bu
 
 ## Solution
 
-SiteLens is a full-stack geospatial planning intelligence platform that turns mock planning/property GeoJSON into searchable map layers, spatial analysis, analytics dashboards, and source-transparent planning summaries.
+SiteLens is a full-stack geospatial planning intelligence platform that turns planning-context datasets into searchable map layers, spatial analysis, analytics dashboards, and source-transparent planning summaries. It ships a bundled Sydney Demo seed and can also build open-map-derived external contexts for any selected worldwide place (backend Overpass proxy → PostGIS), without claiming those layers are official zoning or cadastre.
 
 ## Frontend Ownership
 

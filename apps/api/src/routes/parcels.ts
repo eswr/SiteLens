@@ -9,23 +9,53 @@ import { cached } from '../cache/cacheJson';
 import { CACHE_TTL, parcelDetailKey, parcelsKey } from '../cache/cacheKeys';
 import { accessScope } from '../auth/capabilities';
 import { resolveBilling } from '../billing/billingService';
+import {
+  assertPlanningContextExists,
+  resolvePlanningContextIdParam,
+} from '../lib/planningContextParam';
 
 const parcelParams = Type.Object({ id: Type.String() });
 type ParcelParams = Static<typeof parcelParams>;
 
-/** `GET /api/parcels` and `GET /api/parcels/:id`, from PostGIS (cached, gated). */
+const parcelsQuery = Type.Object({
+  planningContextId: Type.Optional(Type.String()),
+});
+type ParcelsQuery = Static<typeof parcelsQuery>;
+
+/** `GET /api/parcels` and `GET /api/parcels/:id`, scoped by planning context. */
 export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/parcels', async (request, reply) => {
+  app.get<{ Querystring: ParcelsQuery }>('/parcels', async (request, reply) => {
+    const resolved = resolvePlanningContextIdParam(
+      request.query.planningContextId,
+    );
+    if (!resolved.ok) {
+      const body: ApiErrorEnvelope = {
+        error: { code: 'INVALID_CONTEXT', message: resolved.message },
+      };
+      reply.code(400);
+      return body;
+    }
+
     const { user, billing } = await resolveBilling(request);
     const scope = accessScope(billing);
-    const parcelLimit = billing.plan.limits.parcelLimit; // null = unlimited
+    const parcelLimit = billing.plan.limits.parcelLimit;
     const limited = parcelLimit !== null;
     try {
+      const exists = await assertPlanningContextExists(resolved.planningContextId);
+      if (!exists.ok) {
+        const body: ApiErrorEnvelope = {
+          error: { code: 'INVALID_CONTEXT', message: exists.message },
+        };
+        reply.code(exists.status);
+        return body;
+      }
+
+      const key = parcelsKey(resolved.planningContextId, scope);
       const { data: collection, cache, computedAt } = await cached({
-        key: parcelsKey(scope),
+        key,
         ttlSeconds: CACHE_TTL.parcels,
         compute: async () => {
-          const full = await getParcels();
+          const full = await getParcels(resolved.planningContextId);
           if (parcelLimit === null) {
             return full;
           }
@@ -40,9 +70,10 @@ export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
         meta: {
           requestId: request.id,
           cache,
-          cacheKey: parcelsKey(scope),
+          cacheKey: key,
           computedAt,
           count: collection.features.length,
+          planningContextId: resolved.planningContextId,
           access: {
             role: user?.role,
             plan: billing.plan.id,
@@ -57,16 +88,38 @@ export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.get<{ Params: ParcelParams }>(
+  app.get<{ Params: ParcelParams; Querystring: ParcelsQuery }>(
     '/parcels/:id',
-    { schema: { params: parcelParams } },
+    { schema: { params: parcelParams, querystring: parcelsQuery } },
     async (request, reply) => {
+      const resolved = resolvePlanningContextIdParam(
+        request.query.planningContextId,
+      );
+      if (!resolved.ok) {
+        const body: ApiErrorEnvelope = {
+          error: { code: 'INVALID_CONTEXT', message: resolved.message },
+        };
+        reply.code(400);
+        return body;
+      }
       const { id } = request.params;
       try {
+        const exists = await assertPlanningContextExists(
+          resolved.planningContextId,
+        );
+        if (!exists.ok) {
+          const body: ApiErrorEnvelope = {
+            error: { code: 'INVALID_CONTEXT', message: exists.message },
+          };
+          reply.code(exists.status);
+          return body;
+        }
+
+        const key = parcelDetailKey(resolved.planningContextId, id);
         const { data: feature, cache, computedAt } = await cached({
-          key: parcelDetailKey(id),
+          key,
           ttlSeconds: CACHE_TTL.parcelDetail,
-          compute: () => getParcelById(id),
+          compute: () => getParcelById(resolved.planningContextId, id),
         });
         if (!feature) {
           const body: ApiErrorEnvelope = {
@@ -80,8 +133,9 @@ export async function parcelsRoutes(app: FastifyInstance): Promise<void> {
           meta: {
             requestId: request.id,
             cache,
-            cacheKey: parcelDetailKey(id),
+            cacheKey: key,
             computedAt,
+            planningContextId: resolved.planningContextId,
           },
         };
         return body;

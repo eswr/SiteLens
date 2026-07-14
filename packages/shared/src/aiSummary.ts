@@ -1,4 +1,5 @@
 import type { SpatialAnalysisResult } from './analysis';
+import type { PlanningContextSource } from './planningContext';
 
 /**
  * Types for the deterministic planning summary.
@@ -50,6 +51,8 @@ export interface PlanningSummaryRequest {
   context?: {
     label?: string;
     sourceEngine?: PlanningSummarySourceEngine;
+    planningContextId?: string;
+    planningContextSource?: PlanningContextSource;
   };
 }
 

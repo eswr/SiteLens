@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import { analyzeArea, InvalidGeometryError } from './spatialRepository';
 import { closePool } from './pool';
 import type { GeoJsonPolygon } from '@sitelens/shared';
@@ -27,12 +28,13 @@ describe.skipIf(!runDbTests)('analyzeArea (integration)', () => {
   });
 
   it('returns a full spatial analysis over the sample data', async () => {
-    const result = await analyzeArea(cbdPolygon);
+    const result = await analyzeArea(LOCAL_DEMO_SYDNEY_CONTEXT_ID, cbdPolygon);
 
     expect(result.areaSqm).toBeGreaterThan(0);
     expect(Number.isNaN(result.areaSqm)).toBe(false);
     expect(result.areaHectares).toBeGreaterThan(0);
     expect(result.parcelCount).toBeGreaterThanOrEqual(0);
+    expect(result.planningContextId).toBe(LOCAL_DEMO_SYDNEY_CONTEXT_ID);
 
     expect(Array.isArray(result.zoningBreakdown)).toBe(true);
     expect(Array.isArray(result.intersectingConstraints)).toBe(true);
@@ -49,7 +51,7 @@ describe.skipIf(!runDbTests)('analyzeArea (integration)', () => {
   });
 
   it('covers the sample parcels for a CBD-wide polygon', async () => {
-    const result = await analyzeArea(cbdPolygon);
+    const result = await analyzeArea(LOCAL_DEMO_SYDNEY_CONTEXT_ID, cbdPolygon);
     expect(result.parcelCount).toBeGreaterThan(0);
   });
 
@@ -66,6 +68,8 @@ describe.skipIf(!runDbTests)('analyzeArea (integration)', () => {
         ],
       ],
     };
-    await expect(analyzeArea(bowtie)).rejects.toBeInstanceOf(InvalidGeometryError);
+    await expect(
+      analyzeArea(LOCAL_DEMO_SYDNEY_CONTEXT_ID, bowtie),
+    ).rejects.toBeInstanceOf(InvalidGeometryError);
   });
 });

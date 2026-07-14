@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 
 const NAMESPACE = 'sitelens';
 const VERSION = 'v1';
@@ -10,29 +11,40 @@ function sha256(input: string): string {
 /** Entitlement scope (billing plan) used to segment cached responses by tier. */
 export type AccessScope = 'free' | 'pro' | 'enterprise';
 
-export function layersKey(): string {
-  return `${NAMESPACE}:layers:${VERSION}`;
+export function layersKey(
+  planningContextId: string = LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+): string {
+  return `${NAMESPACE}:layers:${VERSION}:${planningContextId}`;
 }
 
-export function parcelsKey(scope: AccessScope): string {
-  return `${NAMESPACE}:parcels:${VERSION}:${scope}`;
+export function parcelsKey(
+  planningContextId: string,
+  scope: AccessScope,
+): string {
+  return `${NAMESPACE}:parcels:${VERSION}:${planningContextId}:${scope}`;
 }
 
-export function parcelDetailKey(id: string): string {
-  return `${NAMESPACE}:parcel:${VERSION}:${id}`;
+export function parcelDetailKey(
+  planningContextId: string,
+  id: string,
+): string {
+  return `${NAMESPACE}:parcel:${VERSION}:${planningContextId}:${id}`;
 }
 
-export function searchKey(query: string, scope: AccessScope): string {
-  return `${NAMESPACE}:search:${VERSION}:${scope}:${sha256(query.trim().toLowerCase())}`;
+export function searchKey(
+  planningContextId: string,
+  query: string,
+  scope: AccessScope,
+): string {
+  return `${NAMESPACE}:search:${VERSION}:${planningContextId}:${scope}:${sha256(query.trim().toLowerCase())}`;
 }
 
 /** Provider scope used so live Nominatim and static-demo caches never mix. */
 export type PlaceSearchProviderScope = 'nominatim' | 'static-demo';
 
 /**
- * Cache key for a worldwide place search. Scoped by provider so live Nominatim
- * and static-demo fallback responses never share a key. The query is normalized
- * (trim, lowercase, collapse whitespace) then hashed.
+ * Cache key for a worldwide place search. Place search remains independent
+ * from planning contexts.
  */
 export function placeSearchKey(
   provider: PlaceSearchProviderScope,
@@ -43,26 +55,24 @@ export function placeSearchKey(
   return `${NAMESPACE}:place-search:${VERSION}:${provider}:${limit}:${sha256(normalized)}`;
 }
 
-/** Hash the geometry so the key never contains raw coordinates. */
-export function analysisKey(geometry: unknown, scope: AccessScope): string {
-  return `${NAMESPACE}:analysis:${VERSION}:${scope}:${sha256(JSON.stringify(geometry))}`;
+export function analysisKey(
+  planningContextId: string,
+  geometry: unknown,
+  scope: AccessScope,
+): string {
+  return `${NAMESPACE}:analysis:${VERSION}:${planningContextId}:${scope}:${sha256(JSON.stringify(geometry))}`;
 }
 
-/**
- * Cache key for a plan-scoped planning summary. The `analysisResult` is
- * normalized into a stable, minimal fingerprint before hashing, so the key
- * never embeds the raw analysis payload and is order-independent.
- */
 export function planningSummaryKey(
+  planningContextId: string,
   scope: AccessScope,
   analysisResult: unknown,
 ): string {
-  return `${NAMESPACE}:summary:${VERSION}:${scope}:${sha256(
+  return `${NAMESPACE}:summary:${VERSION}:${planningContextId}:${scope}:${sha256(
     fingerprintAnalysis(analysisResult),
   )}`;
 }
 
-/** Stable, minimal fingerprint of an analysis result for cache keying. */
 function fingerprintAnalysis(input: unknown): string {
   const r = (input ?? {}) as Record<string, unknown>;
   const num = (value: unknown): number =>
@@ -78,7 +88,10 @@ function fingerprintAnalysis(input: unknown): string {
     averageDevelopmentScore:
       r.averageDevelopmentScore === null ? null : num(r.averageDevelopmentScore),
     zoning: arr(r.zoningBreakdown)
-      .map((z) => `${(z as Record<string, unknown>)?.zoneCode ?? ''}:${(z as Record<string, unknown>)?.count ?? ''}`)
+      .map(
+        (z) =>
+          `${(z as Record<string, unknown>)?.zoneCode ?? ''}:${(z as Record<string, unknown>)?.count ?? ''}`,
+      )
       .sort(),
     constraints: arr(r.intersectingConstraints)
       .map((c) => `${(c as Record<string, unknown>)?.id ?? ''}`)
@@ -89,11 +102,12 @@ function fingerprintAnalysis(input: unknown): string {
     activityCount: num(r.developmentActivityCount),
     constraintCount: len(r.intersectingConstraints),
     transitCount: len(r.nearbyTransit),
+    planningContextId:
+      typeof r.planningContextId === 'string' ? r.planningContextId : '',
   };
   return JSON.stringify(fingerprint);
 }
 
-/** TTLs (seconds) per cached resource. */
 export const CACHE_TTL = {
   layers: 600,
   parcels: 300,
@@ -105,7 +119,6 @@ export const CACHE_TTL = {
   placeSearchStaticFallback: 3600,
 } as const;
 
-/** Key patterns cleared when planning data is re-ingested. */
 export const PLANNING_CACHE_PATTERNS = [
   `${NAMESPACE}:layers:*`,
   `${NAMESPACE}:parcels:*`,
@@ -115,5 +128,4 @@ export const PLANNING_CACHE_PATTERNS = [
   `${NAMESPACE}:summary:*`,
 ];
 
-/** Pattern matching every SiteLens cache key. */
 export const ALL_CACHE_PATTERN = `${NAMESPACE}:*`;

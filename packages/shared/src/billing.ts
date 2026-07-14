@@ -14,6 +14,7 @@ export type BillingFeature =
   | 'search:full'
   | 'analysis:run'
   | 'summary:generate'
+  | 'external-context:build'
   | 'ingestion:manage'
   | 'admin:manage';
 
@@ -31,6 +32,8 @@ export interface BillingPlan {
     parcelLimit: number | null;
     analysisRunsPerMonth: number | null;
     summaryRunsPerMonth: number | null;
+    /** Monthly external planning-context builds; `null` = unlimited. */
+    externalContextBuildsPerMonth: number | null;
   };
 }
 

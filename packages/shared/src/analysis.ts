@@ -15,6 +15,8 @@ export interface AnalyzeAreaRequest {
     type: 'Polygon' | 'MultiPolygon';
     coordinates: unknown;
   };
+  /** Planning context to analyze against; defaults to the selected Sydney Demo context. */
+  planningContextId?: string;
 }
 
 /** One row of the zoning breakdown (zones intersecting the AOI). */
@@ -57,6 +59,8 @@ export interface SpatialAnalysisResult {
   nearbyTransit: NearbyTransitItem[];
   developmentActivityCount: number;
   developmentActivityByStatus: DevelopmentActivitySummary[];
+  /** Planning context the metrics were computed against, when known. */
+  planningContextId?: string;
 }
 
 /** Response body for `POST /api/analyze-area`. */

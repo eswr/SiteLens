@@ -5,10 +5,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
 import type { Feature, FeatureCollection } from 'geojson';
 import Box from '@mui/material/Box';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import { INITIAL_CENTER, INITIAL_ZOOM, useMapStore } from '../../store/mapStore';
 import { useLayerStore } from '../../store/layerStore';
 import { useAnalysisStore } from '../../store/analysisStore';
 import { usePlaceSearchStore } from '../../store/placeSearchStore';
+import { usePlanningContextStore } from '../../store/planningContextStore';
 import {
   CLICK_PRIORITY,
   CONFIG_BY_MAP_LAYER_ID,
@@ -17,6 +19,8 @@ import {
 } from '../../data/layers';
 import type { PlanningLayerId } from '../../types/planning';
 import type { AreaOfInterest, AreaPoint } from '../../types/analysis';
+import { isApiConfigured } from '../../api/client';
+import { fetchLayerGeoJson } from '../../api/layersApi';
 
 /** No-token public demo style. Swapped for a richer basemap in a later step. */
 const MAP_STYLE = 'https://demotiles.maplibre.org/style.json';
@@ -233,6 +237,10 @@ export default function SiteMap() {
   const draftPoints = useAnalysisStore((state) => state.draftPoints);
   const areaOfInterest = useAnalysisStore((state) => state.areaOfInterest);
   const isDrawing = useAnalysisStore((state) => state.isDrawing);
+  const selectedContextId = usePlanningContextStore(
+    (state) => state.selectedContextId,
+  );
+  const dataRevision = usePlanningContextStore((state) => state.dataRevision);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -392,6 +400,55 @@ export default function SiteMap() {
       }
     }
   }, [visibleLayerIds, ready]);
+
+  // Reload planning source data when the selected planning context changes.
+  useEffect(() => {
+    if (!mapRef.current || !ready) {
+      return;
+    }
+    const map: maplibregl.Map = mapRef.current;
+    let cancelled = false;
+
+    async function reloadSources() {
+      for (const layer of PLANNING_LAYERS) {
+        const source = map.getSource(layer.sourceId) as GeoJSONSource | undefined;
+        if (!source) {
+          continue;
+        }
+        try {
+          if (isApiConfigured()) {
+            const collection = await fetchLayerGeoJson(
+              layer.id,
+              selectedContextId || LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+            );
+            if (!cancelled) {
+              source.setData(collection);
+            }
+          } else if (
+            selectedContextId === LOCAL_DEMO_SYDNEY_CONTEXT_ID ||
+            !selectedContextId
+          ) {
+            source.setData(layer.sourceUrl);
+          } else {
+            source.setData(EMPTY_FEATURE_COLLECTION);
+          }
+        } catch {
+          if (
+            !cancelled &&
+            (selectedContextId === LOCAL_DEMO_SYDNEY_CONTEXT_ID ||
+              !selectedContextId)
+          ) {
+            source.setData(layer.sourceUrl);
+          }
+        }
+      }
+    }
+
+    void reloadSources();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedContextId, dataRevision, ready]);
 
   // Execute pending fly-to requests, padding for the right-hand details panel.
   useEffect(() => {

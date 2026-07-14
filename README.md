@@ -62,7 +62,24 @@ env, [`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
 - Demo auth, roles, plans, and billing gates
 - Backend-owned deterministic AI summary service
 - Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy (with labeled static-demo fallback when public Nominatim is unavailable; Places autocomplete is local-only — live geocoding only on explicit Search)
+- Dynamic external planning contexts built on demand from open map data (Overpass) for any selected place — backend-proxied, cached in PostGIS, scoped search/AOI/summary
 - CI/CD and deployment-readiness
+
+SiteLens no longer requires hardcoded demo cities for verification. A user can
+select a worldwide place, then explicitly build a planning context from external
+open map data. The backend fetches and caches provider data, normalizes it into
+SiteLens layers, stores it in PostGIS, and scopes search/AOI analysis/planning
+summaries to that generated context.
+
+External contexts are not official zoning, cadastre, or development-application
+datasets. They are open-map-derived urban context layers intended to demonstrate
+the data pipeline, spatial normalization, PostGIS analysis, caching, and AI
+summary workflow. Sydney Demo remains the bundled synthetic portfolio fallback.
+
+Public Overpass endpoints may rate-limit or block shared/cloud/VPN networks.
+SiteLens treats this as provider availability, not a browser issue. Production
+deployments should use a self-hosted or contracted provider and a background
+job queue.
 
 ## Overview
 
@@ -349,6 +366,10 @@ with `npm run db:seed:billing`.
   Nominatim call. Places autocomplete is local (demo places, recent
   selections, and this session’s explicit search results); live geocoding runs
   only on Search / “Search live geocoder,” not on every keystroke.
+- Public Overpass may rate-limit or block shared/cloud/VPN networks during
+  external context builds — SiteLens surfaces this as provider availability.
+  Production should use a self-hosted/contracted Overpass (or equivalent) plus
+  a background job queue rather than holding a DB session across the fetch.
 - If the database is unavailable, DB-backed routes return `503`; AOI analysis
   falls back to Turf with a warning. Redis degrades gracefully when down.
 - Demo auth/billing keys are portfolio-only. Real Stripe Checkout/Portal and

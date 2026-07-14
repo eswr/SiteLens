@@ -19,23 +19,38 @@ vi.mock('../db/spatialRepository', () => {
   return {
     getLayers: vi.fn(async () => layers),
     getParcels: vi.fn(async () => ({ type: 'FeatureCollection', features: [parcel] })),
-    getParcelById: vi.fn(async (id: string) =>
+    getLayerFeatures: vi.fn(async () => ({ type: 'FeatureCollection', features: [parcel] })),
+    getParcelById: vi.fn(async (_ctx: string, id: string) =>
       id === 'parcel-001' || id === 'LOT-1-DP1001' ? parcel : null,
     ),
-    searchFeatures: vi.fn(async (q: string) =>
-      q.toLowerCase().includes('exchange')
-        ? [
-            {
-              id: 'parcel-006',
-              layerId: 'parcels',
-              label: '77 Exchange Place',
-              subtitle: 'LOT-6-DP1003',
-              properties: {},
-              geometry: { type: 'Point', coordinates: [151.21, -33.868] },
-            },
-          ]
-        : [],
-    ),
+    searchFeatures: vi.fn(async (ctx: string, q: string) => {
+      const needle = q.toLowerCase();
+      if (ctx === 'external-osm:other:1' && needle.includes('harbor')) {
+        return [
+          {
+            id: 'other-parcel-1',
+            layerId: 'parcels',
+            label: 'Harbor Hub',
+            subtitle: 'OTHER-1',
+            properties: {},
+            geometry: { type: 'Point', coordinates: [77.59, 12.97] },
+          },
+        ];
+      }
+      if (ctx === 'local-demo-sydney' && needle.includes('exchange')) {
+        return [
+          {
+            id: 'parcel-006',
+            layerId: 'parcels',
+            label: '77 Exchange Place',
+            subtitle: 'LOT-6-DP1003',
+            properties: {},
+            geometry: { type: 'Point', coordinates: [151.21, -33.868] },
+          },
+        ];
+      }
+      return [];
+    }),
     analyzeArea: vi.fn(async () => ({
       areaSqm: 12345,
       areaHectares: 1.23,
@@ -50,6 +65,68 @@ vi.mock('../db/spatialRepository', () => {
     InvalidGeometryError: class InvalidGeometryError extends Error {},
   };
 });
+
+vi.mock('../externalData/planningContextRepository', () => ({
+  getPlanningContext: vi.fn(async (id: string) =>
+    id === 'local-demo-sydney' || id.startsWith('external-osm:')
+      ? {
+          id,
+          label: id === 'local-demo-sydney' ? 'Sydney Demo' : id,
+          source: id === 'local-demo-sydney' ? 'local-demo' : 'external-osm',
+          status: 'ready',
+          center: [151.2093, -33.8688],
+          bbox: [151.199, -33.876, 151.22, -33.86],
+          disclaimer: 'demo',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      : null,
+  ),
+  listPlanningContexts: vi.fn(async () => [
+    {
+      id: 'local-demo-sydney',
+      label: 'Sydney Demo',
+      source: 'local-demo',
+      status: 'ready',
+      center: [151.2093, -33.8688],
+      bbox: [151.199, -33.876, 151.22, -33.86],
+      disclaimer: 'demo',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ]),
+  createOrUpdatePlanningContext: vi.fn(async () => {}),
+  commitReadyExternalContext: vi.fn(async () => ({
+    sites: 0,
+    landUse: 0,
+    constraints: 0,
+    transit: 0,
+    developmentActivity: 0,
+    skipped: 0,
+    context: {
+      id: 'external-osm:x',
+      label: 'x',
+      source: 'external-osm',
+      status: 'ready',
+      center: [0, 0],
+      bbox: [0, 0, 1, 1],
+      disclaimer: 'demo',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  })),
+  markPlanningContextBuilding: vi.fn(async () => {}),
+  markPlanningContextFailed: vi.fn(async () => {}),
+  tryAcquireContextBuildLock: vi.fn(async () => true),
+  releaseContextBuildLock: vi.fn(async () => {}),
+  countContextFeatures: vi.fn(async () => ({
+    sites: 0,
+    landUse: 0,
+    constraints: 0,
+    transit: 0,
+    developmentActivity: 0,
+  })),
+}));
 
 // Resolve billing from demo-user defaults (no DB) for deterministic gating.
 vi.mock('../billing/billingRepository', async (importOriginal) => {
@@ -129,6 +206,34 @@ describe('GET /api/search', () => {
     const res = await app.inject({ method: 'GET', url: '/api/search?q=' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual([]);
+  });
+
+  it('returns only rows from the selected planning context', async () => {
+    const sydney = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=harbor&planningContextId=local-demo-sydney',
+    });
+    expect(sydney.statusCode).toBe(200);
+    expect(sydney.json().data).toEqual([]);
+
+    const other = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=harbor&planningContextId=external-osm:other:1',
+    });
+    expect(other.statusCode).toBe(200);
+    expect(other.json().data).toHaveLength(1);
+    expect(other.json().data[0].label).toBe('Harbor Hub');
+    expect(other.json().meta.planningContextId).toBe('external-osm:other:1');
+  });
+
+  it('returns a clear error for an unknown planningContextId', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=exchange&planningContextId=does-not-exist',
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe('INVALID_CONTEXT');
+    expect(res.json().error.message).toContain('Planning context not found');
   });
 });
 

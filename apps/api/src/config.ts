@@ -25,6 +25,15 @@ export interface AppConfig {
   geocodingUpstreamErrorCooldownMs: number;
   /** TTL for cached static-demo place-search responses. */
   geocodingStaticFallbackTtlSeconds: number;
+  overpassEnabled: boolean;
+  overpassBaseUrl: string;
+  overpassUserAgent: string;
+  overpassTimeoutMs: number;
+  overpassMinIntervalMs: number;
+  externalContextCacheTtlSeconds: number;
+  externalContextMaxBboxAreaDeg2: number;
+  externalContextRebuildAfterDays: number;
+  externalContextSyntheticFallbackEnabled: boolean;
 }
 
 /** Default (placeholder) Nominatim User-Agent; must be replaced for production. */
@@ -98,6 +107,40 @@ export function loadConfig(): AppConfig {
       ? parsedFallbackTtl
       : 3600;
 
+  const overpassEnabled =
+    (process.env.OVERPASS_ENABLED ?? 'true').toLowerCase() !== 'false';
+  const overpassBaseUrl = (
+    process.env.OVERPASS_BASE_URL ??
+    'https://overpass-api.de/api/interpreter'
+  ).replace(/\/+$/, '');
+  const overpassUserAgent = (
+    process.env.OVERPASS_USER_AGENT ?? DEFAULT_NOMINATIM_USER_AGENT
+  ).trim();
+  const parsedOverpassTimeout = Number(process.env.OVERPASS_TIMEOUT_MS);
+  const overpassTimeoutMs =
+    Number.isFinite(parsedOverpassTimeout) && parsedOverpassTimeout > 0
+      ? parsedOverpassTimeout
+      : 15_000;
+  const parsedOverpassInterval = Number(process.env.OVERPASS_MIN_INTERVAL_MS);
+  const overpassMinIntervalMs =
+    Number.isFinite(parsedOverpassInterval) && parsedOverpassInterval >= 0
+      ? parsedOverpassInterval
+      : 2500;
+  const parsedCtxTtl = Number(process.env.EXTERNAL_CONTEXT_CACHE_TTL_SECONDS);
+  const externalContextCacheTtlSeconds =
+    Number.isFinite(parsedCtxTtl) && parsedCtxTtl > 0 ? parsedCtxTtl : 604_800;
+  const parsedMaxArea = Number(process.env.EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2);
+  const externalContextMaxBboxAreaDeg2 =
+    Number.isFinite(parsedMaxArea) && parsedMaxArea > 0 ? parsedMaxArea : 0.01;
+  const parsedRebuildDays = Number(process.env.EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS);
+  const externalContextRebuildAfterDays =
+    Number.isFinite(parsedRebuildDays) && parsedRebuildDays > 0
+      ? parsedRebuildDays
+      : 7;
+  const externalContextSyntheticFallbackEnabled =
+    (process.env.EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED ?? 'false')
+      .toLowerCase() === 'true';
+
   return {
     port,
     nodeEnv,
@@ -119,5 +162,14 @@ export function loadConfig(): AppConfig {
     geocodingStaticFallbackEnabled,
     geocodingUpstreamErrorCooldownMs,
     geocodingStaticFallbackTtlSeconds,
+    overpassEnabled,
+    overpassBaseUrl,
+    overpassUserAgent,
+    overpassTimeoutMs,
+    overpassMinIntervalMs,
+    externalContextCacheTtlSeconds,
+    externalContextMaxBboxAreaDeg2,
+    externalContextRebuildAfterDays,
+    externalContextSyntheticFallbackEnabled,
   };
 }

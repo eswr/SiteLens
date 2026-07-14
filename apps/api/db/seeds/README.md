@@ -2,7 +2,12 @@
 
 Sample data for SiteLens is **not** raw SQL — it is loaded from the mock GeoJSON
 in `apps/api/data` by the ingestion script, which upserts rows into the PostGIS
-spatial tables.
+spatial tables under the **Sydney Demo** planning context
+(`local-demo-sydney`).
+
+External contexts for other cities are built at runtime via
+`POST /api/planning-contexts/build` (Overpass → normalize → PostGIS), not by
+shipping hardcoded city GeoJSON fixtures.
 
 ## Load sample data
 
@@ -21,7 +26,7 @@ npm run db:reset       # drop spatial tables, re-run migrations (dev only)
 npm run ingest:geojson # reload data
 ```
 
-Datasets ingested:
+Datasets ingested into `local-demo-sydney`:
 
 | GeoJSON file | Table |
 | ------------ | ----- |

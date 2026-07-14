@@ -13,12 +13,26 @@ Fastify API
         |
         | Auth + billing gates
         |
-        +--> Redis cache
+        +--> Redis cache (place-search + planningContextId-scoped planning keys)
         |
-        +--> PostgreSQL + PostGIS
+        +--> PostgreSQL + PostGIS (planning_contexts + spatial tables)
+        |
+        +--> Nominatim proxy (worldwide Places; explicit search only)
+        |
+        +--> Overpass proxy (external planning context build; explicit only)
         |
         +--> Deterministic planning summary service
 ```
+
+SiteLens no longer requires hardcoded demo cities for verification. A user can
+select a worldwide place, then explicitly build a planning context from external
+open map data. The backend fetches and caches provider data, normalizes it into
+SiteLens layers, stores it in PostGIS, and scopes search/AOI analysis/planning
+summaries to that generated context.
+
+External contexts are not official zoning, cadastre, or development-application
+datasets. They are open-map-derived urban context layers. Sydney Demo is bundled
+synthetic portfolio data used as the default/offline fallback.
 
 ## Data flow diagrams
 

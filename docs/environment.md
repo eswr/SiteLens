@@ -91,6 +91,15 @@ ENABLE_DEMO_BILLING=true
 | `GEOCODING_STATIC_FALLBACK_ENABLED` | `true` (non-prod) / `false` (prod) | When live Nominatim is blocked/unavailable, return bundled static-demo places. Production must opt in explicitly. |
 | `GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS` | `900000` | After 403/429/timeout/outage, skip Nominatim for this long (process-local circuit breaker). |
 | `GEOCODING_STATIC_FALLBACK_TTL_SECONDS` | `3600` | TTL for cached static-demo place-search results. |
+| `OVERPASS_ENABLED` | `true` | Enables external planning-context builds via Overpass. |
+| `OVERPASS_BASE_URL` | `https://overpass-api.de/api/interpreter` | Overpass interpreter URL (backend-only). |
+| `OVERPASS_USER_AGENT` | same default as Nominatim UA | Identifying User-Agent for Overpass. Replace in production. |
+| `OVERPASS_TIMEOUT_MS` | `15000` | Timeout for Overpass HTTP calls. |
+| `OVERPASS_MIN_INTERVAL_MS` | `2500` | Process-local spacing between Overpass requests. |
+| `EXTERNAL_CONTEXT_CACHE_TTL_SECONDS` | `604800` | Soft freshness window documentation; rebuild reuse uses `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS`. |
+| `EXTERNAL_CONTEXT_MAX_BBOX_AREA_DEG2` | `0.01` | Max bbox area (deg²) accepted for Overpass extracts; larger place bboxes are clamped around the center. |
+| `EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` | `7` | Reuse a ready PostGIS context without refetching Overpass when fresher than this. |
+| `EXTERNAL_CONTEXT_SYNTHETIC_FALLBACK_ENABLED` | `false` | Optional synthetic fallback (off by default; never silent). |
 
 ### Worldwide place search (geocoding)
 
@@ -100,8 +109,27 @@ ENABLE_DEMO_BILLING=true
 - If public Nominatim returns 403/429 or is otherwise unavailable, development/
   demo mode can serve a clearly labeled **static-demo** fallback instead of
   failing the Places UI. Live and fallback responses use separate cache keys.
-- Place search is **separate** from local planning-feature search and does not
-  affect AOI analysis (which stays on the local PostGIS dataset).
+- Place search is **separate** from planning-feature search. Selecting a place
+  does not change the active planning context; building an external context is
+  an explicit user action.
+- AOI analysis / planning-feature search are scoped to the selected
+  **planning context** (Sydney Demo by default, or a generated external context).
+
+### External planning contexts (Overpass)
+
+- The browser never calls Overpass. Only `POST /api/planning-contexts/build`
+  (Planner/Pro+) triggers a live provider fetch.
+- Overpass calls are process-local rate-spaced; production should use a
+  distributed Redis-backed limiter/queue.
+- Generated contexts are stored in PostGIS and reused when still fresh.
+- Feature writes commit atomically (clear → insert → mark ready); Redis planning
+  cache is invalidated only after commit. Concurrent builds for the same context
+  take a PostgreSQL advisory lock (`409 BUILD_IN_PROGRESS`).
+- Builds are metered (`external-context:build`: Free `0` / Pro monthly /
+  Enterprise unlimited). Quota is checked before Overpass; usage is recorded
+  only after a successful new build (not fresh reuse).
+- External layers are open-map-derived urban context (sites/land use/constraints/
+  transit/activity proxies) — **not** official zoning, cadastre, or DAs.
 - The Places tab includes an autocomplete-style UX, but it does not call public
   Nominatim on every keystroke. Suggestions are local: bundled demo places,
   recent selections, and results from this session’s explicit searches. Live

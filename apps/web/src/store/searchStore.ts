@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { buildFeatureIndex } from '../utils/featureIndex';
 import type { IndexedFeature } from '../utils/featureIndex';
+import { getSelectedPlanningContextId } from './planningContextStore';
 
 const MAX_RESULTS = 8;
 
@@ -20,8 +21,12 @@ interface SearchState {
   error: string | null;
   /** The built index, or `null` before it loads. */
   index: IndexedFeature[] | null;
-  /** Build the index once (idempotent). Safe to call on mount. */
+  /** Context id the current index was built for. */
+  indexedContextId: string | null;
+  /** Build the index for the selected planning context. */
   initialize: () => Promise<void>;
+  /** Drop the index so the next initialize rebuilds for the new context. */
+  invalidateIndex: () => void;
   /** Update the query string and recompute results against the loaded index. */
   setQuery: (query: string) => void;
   /** Run a search for `query` against the loaded index. */
@@ -36,17 +41,25 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   isLoading: false,
   error: null,
   index: null,
+  indexedContextId: null,
 
   initialize: async () => {
-    const { index, isLoading } = get();
-    if (index || isLoading) {
+    const contextId = getSelectedPlanningContextId();
+    const { index, isLoading, indexedContextId } = get();
+    if (isLoading) {
+      return;
+    }
+    if (index && indexedContextId === contextId) {
       return;
     }
     set({ isLoading: true, error: null });
     try {
-      const built = await buildFeatureIndex();
-      set({ index: built, isLoading: false });
-      // Re-run any query entered while the index was loading.
+      const built = await buildFeatureIndex(contextId);
+      set({
+        index: built,
+        indexedContextId: contextId,
+        isLoading: false,
+      });
       const { query } = get();
       if (query.trim()) {
         get().search(query);
@@ -61,6 +74,9 @@ export const useSearchStore = create<SearchState>((set, get) => ({
       });
     }
   },
+
+  invalidateIndex: () =>
+    set({ index: null, indexedContextId: null, results: [] }),
 
   setQuery: (query) => {
     set({ query });

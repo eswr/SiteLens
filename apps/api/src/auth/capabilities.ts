@@ -25,6 +25,7 @@ export function getCapabilities(
     canReadParcels: has('parcels:read'),
     canRunAnalysis: has('analysis:run'),
     canGenerateSummary: has('summary:generate'),
+    canBuildExternalContext: has('external-context:build'),
     canIngestData: isAdmin && has('ingestion:manage'),
     canViewAllLayers: has('parcels:full'),
   };

@@ -16,6 +16,21 @@ vi.mock('../db/spatialRepository', () => ({
   InvalidGeometryError,
 }));
 
+vi.mock('../externalData/planningContextRepository', () => ({
+  getPlanningContext: vi.fn(async (id: string) => ({
+    id,
+    label: 'Sydney Demo',
+    source: 'local-demo',
+    status: 'ready',
+    center: [151.2093, -33.8688],
+    bbox: [151.199, -33.876, 151.22, -33.86],
+    disclaimer: 'demo',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })),
+  listPlanningContexts: vi.fn(async () => []),
+}));
+
 vi.mock('../billing/billingRepository', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('../billing/billingRepository')>();

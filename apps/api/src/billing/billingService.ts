@@ -30,6 +30,8 @@ const FEATURE_MESSAGES: Partial<Record<BillingFeature, string>> = {
   'analysis:run': 'Spatial analysis requires the Pro or Enterprise plan.',
   'summary:generate':
     'AI planning summaries require the Pro or Enterprise plan.',
+  'external-context:build':
+    'Building external planning contexts requires the Pro or Enterprise plan (and available monthly build quota).',
   'ingestion:manage': 'Data ingestion requires an Enterprise admin account.',
   'parcels:full': 'Full parcel access requires the Pro or Enterprise plan.',
 };

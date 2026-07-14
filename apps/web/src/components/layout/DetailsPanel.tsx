@@ -6,15 +6,24 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PublicIcon from '@mui/icons-material/Public';
+import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import { useMapStore } from '../../store/mapStore';
 import { useAnalysisStore } from '../../store/analysisStore';
 import { usePlaceSearchStore } from '../../store/placeSearchStore';
+import {
+  EMPTY_BUILD_NOTICE,
+  usePlanningContextStore,
+} from '../../store/planningContextStore';
+import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
+import { isApiConfigured } from '../../api/client';
 import AnalysisSummary from '../analysis/AnalysisSummary';
 import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
 import PlanningSummaryPanel from '../analysis/PlanningSummaryPanel';
@@ -207,6 +216,20 @@ function PlaceDetails() {
   const clearSelectedPlace = usePlaceSearchStore(
     (state) => state.clearSelectedPlace,
   );
+  const buildContextFromSelectedPlace = usePlanningContextStore(
+    (state) => state.buildContextFromSelectedPlace,
+  );
+  const isBuilding = usePlanningContextStore((state) => state.isBuilding);
+  const buildError = usePlanningContextStore((state) => state.buildError);
+  const lastBuildCounts = usePlanningContextStore(
+    (state) => state.lastBuildCounts,
+  );
+  const clearBuildError = usePlanningContextStore(
+    (state) => state.clearBuildError,
+  );
+  const capabilities = useAuthStore((state) => state.capabilities);
+  const canBuild = capabilities?.canBuildExternalContext ?? false;
+
   if (!selectedPlace) {
     return null;
   }
@@ -297,6 +320,58 @@ function PlaceDetails() {
 
       <Button
         size="small"
+        variant="contained"
+        disabled={!isApiConfigured() || isBuilding || !canBuild}
+        startIcon={
+          isBuilding ? (
+            <CircularProgress size={14} color="inherit" />
+          ) : (
+            <TravelExploreIcon fontSize="small" />
+          )
+        }
+        onClick={() => {
+          clearBuildError();
+          void buildContextFromSelectedPlace(selectedPlace);
+        }}
+      >
+        {isBuilding
+          ? 'Building planning context…'
+          : 'Build planning context for this place'}
+      </Button>
+      {!isApiConfigured() && (
+        <Typography variant="caption" color="text.secondary">
+          External planning contexts require backend API mode.
+        </Typography>
+      )}
+      {isApiConfigured() && !canBuild && (
+        <Typography variant="caption" color="text.secondary">
+          Building external planning contexts requires the Pro or Enterprise
+          plan.
+        </Typography>
+      )}
+      {buildError && (
+        <Alert severity="warning" onClose={() => clearBuildError()}>
+          {buildError}
+        </Alert>
+      )}
+      {lastBuildCounts &&
+        lastBuildCounts.sites +
+          lastBuildCounts.landUse +
+          lastBuildCounts.constraints +
+          lastBuildCounts.transit +
+          lastBuildCounts.developmentActivity ===
+          0 && <Alert severity="info">{EMPTY_BUILD_NOTICE}</Alert>}
+      {lastBuildCounts && (
+        <Typography variant="caption" color="text.secondary">
+          Built context counts — sites: {lastBuildCounts.sites}, land use:{' '}
+          {lastBuildCounts.landUse}, constraints: {lastBuildCounts.constraints},
+          transit: {lastBuildCounts.transit}, activity proxies:{' '}
+          {lastBuildCounts.developmentActivity}.
+        </Typography>
+      )}
+
+      <Button
+        size="small"
         variant="outlined"
         color="inherit"
         startIcon={<CloseIcon fontSize="small" />}
@@ -310,8 +385,10 @@ function PlaceDetails() {
         {attribution ?? '© OpenStreetMap contributors; geocoding by Nominatim'}
       </Typography>
       <Typography variant="caption" color="text.secondary">
-        Worldwide place lookup only. AOI spatial analysis applies to the local
-        SiteLens planning dataset.
+        Worldwide place lookup is independent from planning context. Build an
+        external context explicitly to analyze open-map-derived urban layers
+        for this place — not official zoning, cadastre, or development-
+        application data.
       </Typography>
     </Box>
   );

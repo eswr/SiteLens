@@ -30,12 +30,18 @@ describe('getCapabilities (billing-driven)', () => {
     expect(caps.canIngestData).toBe(false);
   });
 
-  it('planner on pro: analysis + full data, no ingestion', () => {
+  it('planner on pro: analysis + full data + external context, no ingestion', () => {
     const caps = getCapabilities(getUserById('user_planner'), contextFor('pro'));
     expect(caps.canRunAnalysis).toBe(true);
     expect(caps.canGenerateSummary).toBe(true);
+    expect(caps.canBuildExternalContext).toBe(true);
     expect(caps.canViewAllLayers).toBe(true);
     expect(caps.canIngestData).toBe(false);
+  });
+
+  it('free plan cannot build external planning contexts', () => {
+    const caps = getCapabilities(null, contextFor('free'));
+    expect(caps.canBuildExternalContext).toBe(false);
   });
 
   it('admin on enterprise: can ingest', () => {

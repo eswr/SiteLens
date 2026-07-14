@@ -19,26 +19,37 @@ import {
   resolveBilling,
 } from '../billing/billingService';
 import { recordUsage } from '../billing/billingRepository';
+import {
+  assertPlanningContextExists,
+  resolvePlanningContextIdParam,
+} from '../lib/planningContextParam';
 
-/**
- * Validated body: a GeoJSON Polygon or MultiPolygon. Coordinates are validated
- * loosely here (present + array); PostGIS performs authoritative validation.
- */
 const analyzeAreaBody = Type.Object({
   geometry: Type.Object({
     type: Type.Union([Type.Literal('Polygon'), Type.Literal('MultiPolygon')]),
     coordinates: Type.Array(Type.Unknown()),
   }),
+  planningContextId: Type.Optional(Type.String()),
 });
 type AnalyzeAreaBody = Static<typeof analyzeAreaBody>;
 
-/** `POST /api/analyze-area` — real spatial analysis in PostGIS. */
+/** `POST /api/analyze-area` — PostGIS analysis scoped to a planning context. */
 export async function analysisRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Body: AnalyzeAreaBody }>(
     '/analyze-area',
     { schema: { body: analyzeAreaBody } },
     async (request, reply) => {
-      // Entitlement gate driven by the billing plan (throws 403 otherwise).
+      const resolved = resolvePlanningContextIdParam(
+        request.body.planningContextId,
+      );
+      if (!resolved.ok) {
+        const body: ApiErrorEnvelope = {
+          error: { code: 'INVALID_CONTEXT', message: resolved.message },
+        };
+        reply.code(400);
+        return body;
+      }
+
       const { user, billing } = await resolveBilling(request);
       assertFeature(billing, 'analysis:run');
       if (user) {
@@ -54,12 +65,23 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
         | GeoJsonPolygon
         | GeoJsonMultiPolygon;
       try {
+        const exists = await assertPlanningContextExists(
+          resolved.planningContextId,
+        );
+        if (!exists.ok) {
+          const body: ApiErrorEnvelope = {
+            error: { code: 'INVALID_CONTEXT', message: exists.message },
+          };
+          reply.code(exists.status);
+          return body;
+        }
+
+        const key = analysisKey(resolved.planningContextId, geometry, scope);
         const { data: result, cache, computedAt } = await cached({
-          key: analysisKey(geometry, scope),
+          key,
           ttlSeconds: CACHE_TTL.analysis,
-          compute: () => analyzeArea(geometry),
+          compute: () => analyzeArea(resolved.planningContextId, geometry),
         });
-        // Meter successful backend analyses (never for Turf fallback).
         if (user) {
           await recordUsage(user.id, 'analysis:run');
         }
@@ -68,8 +90,9 @@ export async function analysisRoutes(app: FastifyInstance): Promise<void> {
           meta: {
             requestId: request.id,
             cache,
-            cacheKey: analysisKey(geometry, scope),
+            cacheKey: key,
             computedAt,
+            planningContextId: resolved.planningContextId,
             access: {
               role: user?.role,
               plan: billing.plan.id,

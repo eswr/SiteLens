@@ -4,11 +4,13 @@ import type {
   AreaPoint,
   SpatialAnalysisResult,
 } from '../types/analysis';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
 import { analyzeAreaWithApi } from '../api/analysisApi';
 import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
 import { useAiSummaryStore } from './aiSummaryStore';
 import { useMapStore } from './mapStore';
+import { getSelectedPlanningContextId } from './planningContextStore';
 
 /** Minimum vertices required to close a polygon. */
 export const MIN_AOI_POINTS = 3;
@@ -104,8 +106,12 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     });
 
     try {
+      const planningContextId = getSelectedPlanningContextId();
+      const canUseLocalTurf =
+        planningContextId === LOCAL_DEMO_SYDNEY_CONTEXT_ID;
+
       if (isApiConfigured()) {
-        // Prefer the backend PostGIS analysis; fall back to local Turf.
+        // Prefer the backend PostGIS analysis; Turf fallback only for Sydney demo.
         try {
           const api = await analyzeAreaWithApi(areaOfInterest);
           set({
@@ -117,11 +123,21 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             analysisWarning: undefined,
           });
         } catch (apiError) {
+          if (!canUseLocalTurf) {
+            throw apiError instanceof Error
+              ? apiError
+              : new Error(
+                  'External planning context analysis requires the backend API.',
+                );
+          }
           const forbidden =
             apiError instanceof ApiError && apiError.status === 403;
           const result = await analyzeArea(areaOfInterest.polygon);
           set({
-            analysisResult: result,
+            analysisResult: {
+              ...result,
+              planningContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+            },
             isAnalyzing: false,
             analysisEngine: 'turf-fallback',
             analysisCacheStatus: 'none',
@@ -129,16 +145,23 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             analysisWarning: forbidden ? ENTITLEMENT_WARNING : FALLBACK_WARNING,
           });
         }
-      } else {
+      } else if (canUseLocalTurf) {
         const result = await analyzeArea(areaOfInterest.polygon);
         set({
-          analysisResult: result,
+          analysisResult: {
+            ...result,
+            planningContextId: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+          },
           isAnalyzing: false,
           analysisEngine: 'turf-local',
           analysisCacheStatus: 'none',
           analysisComputedAt: new Date().toISOString(),
           analysisWarning: undefined,
         });
+      } else {
+        throw new Error(
+          'External planning contexts require backend API mode for AOI analysis.',
+        );
       }
     } catch (error) {
       set({

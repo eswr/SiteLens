@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import type { PoolClient } from 'pg';
 import type { PlanningLayerId } from '@sitelens/shared';
+import {
+  LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+  LOCAL_DEMO_SYDNEY_DISCLAIMER,
+} from '@sitelens/shared';
 import { getPool, closePool } from './pool';
 import {
   assertFeatureCollection,
@@ -111,12 +115,47 @@ interface LayerResult {
   failed: number;
 }
 
+async function ensureLocalDemoContext(client: PoolClient): Promise<void> {
+  await client.query(
+    `INSERT INTO planning_contexts (
+       id, label, source, status,
+       center_lng, center_lat,
+       bbox_west, bbox_south, bbox_east, bbox_north,
+       place, disclaimer, updated_at
+     ) VALUES (
+       $1, 'Sydney Demo', 'local-demo', 'ready',
+       151.2093, -33.8688,
+       151.199, -33.876, 151.22, -33.86,
+       $2::jsonb, $3, now()
+     )
+     ON CONFLICT (id) DO UPDATE SET
+       label = EXCLUDED.label,
+       source = EXCLUDED.source,
+       status = EXCLUDED.status,
+       disclaimer = EXCLUDED.disclaimer,
+       updated_at = now()`,
+    [
+      LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+      JSON.stringify({
+        id: LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+        label: 'Sydney, Australia',
+        displayName: 'Sydney Demo (bundled synthetic portfolio data)',
+        provider: 'local-demo',
+      }),
+      LOCAL_DEMO_SYDNEY_DISCLAIMER,
+    ],
+  );
+}
+
 async function upsertPlanningLayers(client: PoolClient): Promise<void> {
   for (const def of LAYER_DEFS) {
     await client.query(
-      `INSERT INTO planning_layers (id, label, description, geometry_type, default_visible, sort_order, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, now())
-       ON CONFLICT (id) DO UPDATE SET
+      `INSERT INTO planning_layers (
+         planning_context_id, id, label, description, geometry_type,
+         default_visible, sort_order, updated_at
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+       ON CONFLICT (planning_context_id, id) DO UPDATE SET
          label = EXCLUDED.label,
          description = EXCLUDED.description,
          geometry_type = EXCLUDED.geometry_type,
@@ -124,6 +163,7 @@ async function upsertPlanningLayers(client: PoolClient): Promise<void> {
          sort_order = EXCLUDED.sort_order,
          updated_at = now();`,
       [
+        LOCAL_DEMO_SYDNEY_CONTEXT_ID,
         def.id,
         def.label,
         def.description,
@@ -133,12 +173,17 @@ async function upsertPlanningLayers(client: PoolClient): Promise<void> {
       ],
     );
   }
-  console.log(`planning_layers: upserted ${LAYER_DEFS.length} rows`);
+  console.log(
+    `planning_layers: upserted ${LAYER_DEFS.length} rows for ${LOCAL_DEMO_SYDNEY_CONTEXT_ID}`,
+  );
 }
 
 function buildUpsertSql(config: IngestConfig): string {
-  const insertCols = ['id', ...config.columns.map((c) => c.column)];
-  // Value placeholders for id + mapped columns.
+  const insertCols = [
+    'planning_context_id',
+    'id',
+    ...config.columns.map((c) => c.column),
+  ];
   const valuePlaceholders = insertCols.map((_, index) => `$${index + 1}`);
   const propsIndex = insertCols.length + 1;
   const geomIndex = insertCols.length + 2;
@@ -159,7 +204,7 @@ function buildUpsertSql(config: IngestConfig): string {
 
   return `INSERT INTO ${config.table} (${allCols.join(', ')})
           VALUES (${allValues.join(', ')})
-          ON CONFLICT (id) DO UPDATE SET ${updateAssignments.join(', ')}
+          ON CONFLICT (planning_context_id, id) DO UPDATE SET ${updateAssignments.join(', ')}
           RETURNING (xmax = 0) AS inserted;`;
 }
 
@@ -175,7 +220,13 @@ async function ingestLayer(
     const value = props[c.prop];
     return value === undefined ? null : value;
   });
-  const params = [id, ...columnValues, JSON.stringify(props), JSON.stringify(feature.geometry)];
+  const params = [
+    LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+    id,
+    ...columnValues,
+    JSON.stringify(props),
+    JSON.stringify(feature.geometry),
+  ];
   const result = await client.query<{ inserted: boolean }>(sql, params);
   return result.rows[0]?.inserted ? 'inserted' : 'updated';
 }
@@ -238,11 +289,15 @@ export async function ingestAll(): Promise<LayerResult[]> {
   const pool = getPool();
   const client = await pool.connect();
   try {
+    await ensureLocalDemoContext(client);
     await upsertPlanningLayers(client);
     const results: LayerResult[] = [];
     for (const config of INGEST_CONFIGS) {
       results.push(await ingestFile(client, config));
     }
+    console.log(
+      `Loaded ${LOCAL_DEMO_SYDNEY_CONTEXT_ID}: Sydney Demo local planning layers`,
+    );
     return results;
   } finally {
     client.release();

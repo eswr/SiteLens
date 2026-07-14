@@ -9,6 +9,10 @@ SiteLens is a React + TypeScript geospatial planning intelligence demo. It uses
 MapLibre GL, GeoJSON, Turf.js, Material UI, Recharts, and Zustand to let users
 inspect planning layers, search spatial features, draw an area of interest, run
 spatial analysis, and generate a deterministic AI-assisted planning summary.
+SiteLens ships with a bundled Sydney Demo context and can build external
+open-map-derived planning contexts for selected worldwide places through a
+backend Overpass pipeline — without pretending that data is official zoning or
+cadastre.
 
 ## Tech stack
 

@@ -1,17 +1,14 @@
 import type {
-  ConstraintIntersection,
-  DevelopmentActivitySummary,
   GeoJsonMultiPolygon,
   GeoJsonPolygon,
   LayerSummary,
-  NearbyTransitItem,
   PlanningLayerId,
   SearchResultItem,
   SpatialAnalysisResult,
-  ZoningBreakdownItem,
 } from '@sitelens/shared';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import { getPool } from './pool';
-import { isDbConnectionError } from './sql';
+import { isDbConnectionError, LAYER_TABLE } from './sql';
 import {
   rowToFeature,
   rowsToFeatureCollection,
@@ -22,8 +19,10 @@ import { getFeatureSubtitle, getFeatureTitle } from '../lib/featureText';
 
 const DEFAULT_SEARCH_LIMIT = 8;
 
-/** Layer metadata plus feature counts, from the database. */
-export async function getLayers(): Promise<LayerSummary[]> {
+/** Layer metadata plus feature counts for a planning context. */
+export async function getLayers(
+  planningContextId: string = LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+): Promise<LayerSummary[]> {
   const pool = getPool();
 
   const layersResult = await pool.query<{
@@ -34,15 +33,18 @@ export async function getLayers(): Promise<LayerSummary[]> {
   }>(
     `SELECT id, label, description, geometry_type
        FROM planning_layers
+      WHERE planning_context_id = $1
       ORDER BY sort_order, id`,
+    [planningContextId],
   );
 
   const countsResult = await pool.query<{ id: string; n: number }>(
-    `SELECT 'parcels' AS id, count(*)::int AS n FROM parcels
-     UNION ALL SELECT 'zoning', count(*)::int FROM zoning_overlays
-     UNION ALL SELECT 'constraints', count(*)::int FROM constraints
-     UNION ALL SELECT 'transit', count(*)::int FROM transit_points
-     UNION ALL SELECT 'developmentActivity', count(*)::int FROM development_activity`,
+    `SELECT 'parcels' AS id, count(*)::int AS n FROM parcels WHERE planning_context_id = $1
+     UNION ALL SELECT 'zoning', count(*)::int FROM zoning_overlays WHERE planning_context_id = $1
+     UNION ALL SELECT 'constraints', count(*)::int FROM constraints WHERE planning_context_id = $1
+     UNION ALL SELECT 'transit', count(*)::int FROM transit_points WHERE planning_context_id = $1
+     UNION ALL SELECT 'developmentActivity', count(*)::int FROM development_activity WHERE planning_context_id = $1`,
+    [planningContextId],
   );
   const counts = new Map(countsResult.rows.map((row) => [row.id, row.n]));
 
@@ -55,31 +57,51 @@ export async function getLayers(): Promise<LayerSummary[]> {
   }));
 }
 
-/** All parcels as a GeoJSON FeatureCollection. */
-export async function getParcels(): Promise<{
+/** Layer GeoJSON FeatureCollection for a planning context. */
+export async function getLayerFeatures(
+  planningContextId: string,
+  layerId: PlanningLayerId,
+): Promise<{
   type: 'FeatureCollection';
   features: GeoFeature[];
 }> {
+  const table = LAYER_TABLE[layerId];
+  if (!table) {
+    throw new Error(`Unknown layer: ${layerId}`);
+  }
   const pool = getPool();
   const result = await pool.query<FeatureRow>(
     `SELECT id, properties, ST_AsGeoJSON(geom)::json AS geometry
-       FROM parcels
+       FROM ${table}
+      WHERE planning_context_id = $1
       ORDER BY id`,
+    [planningContextId],
   );
   return rowsToFeatureCollection(result.rows);
 }
 
-/** A single parcel by `id` or `parcel_id`, or `null` if not found. */
+/** All parcels for a planning context as a GeoJSON FeatureCollection. */
+export async function getParcels(
+  planningContextId: string = LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+): Promise<{
+  type: 'FeatureCollection';
+  features: GeoFeature[];
+}> {
+  return getLayerFeatures(planningContextId, 'parcels');
+}
+
+/** A single parcel by `id` or `parcel_id` within a planning context. */
 export async function getParcelById(
+  planningContextId: string,
   idOrParcelId: string,
 ): Promise<GeoFeature | null> {
   const pool = getPool();
   const result = await pool.query<FeatureRow>(
     `SELECT id, properties, ST_AsGeoJSON(geom)::json AS geometry
        FROM parcels
-      WHERE id = $1 OR parcel_id = $1
+      WHERE planning_context_id = $1 AND (id = $2 OR parcel_id = $2)
       LIMIT 1`,
-    [idOrParcelId],
+    [planningContextId, idOrParcelId],
   );
   const row = result.rows[0];
   return row ? rowToFeature(row) : null;
@@ -88,7 +110,6 @@ export async function getParcelById(
 interface SearchTable {
   layerId: PlanningLayerId;
   table: string;
-  /** Columns to match with ILIKE. */
   columns: string[];
 }
 
@@ -110,8 +131,9 @@ interface SearchRow {
   ymax: number;
 }
 
-/** Search across all layers with ILIKE; returns up to `limit` results. */
+/** Search across layers within a planning context. */
 export async function searchFeatures(
+  planningContextId: string,
   query: string,
   limit: number = DEFAULT_SEARCH_LIMIT,
 ): Promise<SearchResultItem[]> {
@@ -129,7 +151,7 @@ export async function searchFeatures(
       break;
     }
     const whereClause = source.columns
-      .map((column) => `${column} ILIKE $1`)
+      .map((column) => `${column} ILIKE $2`)
       .join(' OR ');
     const result = await pool.query<SearchRow>(
       `SELECT id, properties,
@@ -137,10 +159,10 @@ export async function searchFeatures(
               ST_XMin(geom) AS xmin, ST_YMin(geom) AS ymin,
               ST_XMax(geom) AS xmax, ST_YMax(geom) AS ymax
          FROM ${source.table}
-        WHERE ${whereClause}
+        WHERE planning_context_id = $1 AND (${whereClause})
         ORDER BY id
-        LIMIT $2`,
-      [like, limit],
+        LIMIT $3`,
+      [planningContextId, like, limit],
     );
 
     for (const row of result.rows) {
@@ -168,10 +190,8 @@ export async function searchFeatures(
   return results.slice(0, limit);
 }
 
-/** Radius (meters) around the AOI centroid used for "nearby" transit. */
 const TRANSIT_RADIUS_METERS = 1500;
 
-/** Thrown when the supplied AOI geometry is not valid. */
 export class InvalidGeometryError extends Error {
   constructor(message = 'Area geometry is invalid') {
     super(message);
@@ -185,20 +205,15 @@ function round(value: number, decimals: number): number {
 }
 
 /**
- * Run the full AOI spatial analysis in PostGIS.
- *
- * Validates the geometry (`ST_IsValid`), computes area with `::geography`, and
- * uses `ST_Intersects` / `ST_DWithin` for parcel, zoning, constraint, transit,
- * and development-activity analysis. Throws `InvalidGeometryError` for invalid
- * input; connection errors propagate (handled as 503 by the route).
+ * Run AOI spatial analysis against a single planning context only.
  */
 export async function analyzeArea(
+  planningContextId: string,
   geometry: GeoJsonPolygon | GeoJsonMultiPolygon,
 ): Promise<SpatialAnalysisResult> {
   const pool = getPool();
   const geomJson = JSON.stringify(geometry);
 
-  // Validate first; a parse failure or invalid geometry becomes a clean 400.
   let isValid = false;
   try {
     const validity = await pool.query<{ is_valid: boolean }>(
@@ -231,19 +246,22 @@ export async function analyzeArea(
         `${inputCte}
          SELECT
            ST_Area((SELECT geom FROM input)::geography) AS area_sqm,
-           (SELECT count(*)::int FROM parcels p, input WHERE ST_Intersects(p.geom, input.geom)) AS parcel_count,
-           (SELECT avg(p.development_score) FROM parcels p, input WHERE ST_Intersects(p.geom, input.geom)) AS avg_score,
-           (SELECT count(*)::int FROM development_activity d, input WHERE ST_Intersects(d.geom, input.geom)) AS dev_count`,
-        [geomJson],
+           (SELECT count(*)::int FROM parcels p, input
+             WHERE p.planning_context_id = $2 AND ST_Intersects(p.geom, input.geom)) AS parcel_count,
+           (SELECT avg(p.development_score) FROM parcels p, input
+             WHERE p.planning_context_id = $2 AND ST_Intersects(p.geom, input.geom)) AS avg_score,
+           (SELECT count(*)::int FROM development_activity d, input
+             WHERE d.planning_context_id = $2 AND ST_Intersects(d.geom, input.geom)) AS dev_count`,
+        [geomJson, planningContextId],
       ),
       pool.query<{ zone_code: string; zone_name: string; count: number }>(
         `${inputCte}
          SELECT z.zone_code, z.zone_name, count(*)::int AS count
            FROM zoning_overlays z, input
-          WHERE ST_Intersects(z.geom, input.geom)
+          WHERE z.planning_context_id = $2 AND ST_Intersects(z.geom, input.geom)
           GROUP BY z.zone_code, z.zone_name
           ORDER BY count DESC, z.zone_code`,
-        [geomJson],
+        [geomJson, planningContextId],
       ),
       pool.query<{
         id: string;
@@ -254,11 +272,11 @@ export async function analyzeArea(
         `${inputCte}
          SELECT c.id, c.constraint_type, c.risk_level, c.description
            FROM constraints c, input
-          WHERE ST_Intersects(c.geom, input.geom)
+          WHERE c.planning_context_id = $2 AND ST_Intersects(c.geom, input.geom)
           ORDER BY CASE lower(c.risk_level)
                      WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3
                    END, c.constraint_type`,
-        [geomJson],
+        [geomJson, planningContextId],
       ),
       pool.query<{
         id: string;
@@ -271,50 +289,26 @@ export async function analyzeArea(
          SELECT t.id, t.name, t.mode,
                 ST_Distance(t.geom::geography, (SELECT geom FROM centroid)::geography) AS distance_meters
            FROM transit_points t
-          WHERE ST_DWithin(t.geom::geography, (SELECT geom FROM centroid)::geography, $2)
+          WHERE t.planning_context_id = $2
+            AND ST_DWithin(t.geom::geography, (SELECT geom FROM centroid)::geography, $3)
           ORDER BY distance_meters ASC
           LIMIT 8`,
-        [geomJson, TRANSIT_RADIUS_METERS],
+        [geomJson, planningContextId, TRANSIT_RADIUS_METERS],
       ),
       pool.query<{ status: string; count: number }>(
         `${inputCte}
          SELECT d.status, count(*)::int AS count
            FROM development_activity d, input
-          WHERE ST_Intersects(d.geom, input.geom)
+          WHERE d.planning_context_id = $2 AND ST_Intersects(d.geom, input.geom)
           GROUP BY d.status
           ORDER BY count DESC, d.status`,
-        [geomJson],
+        [geomJson, planningContextId],
       ),
     ]);
 
   const summaryRow = summary.rows[0];
   const areaSqm = Number(summaryRow?.area_sqm ?? 0);
   const avgScoreRaw = summaryRow?.avg_score;
-
-  const zoningBreakdown: ZoningBreakdownItem[] = zoning.rows.map((row) => ({
-    zoneCode: row.zone_code,
-    zoneName: row.zone_name,
-    count: row.count,
-  }));
-
-  const intersectingConstraints: ConstraintIntersection[] = constraints.rows.map(
-    (row) => ({
-      id: row.id,
-      constraintType: row.constraint_type,
-      riskLevel: row.risk_level,
-      description: row.description,
-    }),
-  );
-
-  const nearbyTransit: NearbyTransitItem[] = transit.rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    mode: row.mode,
-    distanceMeters: Math.round(Number(row.distance_meters)),
-  }));
-
-  const developmentActivityByStatus: DevelopmentActivitySummary[] =
-    devByStatus.rows.map((row) => ({ status: row.status, count: row.count }));
 
   return {
     areaSqm: round(areaSqm, 2),
@@ -324,10 +318,28 @@ export async function analyzeArea(
       avgScoreRaw === null || avgScoreRaw === undefined
         ? null
         : round(Number(avgScoreRaw), 1),
-    zoningBreakdown,
-    intersectingConstraints,
-    nearbyTransit,
+    zoningBreakdown: zoning.rows.map((row) => ({
+      zoneCode: row.zone_code,
+      zoneName: row.zone_name,
+      count: row.count,
+    })),
+    intersectingConstraints: constraints.rows.map((row) => ({
+      id: row.id,
+      constraintType: row.constraint_type,
+      riskLevel: row.risk_level,
+      description: row.description,
+    })),
+    nearbyTransit: transit.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      mode: row.mode,
+      distanceMeters: Math.round(Number(row.distance_meters)),
+    })),
     developmentActivityCount: summaryRow?.dev_count ?? 0,
-    developmentActivityByStatus,
+    developmentActivityByStatus: devByStatus.rows.map((row) => ({
+      status: row.status,
+      count: row.count,
+    })),
+    planningContextId,
   };
 }

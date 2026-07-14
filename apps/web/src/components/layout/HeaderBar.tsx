@@ -6,12 +6,16 @@ import Chip from '@mui/material/Chip';
 import PublicIcon from '@mui/icons-material/Public';
 import PlaceIcon from '@mui/icons-material/Place';
 import { useMapStore } from '../../store/mapStore';
+import { usePlanningContextStore } from '../../store/planningContextStore';
 import { getFeatureTitle } from '../../data/featureDisplay';
 import { AccessStatusChip } from './AccessControls';
 
 /** Top application bar showing the SiteLens brand and tagline. */
 export default function HeaderBar() {
   const selectedFeature = useMapStore((state) => state.selectedFeature);
+  const selectedContext = usePlanningContextStore(
+    (state) => state.selectedContext,
+  );
   const selectedName = selectedFeature
     ? getFeatureTitle(selectedFeature.layerId, selectedFeature.properties)
     : null;
@@ -58,6 +62,20 @@ export default function HeaderBar() {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {selectedContext && (
+            <Chip
+              color={
+                selectedContext.source === 'local-demo' ? 'default' : 'info'
+              }
+              variant="outlined"
+              label={selectedContext.label}
+              sx={{
+                maxWidth: 220,
+                fontWeight: 600,
+                display: { xs: 'none', md: 'flex' },
+              }}
+            />
+          )}
           {selectedName && (
             <Chip
               icon={<PlaceIcon />}

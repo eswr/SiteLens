@@ -14,11 +14,17 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import MenuItem from '@mui/material/MenuItem';
 import SearchIcon from '@mui/icons-material/Search';
 import PublicIcon from '@mui/icons-material/Public';
 import GestureIcon from '@mui/icons-material/Gesture';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { PLANNING_LAYERS, LAYER_COLORS, LAYER_BY_ID } from '../../data/layers';
+import {
+  PLANNING_LAYERS,
+  LAYER_COLORS,
+  LAYER_BY_ID,
+  layerLabelsForSource,
+} from '../../data/layers';
 import { useLayerStore } from '../../store/layerStore';
 import { useSearchStore } from '../../store/searchStore';
 import { useMapStore } from '../../store/mapStore';
@@ -31,6 +37,7 @@ import {
   MIN_PLACE_QUERY_LENGTH,
   MIN_SUGGESTION_QUERY_LENGTH,
 } from '../../store/placeSearchStore';
+import { usePlanningContextStore } from '../../store/planningContextStore';
 import { isApiConfigured } from '../../api/client';
 import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
 import { DemoAccessSwitcher } from './AccessControls';
@@ -133,9 +140,14 @@ function PlanningSearchInner() {
     (state) => state.clearSelectedPlace,
   );
 
+  const selectedContextId = usePlanningContextStore(
+    (state) => state.selectedContextId,
+  );
+  const dataRevision = usePlanningContextStore((state) => state.dataRevision);
+
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    void initialize();
+  }, [initialize, selectedContextId, dataRevision]);
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(input), 200);
@@ -651,6 +663,83 @@ function PlacesSearchInner() {
   );
 }
 
+function sourceChipLabel(source: string): string {
+  if (source === 'local-demo') return 'Local demo';
+  if (source === 'external-osm') return 'External OSM';
+  if (source === 'synthetic-fallback') return 'Synthetic fallback';
+  if (source === 'external-overture') return 'External Overture';
+  return source;
+}
+
+function PlanningContextSection() {
+  const loadContexts = usePlanningContextStore((state) => state.loadContexts);
+  const contexts = usePlanningContextStore((state) => state.contexts);
+  const selectedContextId = usePlanningContextStore(
+    (state) => state.selectedContextId,
+  );
+  const selectedContext = usePlanningContextStore(
+    (state) => state.selectedContext,
+  );
+  const selectContext = usePlanningContextStore((state) => state.selectContext);
+  const isLoading = usePlanningContextStore((state) => state.isLoading);
+
+  useEffect(() => {
+    void loadContexts();
+  }, [loadContexts]);
+
+  return (
+    <SectionCard>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        Planning context
+      </Typography>
+      <TextField
+        select
+        fullWidth
+        size="small"
+        label="Context"
+        value={selectedContextId}
+        disabled={isLoading || contexts.length === 0}
+        onChange={(event) => selectContext(event.target.value)}
+        slotProps={{
+          htmlInput: { 'aria-label': 'Select planning context' },
+        }}
+      >
+        {contexts.map((context) => (
+          <MenuItem
+            key={context.id}
+            value={context.id}
+            disabled={context.status !== 'ready'}
+          >
+            {context.label}
+            {context.status !== 'ready' ? ` · ${context.status}` : ''}
+          </MenuItem>
+        ))}
+      </TextField>
+      {selectedContext && (
+        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          <Chip
+            size="small"
+            variant="outlined"
+            label={sourceChipLabel(selectedContext.source)}
+            color={
+              selectedContext.source === 'local-demo' ? 'default' : 'info'
+            }
+            sx={{ alignSelf: 'flex-start' }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            {selectedContext.disclaimer}
+          </Typography>
+        </Box>
+      )}
+      {!isApiConfigured() && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+          External planning contexts require backend API mode.
+        </Typography>
+      )}
+    </SectionCard>
+  );
+}
+
 function SearchSection() {
   const [mode, setMode] = useState<'planning' | 'places'>('planning');
   return (
@@ -833,6 +922,13 @@ function AnalysisSection() {
 function LayerToggles() {
   const visibleLayerIds = useLayerStore((state) => state.visibleLayerIds);
   const toggleLayer = useLayerStore((state) => state.toggleLayer);
+  const selectedContext = usePlanningContextStore(
+    (state) => state.selectedContext,
+  );
+  const labels = layerLabelsForSource(
+    selectedContext?.source !== 'local-demo' &&
+      selectedContext?.source !== undefined,
+  );
 
   return (
     <Box
@@ -864,9 +960,11 @@ function LayerToggles() {
               <LayerColorDot layerId={layer.id} point={false} />
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="subtitle2">{layer.label}</Typography>
+              <Typography variant="subtitle2">
+                {labels[layer.id].label}
+              </Typography>
               <Typography variant="body2" color="text.secondary">
-                {layer.description}
+                {labels[layer.id].description}
               </Typography>
             </Box>
             <Switch
@@ -874,7 +972,9 @@ function LayerToggles() {
               checked={checked}
               onChange={() => toggleLayer(layer.id)}
               slotProps={{
-                input: { 'aria-label': `Toggle ${layer.label} layer` },
+                input: {
+                  'aria-label': `Toggle ${labels[layer.id].label} layer`,
+                },
               }}
             />
           </Box>
@@ -885,6 +985,13 @@ function LayerToggles() {
 }
 
 function Legend() {
+  const selectedContext = usePlanningContextStore(
+    (state) => state.selectedContext,
+  );
+  const labels = layerLabelsForSource(
+    selectedContext?.source !== 'local-demo' &&
+      selectedContext?.source !== undefined,
+  );
   return (
     <SectionCard>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -901,7 +1008,7 @@ function Legend() {
               point={layer.geometryType === 'point'}
             />
             <Typography variant="body2" color="text.secondary">
-              {layer.label}
+              {labels[layer.id].label}
             </Typography>
           </Box>
         ))}
@@ -930,6 +1037,9 @@ export default function Sidebar() {
         borderColor: 'divider',
       }}
     >
+      <Typography variant="overline">Planning context</Typography>
+      <PlanningContextSection />
+
       <Typography variant="overline">Search</Typography>
       <SearchSection />
 
@@ -953,9 +1063,9 @@ export default function Sidebar() {
           About
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          SiteLens is a portfolio demo using mock GeoJSON data. It demonstrates
-          geospatial frontend engineering, spatial analysis, analytics
-          dashboards, and deterministic AI-assisted planning summaries.
+          SiteLens can use the bundled Sydney Demo or build open-map planning
+          context for a selected worldwide place. External contexts are not
+          official zoning, cadastre, or development-application data.
         </Typography>
       </Box>
     </Box>

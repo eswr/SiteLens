@@ -3,9 +3,11 @@ import { Type } from '@sinclair/typebox';
 import type { Static } from '@sinclair/typebox';
 import type {
   ApiEnvelope,
+  ApiErrorEnvelope,
   PlanningSummaryResponse,
   SpatialAnalysisResult,
 } from '@sitelens/shared';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import {
   assertFeature,
   assertUsageWithinLimit,
@@ -16,6 +18,7 @@ import { accessScope } from '../auth/capabilities';
 import { cached } from '../cache/cacheJson';
 import { CACHE_TTL, planningSummaryKey } from '../cache/cacheKeys';
 import { generatePlanningSummary } from '../summary/generatePlanningSummary';
+import { resolvePlanningContextIdParam } from '../lib/planningContextParam';
 
 const zoningItem = Type.Object({
   zoneCode: Type.String(),
@@ -49,6 +52,7 @@ const analysisResultSchema = Type.Object({
   nearbyTransit: Type.Array(transitItem),
   developmentActivityCount: Type.Number(),
   developmentActivityByStatus: Type.Array(activityItem),
+  planningContextId: Type.Optional(Type.String()),
 });
 
 const planningSummaryBody = Type.Object({
@@ -61,6 +65,15 @@ const planningSummaryBody = Type.Object({
           Type.Literal('postgis'),
           Type.Literal('turf-local'),
           Type.Literal('turf-fallback'),
+        ]),
+      ),
+      planningContextId: Type.Optional(Type.String()),
+      planningContextSource: Type.Optional(
+        Type.Union([
+          Type.Literal('local-demo'),
+          Type.Literal('external-osm'),
+          Type.Literal('external-overture'),
+          Type.Literal('synthetic-fallback'),
         ]),
       ),
     }),
@@ -80,8 +93,18 @@ export async function planningSummaryRoutes(
   app.post<{ Body: PlanningSummaryBody }>(
     '/planning-summary',
     { schema: { body: planningSummaryBody } },
-    async (request) => {
-      // Entitlement gate driven by the billing plan (throws 403 otherwise).
+    async (request, reply) => {
+      const resolved = resolvePlanningContextIdParam(
+        request.body.context?.planningContextId,
+      );
+      if (!resolved.ok) {
+        const body: ApiErrorEnvelope = {
+          error: { code: 'INVALID_CONTEXT', message: resolved.message },
+        };
+        reply.code(400);
+        return body;
+      }
+
       const { user, billing } = await resolveBilling(request);
       assertFeature(billing, 'summary:generate');
       if (user) {
@@ -94,18 +117,31 @@ export async function planningSummaryRoutes(
 
       const scope = accessScope(billing);
       const analysisResult = request.body.analysisResult as SpatialAnalysisResult;
+      const context = {
+        ...request.body.context,
+        planningContextId: resolved.planningContextId,
+        planningContextSource:
+          request.body.context?.planningContextSource ??
+          (resolved.planningContextId === LOCAL_DEMO_SYDNEY_CONTEXT_ID
+            ? ('local-demo' as const)
+            : ('external-osm' as const)),
+      };
 
+      const key = planningSummaryKey(
+        resolved.planningContextId,
+        scope,
+        analysisResult,
+      );
       const { data: summary, cache, computedAt } = await cached({
-        key: planningSummaryKey(scope, analysisResult),
+        key,
         ttlSeconds: CACHE_TTL.summary,
         compute: async () =>
           generatePlanningSummary({
             analysisResult,
-            context: request.body.context,
+            context,
           }),
       });
 
-      // Meter successful backend summaries (never for local fallback).
       if (user) {
         await recordUsage(user.id, 'summary:generate');
       }
@@ -116,6 +152,7 @@ export async function planningSummaryRoutes(
           requestId: request.id,
           cache,
           computedAt,
+          planningContextId: resolved.planningContextId,
           access: { role: user?.role, plan: billing.plan.id },
         },
       };

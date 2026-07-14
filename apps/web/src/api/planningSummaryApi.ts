@@ -1,6 +1,11 @@
+import type { PlanningContextSource } from '@sitelens/shared';
 import { apiPostWithMeta, type CacheStatus } from './client';
 import type { PlanningSummary } from '../types/aiSummary';
 import type { SpatialAnalysisResult } from '../types/analysis';
+import {
+  getSelectedPlanningContextId,
+  usePlanningContextStore,
+} from '../store/planningContextStore';
 
 export type PlanningSummarySourceEngine =
   | 'postgis'
@@ -12,6 +17,8 @@ export interface PlanningSummaryApiInput {
   context?: {
     label?: string;
     sourceEngine?: PlanningSummarySourceEngine;
+    planningContextId?: string;
+    planningContextSource?: PlanningContextSource;
   };
 }
 
@@ -33,9 +40,22 @@ interface PlanningSummaryData {
 export async function generatePlanningSummaryWithApi(
   input: PlanningSummaryApiInput,
 ): Promise<PlanningSummaryApiResult> {
+  const selected = usePlanningContextStore.getState().selectedContext;
+  const planningContextId =
+    input.context?.planningContextId ?? getSelectedPlanningContextId();
+  const payload: PlanningSummaryApiInput = {
+    analysisResult: input.analysisResult,
+    context: {
+      ...input.context,
+      planningContextId,
+      label: input.context?.label ?? selected?.label,
+      planningContextSource:
+        input.context?.planningContextSource ?? selected?.source,
+    },
+  };
   const { data, meta } = await apiPostWithMeta<PlanningSummaryData>(
     '/api/planning-summary',
-    input,
+    payload,
   );
   return {
     summary: data.summary,

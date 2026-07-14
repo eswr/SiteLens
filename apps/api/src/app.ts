@@ -14,6 +14,7 @@ import { searchRoutes } from './routes/search';
 import { geocodingRoutes } from './routes/geocoding';
 import { analysisRoutes } from './routes/analysis';
 import { planningSummaryRoutes } from './routes/planningSummary';
+import { planningContextsRoutes } from './routes/planningContexts';
 
 export interface BuildAppOptions {
   webOrigin?: string;
@@ -77,6 +78,7 @@ export async function buildApp(
       await api.register(geocodingRoutes);
       await api.register(analysisRoutes);
       await api.register(planningSummaryRoutes);
+      await api.register(planningContextsRoutes);
     },
     { prefix: '/api' },
   );

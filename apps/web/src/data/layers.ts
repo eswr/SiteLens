@@ -79,6 +79,46 @@ export const PLANNING_LAYERS: PlanningLayerConfig[] = [
   },
 ];
 
+/** Display labels adapt when the selected context is open-map-derived. */
+export function layerLabelsForSource(isExternal: boolean): Record<
+  PlanningLayerId,
+  { label: string; description: string }
+> {
+  if (!isExternal) {
+    return Object.fromEntries(
+      PLANNING_LAYERS.map((layer) => [
+        layer.id,
+        { label: layer.label, description: layer.description },
+      ]),
+    ) as Record<PlanningLayerId, { label: string; description: string }>;
+  }
+  return {
+    parcels: {
+      label: 'Sites / Buildings',
+      description: 'Candidate sites and buildings from open map data (not cadastre).',
+    },
+    zoning: {
+      label: 'Land Use',
+      description:
+        'Open-map land-use / park / water context overlays (not official zoning).',
+    },
+    constraints: {
+      label: 'Context Constraints',
+      description:
+        'Environmental, open-space, corridor, and construction context signals.',
+    },
+    transit: {
+      label: 'Transit',
+      description: 'Transit / public transport points from open map data.',
+    },
+    developmentActivity: {
+      label: 'Activity Proxies',
+      description:
+        'Amenity / construction proxies — not official development applications.',
+    },
+  };
+}
+
 /** Layer colors, shared between the map paint styles and the sidebar legend. */
 export const LAYER_COLORS: Record<PlanningLayerId, string> = {
   parcels: '#2563eb',

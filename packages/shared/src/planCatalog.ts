@@ -12,6 +12,7 @@ const PRO_FEATURES: BillingFeature[] = [
   'search:full',
   'analysis:run',
   'summary:generate',
+  'external-context:build',
 ];
 
 const ENTERPRISE_FEATURES: BillingFeature[] = [
@@ -35,6 +36,7 @@ export const PLAN_CATALOG: Record<BillingPlanId, BillingPlan> = {
       parcelLimit: 5,
       analysisRunsPerMonth: 0,
       summaryRunsPerMonth: 0,
+      externalContextBuildsPerMonth: 0,
     },
   },
   pro: {
@@ -51,6 +53,7 @@ export const PLAN_CATALOG: Record<BillingPlanId, BillingPlan> = {
       parcelLimit: null,
       analysisRunsPerMonth: 100,
       summaryRunsPerMonth: 50,
+      externalContextBuildsPerMonth: 20,
     },
   },
   enterprise: {
@@ -67,6 +70,7 @@ export const PLAN_CATALOG: Record<BillingPlanId, BillingPlan> = {
       parcelLimit: null,
       analysisRunsPerMonth: null,
       summaryRunsPerMonth: null,
+      externalContextBuildsPerMonth: null,
     },
   },
 };

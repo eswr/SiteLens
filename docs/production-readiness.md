@@ -45,6 +45,15 @@ a real geospatial SaaS. Items are grouped by concern.
 - [ ] Source metrics always visible alongside generated text
 - [ ] Human review for risky / high-impact outputs
 
+## External planning contexts
+
+- [ ] Replace public Overpass with self-hosted Overpass, Overture Maps ingestion, or official municipal open-data connectors per city
+- [ ] Add distributed Redis-backed rate limiting / job queue for provider fetches (process-local spacing is demo-oriented)
+- [ ] Keep clear attribution and disclaimers that open-map context is not official zoning/cadastre/DAs
+- [ ] Schedule freshness jobs (`EXTERNAL_CONTEXT_REBUILD_AFTER_DAYS` or equivalent)
+- [ ] Confirm licensing/attribution for any commercial geospatial providers
+- [ ] Monitor `external-context:build` metering (Free 0 / Pro monthly / Enterprise unlimited) and advisory-lock contention (`409 BUILD_IN_PROGRESS`)
+
 ## Geocoding (worldwide place search)
 
 - [ ] Replace public Nominatim with a self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider

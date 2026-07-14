@@ -15,6 +15,7 @@ export interface CapabilityFlags {
   canReadParcels: boolean;
   canRunAnalysis: boolean;
   canGenerateSummary: boolean;
+  canBuildExternalContext: boolean;
   canIngestData: boolean;
   canViewAllLayers: boolean;
 }

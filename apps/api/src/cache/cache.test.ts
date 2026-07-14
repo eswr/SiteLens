@@ -27,10 +27,26 @@ vi.mock('./cacheClient', () => ({
 vi.mock('../db/spatialRepository', () => ({
   getLayers: getLayersMock,
   getParcels: vi.fn(async () => ({ type: 'FeatureCollection', features: [] })),
+  getLayerFeatures: vi.fn(async () => ({ type: 'FeatureCollection', features: [] })),
   getParcelById: vi.fn(async () => null),
   searchFeatures: vi.fn(async () => []),
   analyzeArea: analyzeAreaMock,
   InvalidGeometryError: class InvalidGeometryError extends Error {},
+}));
+
+vi.mock('../externalData/planningContextRepository', () => ({
+  getPlanningContext: vi.fn(async (id: string) => ({
+    id,
+    label: 'Sydney Demo',
+    source: 'local-demo',
+    status: 'ready',
+    center: [151.2093, -33.8688],
+    bbox: [151.199, -33.876, 151.22, -33.86],
+    disclaimer: 'demo',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })),
+  listPlanningContexts: vi.fn(async () => []),
 }));
 
 vi.mock('../billing/billingRepository', async (importOriginal) => {

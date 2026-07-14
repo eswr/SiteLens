@@ -54,7 +54,7 @@ export interface ParcelAnalysisSummary {
   totalAreaSqm: number;
 }
 
-/** The full result of analyzing an AOI against the mock planning layers. */
+/** The full result of analyzing an AOI against the planning layers. */
 export interface SpatialAnalysisResult {
   areaSqm: number;
   areaHectares: number;
@@ -65,4 +65,5 @@ export interface SpatialAnalysisResult {
   nearbyTransit: NearbyTransitItem[];
   developmentActivityCount: number;
   developmentActivityByStatus: DevelopmentActivitySummary[];
+  planningContextId?: string;
 }

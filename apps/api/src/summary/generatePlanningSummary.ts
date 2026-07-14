@@ -8,6 +8,40 @@ import type {
   SpatialAnalysisResult,
   ZoningBreakdownItem,
 } from '@sitelens/shared';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
+
+function buildDataCaveats(input: PlanningSummaryRequest): string[] {
+  const source = input.context?.planningContextSource;
+  const contextId = input.context?.planningContextId;
+  const isExternal =
+    source === 'external-osm' ||
+    source === 'external-overture' ||
+    source === 'synthetic-fallback' ||
+    (typeof contextId === 'string' && contextId.startsWith('external-'));
+
+  const caveats = isExternal
+    ? [
+        'This summary is generated from external open map context for the selected place. It is not official planning advice, zoning, cadastre, or development-application data.',
+      ]
+    : [
+        'Figures derive from bundled synthetic portfolio GeoJSON (Sydney Demo), not official cadastral or planning records.',
+      ];
+
+  caveats.push(
+    'Spatial results use simple intersection and centroid-distance heuristics.',
+    'This summary is generated deterministically by the backend — no external AI service is called.',
+  );
+
+  if (
+    contextId &&
+    contextId !== LOCAL_DEMO_SYDNEY_CONTEXT_ID &&
+    input.context?.label
+  ) {
+    caveats.push(`Planning context: ${input.context.label}.`);
+  }
+
+  return caveats;
+}
 
 type ScoreBand = 'none' | 'low' | 'moderate' | 'high';
 
@@ -294,11 +328,7 @@ export function generatePlanningSummary(
     ),
     sections,
     recommendedNextChecks: buildNextChecks(result),
-    dataCaveats: [
-      'Figures derive from mock portfolio GeoJSON, not official cadastral or planning records.',
-      'Spatial results use simple intersection and centroid-distance heuristics.',
-      'This summary is generated deterministically by the backend — no external AI service is called.',
-    ],
+    dataCaveats: buildDataCaveats(input),
     sourceMetrics: {
       areaHectares: result.areaHectares,
       parcelCount: result.parcelCount,

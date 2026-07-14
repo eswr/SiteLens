@@ -284,7 +284,7 @@ export function generateMockPlanningSummary(
     sections,
     recommendedNextChecks: buildNextChecks(result),
     dataCaveats: [
-      'Figures derive from mock portfolio GeoJSON, not official cadastral or planning records.',
+      'Figures derive from bundled synthetic portfolio GeoJSON (Sydney Demo), not official cadastral or planning records.',
       'Spatial results use simple intersection and centroid-distance heuristics.',
       'This summary is generated deterministically on-device — no external AI service is called.',
     ],

@@ -1,10 +1,13 @@
 import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
+import { LOCAL_DEMO_SYDNEY_CONTEXT_ID } from '@sitelens/shared';
 import { PLANNING_LAYERS } from '../data/layers';
 import { getFeatureTitle, getFeatureSubtitle } from '../data/featureDisplay';
 import type { PlanningLayerId } from '../types/planning';
+import { isApiConfigured } from '../api/client';
+import { fetchLayerGeoJson } from '../api/layersApi';
 
-/** A searchable, geocoded record derived from a mock GeoJSON feature. */
+/** A searchable, geocoded record derived from a planning GeoJSON feature. */
 export interface IndexedFeature {
   id: string;
   layerId: PlanningLayerId;
@@ -42,22 +45,48 @@ function indexFeature(
   };
 }
 
+async function loadLayerCollection(
+  layerId: PlanningLayerId,
+  sourceUrl: string,
+  planningContextId: string,
+): Promise<FeatureCollection> {
+  if (
+    isApiConfigured() &&
+    planningContextId !== LOCAL_DEMO_SYDNEY_CONTEXT_ID
+  ) {
+    return fetchLayerGeoJson(layerId, planningContextId);
+  }
+  if (isApiConfigured()) {
+    // Prefer backend Sydney context when API mode is on so search matches PostGIS.
+    try {
+      return await fetchLayerGeoJson(layerId, planningContextId);
+    } catch {
+      // Fall through to static files.
+    }
+  }
+  const response = await fetch(sourceUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to load ${layerId} (${response.status})`);
+  }
+  return (await response.json()) as FeatureCollection;
+}
+
 /**
- * Fetch every mock planning GeoJSON file and build a flat, searchable index.
+ * Build a searchable index for the selected planning context.
  *
- * Frontend-only: data is read from `/data/*.geojson`. Throws if any file fails
- * to load or parse, so callers can surface a clean error state.
+ * API mode loads features from the backend; frontend-only mode uses Sydney
+ * static GeoJSON under `/data/*.geojson`.
  */
-export async function buildFeatureIndex(): Promise<IndexedFeature[]> {
+export async function buildFeatureIndex(
+  planningContextId: string = LOCAL_DEMO_SYDNEY_CONTEXT_ID,
+): Promise<IndexedFeature[]> {
   const perLayer = await Promise.all(
     PLANNING_LAYERS.map(async (layer) => {
-      const response = await fetch(layer.sourceUrl);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load ${layer.label} (${response.status})`,
-        );
-      }
-      const collection = (await response.json()) as FeatureCollection;
+      const collection = await loadLayerCollection(
+        layer.id,
+        layer.sourceUrl,
+        planningContextId,
+      );
       return collection.features.map((feature) =>
         indexFeature(feature, layer.id, layer.sourceId),
       );

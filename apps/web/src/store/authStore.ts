@@ -16,6 +16,7 @@ const LOCAL_CAPABILITIES: CapabilityFlags = {
   canReadParcels: true,
   canRunAnalysis: true,
   canGenerateSummary: true,
+  canBuildExternalContext: true,
   canIngestData: false,
   canViewAllLayers: true,
 };

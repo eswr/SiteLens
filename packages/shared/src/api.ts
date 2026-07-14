@@ -27,9 +27,10 @@ export interface ApiEnvelope<T> {
     /** Item count, when the payload is a collection. */
     count?: number;
     access?: AccessMeta;
+    /** Selected planning context for spatial responses. */
+    planningContextId?: string;
   };
 }
-
 /** Standard error envelope returned by the SiteLens API. */
 export interface ApiErrorEnvelope {
   error: {

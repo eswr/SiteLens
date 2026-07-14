@@ -19,9 +19,12 @@ external LLM), gated by plan features, metered, and Redis-cached.
 | GET | `/api/layers` | Layer metadata + feature counts (from PostGIS). |
 | GET | `/api/parcels` | Parcels FeatureCollection via `ST_AsGeoJSON` (count meta). |
 | GET | `/api/parcels/:id` | One parcel by `id` / `parcel_id` (404 if missing). |
-| GET | `/api/search?q=` | Search across spatial tables with `ILIKE` (top 8, incl. bbox). |
+| GET | `/api/search?q=&planningContextId=` | Search across spatial tables with `ILIKE` (scoped to a planning context). |
+| GET | `/api/layers/:layerId/geojson?planningContextId=` | Layer GeoJSON for map/index loading. |
 | GET | `/api/geocode/search?q=&limit=` | **Worldwide place search** via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced, static-demo fallback). |
-| POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (area, parcels, zoning, constraints, transit, development activity). |
+| GET | `/api/planning-contexts` | List Sydney Demo + generated external contexts. |
+| POST | `/api/planning-contexts/build` | **Build external OSM planning context** for a selected place (Overpass → normalize → PostGIS; Pro+). |
+| POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (scoped by `planningContextId`). |
 | POST | `/api/planning-summary` | **Deterministic planning summary** from analysis metrics (gated by `summary:generate`, metered, cached). |
 
 All responses use a consistent envelope: `{ data, meta? }` on success and

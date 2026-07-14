@@ -50,6 +50,7 @@ export const SPATIAL_TABLE_DROP_ORDER = [
   'zoning_overlays',
   'parcels',
   'planning_layers',
+  'planning_contexts',
   'schema_migrations',
 ];
 

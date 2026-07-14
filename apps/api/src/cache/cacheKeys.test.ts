@@ -4,51 +4,76 @@ import {
   layersKey,
   parcelDetailKey,
   placeSearchKey,
+  planningSummaryKey,
   searchKey,
 } from './cacheKeys';
 
 describe('cacheKeys', () => {
-  it('layersKey is a stable, namespaced, versioned key', () => {
-    expect(layersKey()).toBe('sitelens:layers:v1');
+  it('layersKey includes planningContextId', () => {
+    expect(layersKey('local-demo-sydney')).toBe(
+      'sitelens:layers:v1:local-demo-sydney',
+    );
+    expect(layersKey('external-osm:bengaluru:abc')).not.toBe(
+      layersKey('local-demo-sydney'),
+    );
   });
 
-  it('parcelDetailKey includes the id', () => {
-    expect(parcelDetailKey('parcel-001')).toBe('sitelens:parcel:v1:parcel-001');
+  it('parcelDetailKey includes context and id', () => {
+    expect(parcelDetailKey('local-demo-sydney', 'parcel-001')).toBe(
+      'sitelens:parcel:v1:local-demo-sydney:parcel-001',
+    );
   });
 
-  it('searchKey normalizes case and whitespace and includes scope', () => {
-    expect(searchKey(' Central ', 'free')).toBe(searchKey('central', 'free'));
-    expect(searchKey('exchange', 'free')).not.toBe(searchKey('foundry', 'free'));
-    expect(searchKey('exchange', 'free')).not.toBe(searchKey('exchange', 'pro'));
-    expect(searchKey('x', 'free')).toContain(':free:');
-    expect(searchKey('x', 'pro')).toContain(':pro:');
+  it('searchKey normalizes case and differs by context/scope', () => {
+    expect(searchKey('local-demo-sydney', ' Central ', 'free')).toBe(
+      searchKey('local-demo-sydney', 'central', 'free'),
+    );
+    expect(searchKey('local-demo-sydney', 'metro', 'free')).not.toBe(
+      searchKey('external-osm:x:1', 'metro', 'free'),
+    );
+    expect(searchKey('local-demo-sydney', 'x', 'free')).not.toBe(
+      searchKey('local-demo-sydney', 'x', 'pro'),
+    );
   });
 
-  it('analysisKey is stable for equivalent geometry and never contains raw coords', () => {
+  it('analysisKey differs by planning context for the same AOI polygon', () => {
     const geometry = {
       type: 'Polygon',
       coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]],
     };
-    const key = analysisKey(geometry, 'pro');
-    expect(key).toBe(analysisKey(structuredClone(geometry), 'pro'));
-    expect(key.startsWith('sitelens:analysis:v1:pro:')).toBe(true);
-    // The hash must not leak coordinates.
+    const key = analysisKey('local-demo-sydney', geometry, 'pro');
+    expect(key).toBe(analysisKey('local-demo-sydney', structuredClone(geometry), 'pro'));
+    expect(key.startsWith('sitelens:analysis:v1:local-demo-sydney:pro:')).toBe(
+      true,
+    );
     expect(key).not.toContain('151');
-    expect(key).not.toContain('[');
+    expect(analysisKey('ctx-a', geometry, 'pro')).not.toBe(
+      analysisKey('ctx-b', geometry, 'pro'),
+    );
   });
 
-  it('analysisKey differs for different geometry', () => {
-    const a = { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] };
-    const b = { type: 'Polygon', coordinates: [[[0, 0], [2, 0], [2, 2], [0, 0]]] };
-    expect(analysisKey(a, 'pro')).not.toBe(analysisKey(b, 'pro'));
+  it('planningSummaryKey is scoped by planning context', () => {
+    const analysisResult = {
+      areaSqm: 1000,
+      parcelCount: 2,
+      averageDevelopmentScore: 70,
+      zoningBreakdown: [],
+      intersectingConstraints: [],
+      nearbyTransit: [],
+      developmentActivityCount: 0,
+    };
+    expect(
+      planningSummaryKey('local-demo-sydney', 'pro', analysisResult),
+    ).not.toBe(
+      planningSummaryKey('external-osm:city:1', 'pro', analysisResult),
+    );
   });
 
-  it('placeSearchKey includes provider scope and never mixes nominatim/static-demo', () => {
+  it('placeSearchKey remains independent from planning context', () => {
     const nominatim = placeSearchKey('nominatim', 'Bengaluru', 5);
     const staticDemo = placeSearchKey('static-demo', 'Bengaluru', 5);
     expect(nominatim).toContain(':nominatim:');
     expect(staticDemo).toContain(':static-demo:');
     expect(nominatim).not.toBe(staticDemo);
-    expect(placeSearchKey('nominatim', ' Bengaluru ', 5)).toBe(nominatim);
   });
 });

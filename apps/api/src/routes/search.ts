@@ -1,23 +1,45 @@
 import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import type { Static } from '@sinclair/typebox';
-import type { ApiEnvelope, SearchResultItem } from '@sitelens/shared';
+import type {
+  ApiEnvelope,
+  ApiErrorEnvelope,
+  SearchResultItem,
+} from '@sitelens/shared';
 import { searchFeatures } from '../db/spatialRepository';
 import { sendDatabaseUnavailable } from '../lib/httpErrors';
 import { cached } from '../cache/cacheJson';
 import { CACHE_TTL, searchKey } from '../cache/cacheKeys';
 import { accessScope } from '../auth/capabilities';
 import { resolveBilling } from '../billing/billingService';
+import {
+  assertPlanningContextExists,
+  resolvePlanningContextIdParam,
+} from '../lib/planningContextParam';
 
-const searchQuery = Type.Object({ q: Type.Optional(Type.String()) });
+const searchQuery = Type.Object({
+  q: Type.Optional(Type.String()),
+  planningContextId: Type.Optional(Type.String()),
+});
 type SearchQuery = Static<typeof searchQuery>;
 
-/** `GET /api/search?q=` — search across features (plan-limited count), from PostGIS. */
+/** `GET /api/search?q=` — search features within a planning context. */
 export async function searchRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: SearchQuery }>(
     '/search',
     { schema: { querystring: searchQuery } },
     async (request, reply) => {
+      const resolved = resolvePlanningContextIdParam(
+        request.query.planningContextId,
+      );
+      if (!resolved.ok) {
+        const body: ApiErrorEnvelope = {
+          error: { code: 'INVALID_CONTEXT', message: resolved.message },
+        };
+        reply.code(400);
+        return body;
+      }
+
       const { user, billing } = await resolveBilling(request);
       const scope = accessScope(billing);
       const limit = billing.plan.limits.searchResults;
@@ -27,24 +49,43 @@ export async function searchRoutes(app: FastifyInstance): Promise<void> {
       if (!query) {
         const body: ApiEnvelope<SearchResultItem[]> = {
           data: [],
-          meta: { requestId: request.id, cache: 'none', count: 0 },
+          meta: {
+            requestId: request.id,
+            cache: 'none',
+            count: 0,
+            planningContextId: resolved.planningContextId,
+          },
         };
         return body;
       }
       try {
+        const exists = await assertPlanningContextExists(
+          resolved.planningContextId,
+        );
+        if (!exists.ok) {
+          const body: ApiErrorEnvelope = {
+            error: { code: 'INVALID_CONTEXT', message: exists.message },
+          };
+          reply.code(exists.status);
+          return body;
+        }
+
+        const key = searchKey(resolved.planningContextId, query, scope);
         const { data: results, cache, computedAt } = await cached({
-          key: searchKey(query, scope),
+          key,
           ttlSeconds: CACHE_TTL.search,
-          compute: () => searchFeatures(query, limit),
+          compute: () =>
+            searchFeatures(resolved.planningContextId, query, limit),
         });
         const body: ApiEnvelope<SearchResultItem[]> = {
           data: results,
           meta: {
             requestId: request.id,
             cache,
-            cacheKey: searchKey(query, scope),
+            cacheKey: key,
             computedAt,
             count: results.length,
+            planningContextId: resolved.planningContextId,
             access: {
               role: user?.role,
               plan: billing.plan.id,

@@ -45,6 +45,9 @@ describe('generatePlanningSummary', () => {
     expect(summary.sections).toHaveLength(5);
     expect(summary.recommendedNextChecks.length).toBeGreaterThan(0);
     expect(summary.dataCaveats.length).toBeGreaterThan(0);
+    expect(summary.dataCaveats.some((c) => /synthetic portfolio/i.test(c))).toBe(
+      true,
+    );
     expect(summary.sourceMetrics).toEqual({
       areaHectares: 12,
       parcelCount: 4,
@@ -53,6 +56,20 @@ describe('generatePlanningSummary', () => {
       nearbyTransitCount: 3,
       developmentActivityCount: 2,
     });
+  });
+
+  it('uses an external-context caveat when source is external-osm', () => {
+    const summary = generatePlanningSummary({
+      analysisResult: richResult,
+      context: {
+        planningContextId: 'external-osm:bengaluru:abc',
+        planningContextSource: 'external-osm',
+        label: 'Bengaluru external context',
+      },
+    });
+    expect(
+      summary.dataCaveats.some((c) => /external open map context/i.test(c)),
+    ).toBe(true);
   });
 
   it('flags a high-risk constraint as risk severity', () => {

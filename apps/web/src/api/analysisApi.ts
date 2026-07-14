@@ -1,5 +1,6 @@
 import type { AreaOfInterest, SpatialAnalysisResult } from '../types/analysis';
 import { apiPostWithMeta, type CacheStatus } from './client';
+import { getSelectedPlanningContextId } from '../store/planningContextStore';
 
 interface AnalyzeAreaApiData {
   result: SpatialAnalysisResult;
@@ -16,16 +17,19 @@ export interface AnalyzeAreaApiResult {
 /**
  * Run AOI spatial analysis via the backend PostGIS API.
  *
- * Sends the drawn polygon geometry to `POST /api/analyze-area` and returns the
- * result plus cache metadata. Throws (via `apiPostWithMeta`) if the API is
- * unreachable or errors, so callers can fall back to local Turf analysis.
+ * Sends the drawn polygon geometry to `POST /api/analyze-area` scoped to the
+ * selected planning context. Throws if the API is unreachable or errors.
  */
 export async function analyzeAreaWithApi(
   areaOfInterest: AreaOfInterest,
 ): Promise<AnalyzeAreaApiResult> {
+  const planningContextId = getSelectedPlanningContextId();
   const { data, meta } = await apiPostWithMeta<AnalyzeAreaApiData>(
     '/api/analyze-area',
-    { geometry: areaOfInterest.polygon.geometry },
+    {
+      geometry: areaOfInterest.polygon.geometry,
+      planningContextId,
+    },
   );
   return {
     result: data.result,
