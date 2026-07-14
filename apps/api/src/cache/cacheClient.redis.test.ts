@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../loadEnv.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { deleteByPattern, getJson, setJson } from './cacheJson';
 import { closeRedisClient } from './cacheClient';

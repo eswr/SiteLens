@@ -205,7 +205,11 @@ curl http://localhost:4000/api/parcels
 curl "http://localhost:4000/api/search?q=central"
 ```
 
-Configuration (env vars, with defaults — see `.env.example`):
+Configuration (env vars, with defaults — see `.env.local.example` /
+`.env.production.example`):
+- Local: copy `.env.local.example` → `.env.local`
+- Production reference / verify: copy `.env.production.example` → `.env.production`
+  (Fly still uses `fly secrets set` for real secrets)
 
 - `PORT` (default `4000`)
 - `NODE_ENV` (default `development`)
@@ -230,4 +234,4 @@ Configuration (env vars, with defaults — see `.env.example`):
 ## Next planned backend steps
 
 - Authentication and access control.
-- Azure deployment notes and CI.
+- Deploy with Fly.io + managed PostGIS/Redis — see [`docs/deployment.md`](../../docs/deployment.md).

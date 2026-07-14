@@ -1,0 +1,19 @@
+.git
+.github
+.cursor
+.vscode
+node_modules
+**/node_modules
+# Keep apps/web/package.json for npm workspaces; omit the rest of the web app.
+apps/web/*
+!apps/web/package.json
+docs
+repomix-output.xml
+**/.env
+**/.env.*
+!**/.env.example
+*.md
+!apps/api/README.md
+**/*.test.ts
+**/coverage
+.DS_Store

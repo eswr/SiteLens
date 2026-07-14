@@ -1,9 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE="${API_BASE:?Set API_BASE, e.g. https://sitelens-api.example.com}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="${API_ENV_FILE:-$REPO_ROOT/apps/api/.env.production}"
+
+# Prefer an explicit API_BASE; otherwise load allowed keys from .env.production.
+# Parse KEY=value safely — no eval / no shell expansion of file contents.
+if [[ -z "${API_BASE:-}" && -f "$ENV_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      ''|\#*) continue ;;
+    esac
+    key="${line%%=*}"
+    value="${line#*=}"
+    # Strip optional matching surrounding quotes.
+    if [[ ${#value} -ge 2 ]]; then
+      first="${value:0:1}"
+      last="${value: -1}"
+      if [[ "$first" == "$last" && ( "$first" == '"' || "$first" == "'" ) ]]; then
+        value="${value:1:${#value}-2}"
+      fi
+    fi
+    case "$key" in
+      API_BASE|PLANNER_KEY|VIEWER_KEY)
+        printf -v "$key" '%s' "$value"
+        ;;
+    esac
+  done < "$ENV_FILE"
+fi
+
+API_BASE="${API_BASE:?Set API_BASE (e.g. in apps/api/.env.production or API_BASE=https://sitelens-api.fly.dev)}"
 PLANNER_KEY="${PLANNER_KEY:-demo-planner-key}"
 VIEWER_KEY="${VIEWER_KEY:-demo-viewer-key}"
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required. Install it (e.g. brew install jq) then re-run." >&2
+  exit 1
+fi
 
 echo "Checking health..."
 curl -fsS "$API_BASE/api/health" | jq .

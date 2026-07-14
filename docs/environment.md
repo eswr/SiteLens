@@ -9,16 +9,19 @@ need explicit env (see also [`docs/deploy-env-checklist.md`](deploy-env-checklis
 | Mode | Web | API / DB / Redis |
 |------|-----|------------------|
 | **Frontend-only** | omit `VITE_API_BASE_URL` | not required |
-| **Full-stack (local)** | `VITE_API_BASE_URL=http://localhost:4000` | `apps/api/.env` + Docker |
-| **Full-stack (deployed)** | bake `VITE_API_BASE_URL` + demo key at build | managed Postgres/PostGIS, Redis, API env |
+| **Full-stack (local)** | `VITE_API_BASE_URL=http://localhost:4000` | `apps/api/.env.local` + Docker |
+| **Full-stack (deployed)** | bake `VITE_API_BASE_URL` + demo key at build | managed Postgres/PostGIS, Redis, API env (`apps/api/.env.production` for local verify) |
 
 A deployed Vercel/static frontend **must** set `VITE_API_BASE_URL` for the
 full-stack portfolio experience. Omitting it is valid only for frontend-only.
+The documented portfolio stack is **Vercel + Fly.io + Neon (PostGIS) + Upstash**;
+see [`docs/deployment.md`](deployment.md).
 
 ## Web (`apps/web`)
 
-Set these in `apps/web/.env.local` (see `apps/web/.env.example`), or in the
-static host’s build env for a deployed full-stack demo.
+Set these in `apps/web/.env.local` (see `apps/web/.env.local.example`), or in the
+static host’s build env for a deployed full-stack demo. For a local production
+build, use `apps/web/.env.production` (see `.env.production.example`).
 
 ```txt
 VITE_API_BASE_URL=http://localhost:4000
@@ -39,7 +42,19 @@ VITE_DEMO_API_KEY=demo-planner-key
 
 ## API (`apps/api`)
 
-Set these in `apps/api/.env` (see `apps/api/.env.example`).
+Use **separate** files for local vs production (see `.env.example` for copy
+instructions):
+
+| File | Purpose |
+|------|---------|
+| `.env.local` | Local Docker PostGIS/Redis (`cp .env.local.example .env.local`) |
+| `.env.production` | Deployed values + `API_BASE` for verify (`cp .env.production.example .env.production`) |
+
+`src/loadEnv.ts` loads `.env.local` unless `NODE_ENV` / `APP_ENV` is
+`production` (then `.env.production`). Override with `DOTENV_CONFIG_PATH`. On
+Fly, set secrets with `fly secrets set` — do not commit real DB/Redis passwords.
+
+Local example (`apps/api/.env.local`):
 
 ```txt
 NODE_ENV=development

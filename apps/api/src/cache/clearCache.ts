@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../loadEnv.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { deleteByPattern } from './cacheJson';

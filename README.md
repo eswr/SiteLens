@@ -103,7 +103,8 @@ sitelens/
 
 ## Live Demo
 
-- **App:** https://sitelens-demo.vercel.app _(placeholder — update after deploying; see [`docs/deployment.md`](docs/deployment.md))_
+- **App:** https://sitelens-demo.vercel.app
+- **API:** https://sitelens-api.fly.dev
 - **Loom walkthrough:** _(placeholder — add your recording link; see [`docs/demo-checklist.md`](docs/demo-checklist.md))_
 
 ## Screenshots

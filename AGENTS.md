@@ -44,7 +44,7 @@ dependency update script — bring it up explicitly when working on the API.
   switching: `POST /api/billing/demo-plan` (needs auth; prod-gated by
   `ENABLE_DEMO_BILLING`). The Stripe webhook runs without real secrets.
 - Redis caching is optional: it's enabled only when `REDIS_URL` is set (e.g. via
-  `apps/api/.env`, gitignored). With no Redis the API returns `cache:"disabled"`;
+  `apps/api/.env.local`, gitignored). With no Redis the API returns `cache:"disabled"`;
   when Redis is down it returns DB results with `cache:"error"` (never hangs —
   the client uses `enableOfflineQueue:false` and auto-reconnects). Default
   `npm run test` needs neither Docker nor Redis; `npm run test:redis` (needs

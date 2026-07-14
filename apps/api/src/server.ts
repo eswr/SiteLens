@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './loadEnv.js';
 import { buildApp } from './app';
 import { loadConfig } from './config';
 import { closePool } from './db/pool';

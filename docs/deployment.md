@@ -43,12 +43,163 @@ the following works:
 | PostgreSQL + **PostGIS** | Neon (PostGIS), Supabase, Railway, Azure Flexible Server + PostGIS |
 | Redis | Upstash, Redis Cloud, Render Redis, Azure Cache for Redis |
 
-Typical portfolio combo: **Vercel** (web) + **Render/Railway/Fly** (API) +
-managed Postgres/PostGIS + managed Redis.
+**Documented portfolio combo for this repo:** **Vercel** (web) + **Fly.io**
+(API) + **Neon** PostGIS (via Vercel Marketplace) + **Upstash** Redis.
+Configs: root [`Dockerfile`](../Dockerfile), [`fly.toml`](../fly.toml),
+[`apps/web/vercel.json`](../apps/web/vercel.json).
 
 ---
 
-## Deployment order
+## Portfolio deploy: Vercel + Fly + Neon + Upstash
+
+Follow this order. Full env values:
+[`docs/deploy-env-checklist.md`](deploy-env-checklist.md).
+
+### 1. Provision Neon (PostGIS)
+
+1. Create a Neon Postgres database (Vercel Marketplace / Integration, or
+   `npx neonctl projects create --name sitelens --region-id aws-us-west-2`).
+2. Enable **PostGIS** (`CREATE EXTENSION IF NOT EXISTS postgis;` — migration
+   `001` also enables it).
+3. Copy the `DATABASE_URL` (TLS). You will set `DB_SSL=true`.
+
+### 2. Provision Upstash Redis
+
+Easiest with the Fly Upstash integration (same org as the API):
+
+```bash
+fly redis create --name sitelens-redis --org personal --region sjc \
+  --enable-eviction --no-replicas --enable-prodpack=false
+```
+
+Copy the **private** Redis URL from the command output
+(`redis://…@fly-<name>.upstash.io:…`). That hostname resolves **only from Fly
+machines** in the same org — not from your laptop. Local `npm run cache:clear`
+(or any script using that URL) will fail with `ENOTFOUND`; that is expected.
+Migrations and GeoJSON/billing seed need only `DATABASE_URL` locally. To clear
+cache after seed, either run `npm run cache:clear` inside `fly ssh console`, or
+provision a public Upstash URL (`rediss://…`) for local ops. The Fly API process
+itself should use the private URL.
+
+You can also create Redis in the Upstash or Vercel Marketplace dashboards and
+set `REDIS_URL` manually (`rediss://…` TLS is fine; `ioredis` accepts it).
+
+### 3. Deploy the API on Fly.io
+
+Prerequisites: [flyctl](https://fly.io/docs/flyctl/install/) logged in (`fly auth login`).
+
+```bash
+# From the repository root (first time)
+fly apps create sitelens-api   # skip if fly.toml app already exists
+fly secrets set \
+  NODE_ENV=production \
+  DB_SSL=true \
+  DATABASE_URL='postgres://…' \
+  REDIS_URL='rediss://…' \
+  WEB_ORIGIN='https://<exact-vercel-host>' \
+  ENABLE_DEMO_BILLING=true \
+  GEOCODING_ENABLED=true \
+  NOMINATIM_BASE_URL=https://nominatim.openstreetmap.org \
+  NOMINATIM_USER_AGENT='SiteLens/0.1 (portfolio-demo; contact: easwarendra.ece@gmail.com)' \
+  GEOCODING_MIN_INTERVAL_MS=1100 \
+  GEOCODING_CACHE_TTL_SECONDS=86400 \
+  GEOCODING_STATIC_FALLBACK_ENABLED=true \
+  GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS=900000 \
+  GEOCODING_STATIC_FALLBACK_TTL_SECONDS=3600
+
+fly deploy
+```
+
+- Image builds from the root `Dockerfile` (`tsx` runs TypeScript; no compile step).
+- Health check: `GET /health` (also `/api/health`).
+- [`fly.toml`](../fly.toml) sets `min_machines_running = 1` so the portfolio demo
+  keeps one machine warm (avoids cold-start waits after idle).
+- If the Vercel hostname is not known yet, set a provisional `WEB_ORIGIN`, deploy
+  the frontend, then `fly secrets set WEB_ORIGIN=https://<exact-origin>` and
+  restart (`fly apps restart sitelens-api`).
+
+### 4. Migrate and seed (managed database)
+
+Run migrate / billing seed / GeoJSON ingest against the managed `DATABASE_URL`
+from a local shell (export `DATABASE_URL` + `DB_SSL=true`). Skip relying on the
+Fly-private `REDIS_URL` from your laptop — see Upstash note above. Clear cache
+from Fly (`fly ssh console -a sitelens-api` then `npm run cache:clear -w apps/api`)
+or after the API has been serving traffic (verify script exercises cache hits).
+
+```bash
+export DATABASE_URL='postgres://…'
+export DB_SSL=true
+npm run db:migrate -w apps/api
+npm run db:seed:billing -w apps/api
+npm run ingest:geojson -w apps/api
+# cache:clear: use fly ssh console, or a public REDIS_URL — not the fly-*.upstash.io host
+```
+
+### 5. Verify the deployed API
+
+Requires **`jq`** locally (`brew install jq` on macOS). Set `API_BASE` in
+[`apps/api/.env.production`](../apps/api/.env.production.example) or pass it
+inline:
+
+```bash
+API_BASE=https://sitelens-api.fly.dev npm run verify:deployed:api
+```
+
+The script checks health, identity, layers, local planning search, geocoding
+(plus cache hit), PostGIS analysis, planning summary, and Free/Viewer 403 gating.
+
+Optional geocoding smoke (expects static fallback when Nominatim is blocked):
+
+```bash
+SMOKE_GEOCODING=true SMOKE_GEOCODING_EXPECT_FALLBACK=true \
+  API_BASE=https://sitelens-api.fly.dev npm run smoke:fullstack
+```
+
+`GEOCODING_STATIC_FALLBACK_ENABLED=true` is intentional for the public portfolio
+demo: some cloud/shared networks are blocked by public Nominatim (403). The API
+then returns clearly labeled `static-demo` places. Do **not** bypass Nominatim
+restrictions. Replace the Nominatim User-Agent contact before going public
+(production refuses the placeholder).
+
+### 6. Deploy the frontend on Vercel
+
+1. Import the GitHub repo in Vercel.
+2. **Root Directory:** `apps/web`. This repo is an **npm workspaces** monorepo:
+   Git-connected builds may need “Include source files outside of the Root
+   Directory” so the root `package-lock.json` resolves; a CLI deploy from
+   `apps/web` uploads that package alone (no workspace hoist) and is fine
+   because `@sitelens/web` does not import `@sitelens/shared` at build time.
+3. Framework: Vite (`npm run build` → `dist`). SPA fallback rewrite lives in
+   [`apps/web/vercel.json`](../apps/web/vercel.json).
+4. Environment (Production) — baked in at **build** time:
+
+```txt
+VITE_API_BASE_URL=https://sitelens-api.fly.dev
+VITE_DEMO_API_KEY=demo-planner-key
+```
+
+5. Deploy (e.g. `vercel deploy --prod` from `apps/web`). Prefer a stable alias
+   such as `https://sitelens-demo.vercel.app`, then set Fly `WEB_ORIGIN` to that
+   **exact** origin (scheme + host, no trailing slash).
+6. For a **public** portfolio demo, disable Vercel Deployment Protection SSO
+   (`vercel project protection disable --sso`); otherwise `.vercel.app` aliases
+   may redirect to Vercel login.
+
+### 7. Verify the UI
+
+Follow [`docs/frontend-deploy-verification.md`](frontend-deploy-verification.md).
+
+If the browser reports CORS errors:
+
+1. Fix API `WEB_ORIGIN` to match the frontend origin exactly.
+2. Redeploy / restart the Fly app.
+3. Hard-refresh the frontend.
+
+---
+
+## Generic deployment order
+
+Use this when targeting a different vendor mix than Fly + Vercel.
 
 ### Step A — Provision services
 
@@ -67,11 +218,13 @@ npm run build -w apps/api
 npm run start -w apps/api
 ```
 
-Provider settings:
+Provider settings (non-Docker hosts):
 
 - **Root directory:** repository root
 - **Start command:** `npm run start -w apps/api`
 - **Env:** see [`docs/deploy-env-checklist.md`](deploy-env-checklist.md)
+
+On Fly, prefer `fly deploy` (Docker) instead of a bare start command.
 
 Set `WEB_ORIGIN` to the **exact** deployed frontend origin (scheme + host, no
 trailing slash), e.g. `https://sitelens-demo.vercel.app`. A mismatch causes CORS
@@ -92,21 +245,11 @@ npm run cache:clear -w apps/api
 
 ### Step D — Verify API
 
+Requires **`jq`** (`brew install jq`).
+
 ```bash
 API_BASE=https://<api-host> npm run verify:deployed:api
 ```
-
-Optional geocoding smoke against the deployed host:
-
-```bash
-SMOKE_GEOCODING=true SMOKE_GEOCODING_EXPECT_FALLBACK=true \
-  API_BASE=https://<api-host> npm run smoke:fullstack
-```
-
-`GEOCODING_STATIC_FALLBACK_ENABLED=true` is intentional for the public portfolio
-demo: some cloud/shared networks are blocked by public Nominatim (403). The API
-then returns clearly labeled `static-demo` places. Do **not** bypass Nominatim
-restrictions.
 
 ### Step E — Deploy frontend
 
@@ -129,22 +272,20 @@ Vite bakes these in at build time — set them in the host before building.
 
 Follow [`docs/frontend-deploy-verification.md`](frontend-deploy-verification.md).
 
-If the browser reports CORS errors:
-
-1. Fix API `WEB_ORIGIN` to match the frontend origin exactly.
-2. Redeploy the API.
-3. Hard-refresh the frontend.
-
 ---
 
 ## Frontend (Vercel) detail
 
 1. Push the repo to GitHub and import it in Vercel.
 2. Framework preset: Vite.
-3. Root directory: `apps/web`.
-4. Build command: `npm run build` → output: `dist`.
-5. For **frontend-only**: omit `VITE_API_*` env vars.
-6. For **full-stack**: set `VITE_API_BASE_URL` and `VITE_DEMO_API_KEY` as above.
+3. Root directory: `apps/web` (see [`apps/web/vercel.json`](../apps/web/vercel.json)).
+   npm workspaces note: enable including files outside the Root Directory for
+   Git builds if the lockfile fails to resolve; or deploy from `apps/web` via
+   the Vercel CLI (the web package does not need `@sitelens/shared` at build).
+4. Build command: `npm run build` → output: `dist` (Vite defaults).
+5. SPA fallback: [`apps/web/vercel.json`](../apps/web/vercel.json) rewrites.
+6. For **frontend-only**: omit `VITE_API_*` env vars.
+7. For **full-stack**: set `VITE_API_BASE_URL` and `VITE_DEMO_API_KEY` as above.
 
 Notes:
 

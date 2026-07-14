@@ -1,0 +1,35 @@
+# Fly.io app for the SiteLens API.
+# Create with: fly apps create sitelens-api
+# Deploy with: fly deploy
+# Set secrets from docs/deploy-env-checklist.md before the first deploy.
+
+app = 'sitelens-api'
+primary_region = 'sjc'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '4000'
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  # Keep one machine warm so the portfolio demo avoids cold-start gaps.
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/health'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

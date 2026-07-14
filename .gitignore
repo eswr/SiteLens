@@ -15,10 +15,14 @@ dist
 dist-ssr
 *.local
 
-# Env files
+# Env files (keep *.example templates)
 .env
 .env.local
+.env.production
 .env.*.local
+!.env.example
+!.env.local.example
+!.env.production.example
 
 # Test coverage
 coverage

@@ -1,0 +1,8 @@
+.vercel
+.env
+.env.local
+.env.production
+.env.*.local
+!.env.example
+!.env.local.example
+!.env.production.example
