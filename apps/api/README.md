@@ -20,7 +20,7 @@ external LLM), gated by plan features, metered, and Redis-cached.
 | GET | `/api/parcels` | Parcels FeatureCollection via `ST_AsGeoJSON` (count meta). |
 | GET | `/api/parcels/:id` | One parcel by `id` / `parcel_id` (404 if missing). |
 | GET | `/api/search?q=` | Search across spatial tables with `ILIKE` (top 8, incl. bbox). |
-| GET | `/api/geocode/search?q=&limit=` | **Worldwide place search** via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced). |
+| GET | `/api/geocode/search?q=&limit=` | **Worldwide place search** via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced, static-demo fallback). |
 | POST | `/api/analyze-area` | **PostGIS spatial analysis** of an AOI polygon (area, parcels, zoning, constraints, transit, development activity). |
 | POST | `/api/planning-summary` | **Deterministic planning summary** from analysis metrics (gated by `summary:generate`, metered, cached). |
 
@@ -106,18 +106,27 @@ and usage metering.
 `GET /api/geocode/search?q=&limit=` proxies to **Nominatim / OpenStreetMap** —
 the browser never calls Nominatim directly. The service validates the query
 (min 3 chars), clamps `limit` to 1–10, serves repeats from Redis
-(`sitelens:place-search:v1:<limit>:<hash>` — the raw query is hashed), and on a
-miss spaces the outbound request (`GEOCODING_MIN_INTERVAL_MS`, ~1 req/sec) before
-calling Nominatim with the configured `NOMINATIM_USER_AGENT`. Results include OSM
-attribution. Errors are mapped safely (`400` short query, `503` disabled/
-misconfigured, `502` upstream, `504` timeout); a Redis failure still returns
-fresh upstream results. This is independent of local planning search and does
-not trigger AOI analysis.
+(`sitelens:place-search:v1:<provider>:<limit>:<hash>` — provider-scoped; the raw
+query is hashed), and on a live miss spaces the outbound request
+(`GEOCODING_MIN_INTERVAL_MS`, ~1 req/sec) before calling Nominatim with the
+configured `NOMINATIM_USER_AGENT`.
 
-The single-process request spacer is fine for the demo; a horizontally-scaled
-deployment should use a distributed Redis-backed limiter/queue. Production
-alternatives to public Nominatim: self-hosted Nominatim, Mapbox Geocoding,
-Pelias, or a commercial provider.
+When public Nominatim returns 403/429 or is otherwise unavailable, development/
+demo mode can return a clearly labeled bundled **static-demo** dataset
+(`GEOCODING_STATIC_FALLBACK_ENABLED`, on by default outside production) and
+enter a process-local cooldown (`GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS`) so
+retries do not keep hammering the provider. Fallback responses include
+`fallback: { active, reason, message }` and are never labeled as Nominatim.
+
+Errors when fallback is disabled: `400` short query, `503` disabled/
+misconfigured/cooldown, `502` upstream, `504` timeout. A Redis failure still
+returns fresh results when the chosen provider path succeeds. This is
+independent of local planning search and does not trigger AOI analysis.
+
+The single-process request spacer + cooldown is fine for the demo; a
+horizontally-scaled deployment should use a distributed Redis-backed
+limiter/circuit breaker. Production alternatives to public Nominatim:
+self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider.
 
 ## Caching (Redis)
 

@@ -51,10 +51,11 @@ SpatialAnalysisResult
 ```txt
 Query (>= 3 chars, explicit submit)
   -> /api/geocode/search            (browser only calls SiteLens API)
-  -> Redis place-search cache
-  -> request spacer (~1 req/sec)    (miss only)
+  -> Redis place-search cache       (provider-scoped: nominatim | static-demo)
+  -> request spacer (~1 req/sec)    (live miss only)
   -> Nominatim / OpenStreetMap      (identifying User-Agent)
-  -> typed PlaceSearchResult[] + OSM attribution
+     or static-demo fallback        (403/429/timeout/cooldown; clearly labeled)
+  -> typed PlaceSearchResult[] + attribution (+ fallback metadata when used)
   -> Places tab + map marker/fit    (separate from planning search + AOI analysis)
 ```
 
@@ -164,7 +165,7 @@ review) without changing the surrounding architecture.
 - Done: Stripe-style billing catalog, DB subscriptions, usage metering, webhook.
 - Done: backend-owned deterministic planning summary (gated, metered, cached).
 - Done: GitHub Actions CI (quality + PostGIS/Redis integration), deployment docs.
-- Done: worldwide place search via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced, attributed).
+- Done: worldwide place search via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced, attributed) with labeled static-demo fallback + upstream cooldown when public Nominatim blocks the network.
 
 ## Future improvements
 

@@ -35,8 +35,11 @@ Requires backend API mode (`VITE_API_BASE_URL` set).
    **Search places**. (Place search runs only on explicit submit, min 3 chars.)
 3. First search shows `cache miss`; repeating the same search shows `cache hit`.
 4. Selecting a result flies/fits the map to the place, drops a marker, and shows
-   a Place card in the details panel with OSM/Nominatim attribution.
-5. Note the split: **Planning features** still searches the local PostGIS
+   a Place card in the details panel with provider + attribution.
+5. If public Nominatim blocks this network (`403`), expect a transparent
+   **Demo fallback** chip (`provider: "static-demo"`), a short info message, and
+   still-usable fly-to / details — not a broken Places tab.
+6. Note the split: **Planning features** still searches the local PostGIS
    dataset, and AOI analysis still applies only to that local dataset — place
    search is independent. Open browser devtools → Network: no request goes to
    nominatim.openstreetmap.org from the browser (only the SiteLens API).
@@ -67,6 +70,19 @@ Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):
 5. Note it is deterministic (no LLM), gated by `summary:generate`, metered, and
    Redis-cached; production would swap in an LLM behind the same interface.
 
+## Deployed full-stack demo
+
+For a public portfolio deploy (Vercel web + hosted API/PostGIS/Redis):
+
+1. Follow [`docs/deployment.md`](deployment.md) (API first → migrate/seed →
+   verify API → deploy frontend with `VITE_API_BASE_URL`).
+2. Env checklist: [`docs/deploy-env-checklist.md`](deploy-env-checklist.md).
+3. API smoke: `API_BASE=https://<api-host> npm run verify:deployed:api`.
+4. UI checklist: [`docs/frontend-deploy-verification.md`](frontend-deploy-verification.md).
+
+Frontend-only demos need **no** `VITE_*` vars; full-stack demos **require**
+`VITE_API_BASE_URL` (and usually `VITE_DEMO_API_KEY=demo-planner-key`).
+
 ## Talking Points
 
 - React + TypeScript architecture
@@ -76,3 +92,4 @@ Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):
 - Recharts analytics
 - AI-assisted UX with visible source metrics
 - Built as a public recreation of private geospatial/spatial-interface experience
+- Full-stack portfolio deploy with Nominatim proxy + honest static-demo fallback

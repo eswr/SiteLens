@@ -234,6 +234,10 @@ function PlacesSearchInner() {
   const error = usePlaceSearchStore((state) => state.error);
   const cacheStatus = usePlaceSearchStore((state) => state.cacheStatus);
   const attribution = usePlaceSearchStore((state) => state.attribution);
+  const provider = usePlaceSearchStore((state) => state.provider);
+  const fallback = usePlaceSearchStore((state) => state.fallback);
+  const providerChipLabel =
+    provider === 'static-demo' ? 'Demo fallback' : 'Nominatim';
 
   const apiConfigured = isApiConfigured();
   const canSubmit =
@@ -332,12 +336,19 @@ function PlacesSearchInner() {
         </Alert>
       )}
 
+      {fallback?.active && (
+        <Alert severity="info" sx={{ mt: 1.5 }}>
+          {fallback.message}
+        </Alert>
+      )}
+
       {results.length > 0 && (
         <>
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
+              flexWrap: 'wrap',
               gap: 1,
               mt: 1.5,
               mb: 0.5,
@@ -346,6 +357,15 @@ function PlacesSearchInner() {
             <Typography variant="caption" color="text.secondary">
               {results.length} result{results.length === 1 ? '' : 's'}
             </Typography>
+            {provider && (
+              <Chip
+                label={providerChipLabel}
+                size="small"
+                variant="outlined"
+                color={provider === 'static-demo' ? 'warning' : 'default'}
+                sx={{ height: 18, fontSize: '0.65rem' }}
+              />
+            )}
             {cacheStatus && PLACE_CACHE_LABEL[cacheStatus] && (
               <Chip
                 label={PLACE_CACHE_LABEL[cacheStatus]}
@@ -360,6 +380,10 @@ function PlacesSearchInner() {
               const typeLabel = [place.category, place.type]
                 .filter(Boolean)
                 .join(' · ');
+              const placeProviderLabel =
+                place.provider === 'static-demo'
+                  ? 'Demo fallback'
+                  : 'Nominatim';
               return (
                 <ListItemButton
                   key={place.id}
@@ -382,7 +406,7 @@ function PlacesSearchInner() {
                     )}
                   </Box>
                   <Chip
-                    label="Nominatim"
+                    label={placeProviderLabel}
                     size="small"
                     variant="outlined"
                     sx={{ flexShrink: 0, height: 20 }}
@@ -396,7 +420,8 @@ function PlacesSearchInner() {
             color="text.secondary"
             sx={{ display: 'block', mt: 1 }}
           >
-            {attribution ?? '© OpenStreetMap contributors; geocoding by Nominatim'}
+            {attribution ??
+              '© OpenStreetMap contributors; geocoding by Nominatim'}
           </Typography>
         </>
       )}

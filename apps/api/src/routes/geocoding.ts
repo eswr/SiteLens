@@ -49,7 +49,7 @@ function assertGeocodingReady(): void {
   }
 }
 
-/** `GET /api/geocode/search?q=&limit=` — worldwide place search (Nominatim proxy). */
+/** `GET /api/geocode/search?q=&limit=` — worldwide place search (Nominatim + demo fallback). */
 export async function geocodingRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: GeocodeQuery }>(
     '/geocode/search',

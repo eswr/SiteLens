@@ -62,10 +62,32 @@ function mapItem(item: NominatimItem): PlaceSearchResult | null {
   };
 }
 
+function throwForStatus(status: number): never {
+  if (status === 403) {
+    throw new HttpError(
+      502,
+      'GEOCODING_UPSTREAM_FORBIDDEN',
+      'The geocoding provider denied this network.',
+    );
+  }
+  if (status === 429) {
+    throw new HttpError(
+      502,
+      'GEOCODING_UPSTREAM_RATE_LIMITED',
+      'The geocoding provider rate-limited the request.',
+    );
+  }
+  throw new HttpError(
+    502,
+    'GEOCODING_UPSTREAM_ERROR',
+    'The geocoding provider returned an error.',
+  );
+}
+
 /**
  * Call the Nominatim `/search` endpoint and map results to `PlaceSearchResult`.
- * Throws typed `HttpError`s for timeout (504), upstream failure (502), and
- * malformed responses (502). Never calls Nominatim from the browser.
+ * Throws typed `HttpError`s with distinguishable codes. Never calls Nominatim
+ * from the browser. Does not leak upstream HTML bodies to clients.
  */
 export async function searchNominatim(
   query: string,
@@ -96,7 +118,7 @@ export async function searchNominatim(
     if (error instanceof Error && error.name === 'AbortError') {
       throw new HttpError(
         504,
-        'GEOCODING_TIMEOUT',
+        'GEOCODING_UPSTREAM_TIMEOUT',
         'The geocoding provider timed out.',
       );
     }
@@ -110,11 +132,7 @@ export async function searchNominatim(
   }
 
   if (!response.ok) {
-    throw new HttpError(
-      502,
-      'GEOCODING_UPSTREAM_ERROR',
-      `The geocoding provider returned an error (status ${response.status}).`,
-    );
+    throwForStatus(response.status);
   }
 
   let payload: unknown;
@@ -123,7 +141,7 @@ export async function searchNominatim(
   } catch {
     throw new HttpError(
       502,
-      'GEOCODING_BAD_RESPONSE',
+      'GEOCODING_UPSTREAM_MALFORMED_RESPONSE',
       'The geocoding provider returned a malformed response.',
     );
   }
@@ -131,7 +149,7 @@ export async function searchNominatim(
   if (!Array.isArray(payload)) {
     throw new HttpError(
       502,
-      'GEOCODING_BAD_RESPONSE',
+      'GEOCODING_UPSTREAM_MALFORMED_RESPONSE',
       'The geocoding provider returned an unexpected response.',
     );
   }

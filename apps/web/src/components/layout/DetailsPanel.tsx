@@ -200,6 +200,7 @@ function SelectedFeatureDetails({ feature }: { feature: SelectedFeature }) {
 function PlaceDetails() {
   const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
   const attribution = usePlaceSearchStore((state) => state.attribution);
+  const fallback = usePlaceSearchStore((state) => state.fallback);
   const clearSelectedPlace = usePlaceSearchStore(
     (state) => state.clearSelectedPlace,
   );
@@ -209,6 +210,12 @@ function PlaceDetails() {
   const typeLabel = [selectedPlace.category, selectedPlace.type]
     .filter(Boolean)
     .join(' · ');
+  const providerLabel =
+    selectedPlace.provider === 'static-demo'
+      ? 'Demo fallback'
+      : 'Nominatim';
+  const isDemoFallback =
+    selectedPlace.provider === 'static-demo' || Boolean(fallback?.active);
 
   return (
     <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -223,7 +230,12 @@ function PlaceDetails() {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <PublicIcon fontSize="small" sx={{ color: '#2563eb' }} />
-          <Chip label="Nominatim" size="small" variant="outlined" />
+          <Chip
+            label={`Provider: ${providerLabel}`}
+            size="small"
+            variant="outlined"
+            color={selectedPlace.provider === 'static-demo' ? 'warning' : 'default'}
+          />
           {typeLabel && (
             <Chip
               label={typeLabel}
@@ -241,6 +253,12 @@ function PlaceDetails() {
           {selectedPlace.latitude.toFixed(4)},{' '}
           {selectedPlace.longitude.toFixed(4)}
         </Typography>
+        {isDemoFallback && (
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            This place came from the bundled demo fallback because the live
+            geocoding provider was unavailable.
+          </Typography>
+        )}
       </Box>
 
       <Button

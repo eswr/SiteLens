@@ -49,9 +49,10 @@ a real geospatial SaaS. Items are grouped by concern.
 
 - [ ] Replace public Nominatim with a self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider
 - [ ] Set a real identifying `NOMINATIM_USER_AGENT` (contact address)
-- [ ] Replace the single-process request spacer with a distributed Redis-backed rate limiter/queue
-- [ ] Keep visible OSM/Nominatim attribution wherever place results appear
-- [ ] Tune place-search cache TTL and monitor upstream error/latency rates
+- [ ] Replace the single-process request spacer + cooldown with a distributed Redis-backed rate limiter/circuit breaker
+- [ ] Decide whether static-demo fallback stays enabled in production (default off) or is removed after a real provider is wired
+- [ ] Keep visible provider attribution (OSM/Nominatim or static-demo copy) wherever place results appear
+- [ ] Tune place-search cache TTL and monitor upstream error/latency / fallback rates
 
 ## Observability
 

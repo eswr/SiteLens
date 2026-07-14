@@ -2,8 +2,19 @@
  * Worldwide place search (geocoding) types.
  *
  * The browser only ever calls the SiteLens API; the API proxies to Nominatim /
- * OpenStreetMap. These types describe the request/response contract.
+ * OpenStreetMap, with an optional bundled static-demo fallback when the live
+ * provider is unavailable.
  */
+
+export type GeocodingProvider = 'nominatim' | 'static-demo';
+
+export type GeocodingFallbackReason =
+  | 'upstream_forbidden'
+  | 'upstream_rate_limited'
+  | 'upstream_unavailable'
+  | 'upstream_timeout'
+  | 'geocoding_disabled'
+  | 'cooldown_active';
 
 export interface PlaceSearchRequest {
   query: string;
@@ -21,11 +32,18 @@ export interface PlaceSearchResult {
   category?: string;
   type?: string;
   importance?: number;
-  provider: 'nominatim';
+  provider: GeocodingProvider;
+}
+
+export interface PlaceSearchFallback {
+  active: boolean;
+  reason: GeocodingFallbackReason;
+  message: string;
 }
 
 export interface PlaceSearchResponse {
   results: PlaceSearchResult[];
-  provider: 'nominatim';
+  provider: GeocodingProvider;
   attribution: string;
+  fallback?: PlaceSearchFallback;
 }

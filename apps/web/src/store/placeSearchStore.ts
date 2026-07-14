@@ -1,5 +1,10 @@
 import { create } from 'zustand';
-import { searchPlaces, type PlaceSearchResult } from '../api/geocodingApi';
+import {
+  searchPlaces,
+  type GeocodingProvider,
+  type PlaceSearchFallback,
+  type PlaceSearchResult,
+} from '../api/geocodingApi';
 import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
 import { useMapStore } from './mapStore';
 import { useAnalysisStore } from './analysisStore';
@@ -16,6 +21,8 @@ interface PlaceSearchState {
   cacheStatus: CacheStatus | null;
   computedAt: string | null;
   attribution: string | null;
+  provider: GeocodingProvider | null;
+  fallback: PlaceSearchFallback | null;
   /** Update the query text (does not trigger a search). */
   setQuery: (query: string) => void;
   /** Run a worldwide place search (explicit submit only). */
@@ -37,6 +44,8 @@ export const usePlaceSearchStore = create<PlaceSearchState>((set) => ({
   cacheStatus: null,
   computedAt: null,
   attribution: null,
+  provider: null,
+  fallback: null,
 
   setQuery: (query) => set({ query }),
 
@@ -48,6 +57,8 @@ export const usePlaceSearchStore = create<PlaceSearchState>((set) => ({
         error:
           'Worldwide place search requires backend API mode. Set VITE_API_BASE_URL to enable it.',
         results: [],
+        provider: null,
+        fallback: null,
       });
       return;
     }
@@ -55,18 +66,20 @@ export const usePlaceSearchStore = create<PlaceSearchState>((set) => ({
       set({
         error: `Enter at least ${MIN_PLACE_QUERY_LENGTH} characters to search places.`,
         results: [],
+        provider: null,
+        fallback: null,
       });
       return;
     }
     set({ isLoading: true, error: null });
     try {
-      const { results, attribution, meta } = await searchPlaces(
-        trimmed,
-        DEFAULT_LIMIT,
-      );
+      const { results, attribution, provider, fallback, meta } =
+        await searchPlaces(trimmed, DEFAULT_LIMIT);
       set({
         results,
         attribution,
+        provider,
+        fallback,
         cacheStatus: meta?.cache ?? null,
         computedAt: meta?.computedAt ?? null,
         isLoading: false,
@@ -76,6 +89,8 @@ export const usePlaceSearchStore = create<PlaceSearchState>((set) => ({
       set({
         isLoading: false,
         results: [],
+        provider: null,
+        fallback: null,
         error:
           error instanceof ApiError || error instanceof Error
             ? error.message
@@ -102,5 +117,7 @@ export const usePlaceSearchStore = create<PlaceSearchState>((set) => ({
       cacheStatus: null,
       computedAt: null,
       attribution: null,
+      provider: null,
+      fallback: null,
     }),
 }));

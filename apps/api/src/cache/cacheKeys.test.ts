@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { analysisKey, layersKey, parcelDetailKey, searchKey } from './cacheKeys';
+import {
+  analysisKey,
+  layersKey,
+  parcelDetailKey,
+  placeSearchKey,
+  searchKey,
+} from './cacheKeys';
 
 describe('cacheKeys', () => {
   it('layersKey is a stable, namespaced, versioned key', () => {
@@ -35,5 +41,14 @@ describe('cacheKeys', () => {
     const a = { type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] };
     const b = { type: 'Polygon', coordinates: [[[0, 0], [2, 0], [2, 2], [0, 0]]] };
     expect(analysisKey(a, 'pro')).not.toBe(analysisKey(b, 'pro'));
+  });
+
+  it('placeSearchKey includes provider scope and never mixes nominatim/static-demo', () => {
+    const nominatim = placeSearchKey('nominatim', 'Bengaluru', 5);
+    const staticDemo = placeSearchKey('static-demo', 'Bengaluru', 5);
+    expect(nominatim).toContain(':nominatim:');
+    expect(staticDemo).toContain(':static-demo:');
+    expect(nominatim).not.toBe(staticDemo);
+    expect(placeSearchKey('nominatim', ' Bengaluru ', 5)).toBe(nominatim);
   });
 });

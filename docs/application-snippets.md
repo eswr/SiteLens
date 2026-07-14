@@ -34,7 +34,7 @@ SiteLens demonstrates the kind of frontend engineering needed for urban analytic
 
 ## Worldwide Place Search (Geocoding Proxy)
 
-SiteLens adds worldwide place search using Nominatim/OpenStreetMap through a Fastify backend proxy — the browser never calls Nominatim directly. The API caches repeat queries in Redis, spaces outbound requests to respect Nominatim's ~1 req/sec policy, sends an identifying User-Agent, and returns typed results with OSM attribution. The UI cleanly separates local planning-feature search (PostGIS dataset) from worldwide place search; selecting a place flies/fits the map, while AOI spatial analysis stays scoped to the local planning dataset. Production would self-host Nominatim (or use Mapbox/Pelias/commercial) with a distributed Redis-backed rate limiter.
+SiteLens adds worldwide place search using Nominatim/OpenStreetMap through a Fastify backend proxy — the browser never calls Nominatim directly. The API caches repeat queries in Redis (provider-scoped keys), spaces outbound requests to respect Nominatim's ~1 req/sec policy, sends an identifying User-Agent, and returns typed results with OSM attribution. When public Nominatim blocks a network (403/429) or is unavailable, development/demo mode can return a clearly labeled bundled `static-demo` fallback and enter a process-local cooldown so retries do not keep hammering the provider. The UI cleanly separates local planning-feature search (PostGIS dataset) from worldwide place search; selecting a place flies/fits the map, while AOI spatial analysis stays scoped to the local planning dataset. Production would self-host Nominatim (or use Mapbox/Pelias/commercial) with a distributed Redis-backed rate limiter/circuit breaker.
 
 ## Full-Stack Geospatial Project Answer
 

@@ -19,6 +19,12 @@ export interface AppConfig {
   nominatimUserAgent: string;
   geocodingMinIntervalMs: number;
   geocodingCacheTtlSeconds: number;
+  /** Bundled static places when live Nominatim is blocked/unavailable. */
+  geocodingStaticFallbackEnabled: boolean;
+  /** After 403/429/outage, skip Nominatim for this long (process-local). */
+  geocodingUpstreamErrorCooldownMs: number;
+  /** TTL for cached static-demo place-search responses. */
+  geocodingStaticFallbackTtlSeconds: number;
 }
 
 /** Default (placeholder) Nominatim User-Agent; must be replaced for production. */
@@ -72,11 +78,31 @@ export function loadConfig(): AppConfig {
   const geocodingCacheTtlSeconds =
     Number.isFinite(parsedGeoTtl) && parsedGeoTtl > 0 ? parsedGeoTtl : 86400;
 
+  const isProduction = nodeEnv === 'production';
+  // Dev/demo: static fallback on by default. Production: opt-in only.
+  const geocodingStaticFallbackEnabled = isProduction
+    ? (process.env.GEOCODING_STATIC_FALLBACK_ENABLED ?? 'false').toLowerCase() ===
+      'true'
+    : (process.env.GEOCODING_STATIC_FALLBACK_ENABLED ?? 'true').toLowerCase() !==
+      'false';
+  const parsedCooldown = Number(process.env.GEOCODING_UPSTREAM_ERROR_COOLDOWN_MS);
+  const geocodingUpstreamErrorCooldownMs =
+    Number.isFinite(parsedCooldown) && parsedCooldown >= 0
+      ? parsedCooldown
+      : 900_000;
+  const parsedFallbackTtl = Number(
+    process.env.GEOCODING_STATIC_FALLBACK_TTL_SECONDS,
+  );
+  const geocodingStaticFallbackTtlSeconds =
+    Number.isFinite(parsedFallbackTtl) && parsedFallbackTtl > 0
+      ? parsedFallbackTtl
+      : 3600;
+
   return {
     port,
     nodeEnv,
     webOrigin,
-    isProduction: nodeEnv === 'production',
+    isProduction,
     databaseUrl,
     dbSsl,
     redisUrl,
@@ -90,5 +116,8 @@ export function loadConfig(): AppConfig {
     nominatimUserAgent,
     geocodingMinIntervalMs,
     geocodingCacheTtlSeconds,
+    geocodingStaticFallbackEnabled,
+    geocodingUpstreamErrorCooldownMs,
+    geocodingStaticFallbackTtlSeconds,
   };
 }

@@ -26,14 +26,21 @@ export function searchKey(query: string, scope: AccessScope): string {
   return `${NAMESPACE}:search:${VERSION}:${scope}:${sha256(query.trim().toLowerCase())}`;
 }
 
+/** Provider scope used so live Nominatim and static-demo caches never mix. */
+export type PlaceSearchProviderScope = 'nominatim' | 'static-demo';
+
 /**
- * Cache key for a worldwide place search. The query is normalized (trim,
- * lowercase, collapse whitespace) then hashed, so the key never exposes the raw
- * query. The result `limit` is part of the key.
+ * Cache key for a worldwide place search. Scoped by provider so live Nominatim
+ * and static-demo fallback responses never share a key. The query is normalized
+ * (trim, lowercase, collapse whitespace) then hashed.
  */
-export function placeSearchKey(query: string, limit: number): string {
+export function placeSearchKey(
+  provider: PlaceSearchProviderScope,
+  query: string,
+  limit: number,
+): string {
   const normalized = query.trim().toLowerCase().replace(/\s+/g, ' ');
-  return `${NAMESPACE}:place-search:${VERSION}:${limit}:${sha256(normalized)}`;
+  return `${NAMESPACE}:place-search:${VERSION}:${provider}:${limit}:${sha256(normalized)}`;
 }
 
 /** Hash the geometry so the key never contains raw coordinates. */
@@ -95,6 +102,7 @@ export const CACHE_TTL = {
   analysis: 300,
   summary: 300,
   placeSearch: 86400,
+  placeSearchStaticFallback: 3600,
 } as const;
 
 /** Key patterns cleared when planning data is re-ingested. */

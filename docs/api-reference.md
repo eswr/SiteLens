@@ -75,13 +75,17 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
 ### `GET /api/geocode/search?q=&limit=`
 
 - **Purpose:** worldwide place search (geocoding) via a backend **Nominatim /
-  OpenStreetMap** proxy. The browser never calls Nominatim directly.
+  OpenStreetMap** proxy, with an optional bundled **static-demo** fallback when
+  the live provider is blocked or unavailable. The browser never calls Nominatim
+  directly.
 - **Auth:** none (public).
 - **Params:** `q` required, min 3 chars; `limit` default 5, max 10 (clamped).
-- **Cache:** yes, Redis (`sitelens:place-search:v1:<limit>:<hash>` — the raw
-  query is hashed, never embedded). Outbound calls are rate-spaced.
+- **Cache:** yes, Redis (`sitelens:place-search:v1:<provider>:<limit>:<hash>` —
+  provider-scoped so live and fallback never mix; the raw query is hashed).
+  Outbound Nominatim calls are rate-spaced and enter a process-local cooldown
+  after 403/429/timeout/outage.
 - **Example:** `GET /api/geocode/search?q=Bengaluru&limit=5`.
-- **Response:**
+- **Response (live):**
   ```json
   {
     "data": {
@@ -94,9 +98,13 @@ Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
     "meta": { "cache": "miss", "computedAt": "…" }
   }
   ```
-- **Errors:** short/missing `q` → `400`; disabled/misconfigured → `503`; upstream
-  failure → `502`; upstream timeout → `504`. A Redis failure still returns fresh
-  results if Nominatim succeeds.
+- **Response (demo fallback):** `provider: "static-demo"` plus
+  `fallback: { active, reason, message }` and static-demo attribution. Results
+  are never mislabeled as Nominatim.
+- **Errors:** short/missing `q` → `400`; disabled/misconfigured → `503`; when
+  fallback is disabled, upstream failure → `502` / timeout → `504` / cooldown →
+  `503`. With fallback enabled (dev default), those upstream failures return
+  `200` static-demo results instead.
 
 ### `GET /api/billing/plans`
 

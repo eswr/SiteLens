@@ -34,10 +34,20 @@ Full-stack smoke test (while the API is running):
 
 ```bash
 npm run smoke:fullstack
+# Optional geocoding check (Nominatim or static-demo fallback):
+SMOKE_GEOCODING=true SMOKE_GEOCODING_EXPECT_FALLBACK=true npm run smoke:fullstack
+```
+
+Deployed API verification:
+
+```bash
+API_BASE=https://<api-host> npm run verify:deployed:api
 ```
 
 See [`docs/environment.md`](docs/environment.md) for env vars,
-[`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
+[`docs/deployment.md`](docs/deployment.md) for frontend-only vs full-stack deploy,
+[`docs/deploy-env-checklist.md`](docs/deploy-env-checklist.md) for production/demo
+env, [`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
 [`docs/case-study.md`](docs/case-study.md) for the employer-facing overview.
 
 ## What This Proves
@@ -51,7 +61,7 @@ See [`docs/environment.md`](docs/environment.md) for env vars,
 - Redis caching and cache-safe entitlement scopes
 - Demo auth, roles, plans, and billing gates
 - Backend-owned deterministic AI summary service
-- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy
+- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy (with labeled static-demo fallback when public Nominatim is unavailable)
 - CI/CD and deployment-readiness
 
 ## Overview
@@ -231,17 +241,29 @@ frontend uses it when `VITE_API_BASE_URL` is set, and falls back to local
 Turf.js if the API is unreachable — the UI shows which engine was used
 (`PostGIS API` / `Local Turf` / `Turf fallback`).
 
-Enable full-stack mode for the web app:
+### Frontend-only vs full-stack
+
+| Mode | Needs | Web env |
+|------|--------|---------|
+| **Frontend-only** | `npm run dev:web` (or static host) | omit `VITE_*` |
+| **Full-stack** | API + PostGIS + Redis + seed/ingest | `VITE_API_BASE_URL` + optional `VITE_DEMO_API_KEY` |
+
+Enable full-stack mode for the web app (required for PostGIS analysis, Places
+search, Redis cache chips, and demo entitlements against a real API):
 
 ```bash
-# apps/web/.env.local
+# apps/web/.env.local  (or Vercel project env for a deployed full-stack demo)
 VITE_API_BASE_URL=http://localhost:4000
+VITE_DEMO_API_KEY=demo-planner-key
 ```
+
+A deployed frontend **without** `VITE_API_BASE_URL` stays frontend-only even if
+an API exists. See [`docs/deployment.md`](docs/deployment.md).
 
 Run everything, then draw an area of interest in the browser:
 
 ```bash
-npm run db:up && npm run db:migrate && npm run ingest:geojson
+npm run db:up && npm run db:migrate && npm run ingest:geojson && npm run db:seed:billing
 npm run dev:api
 npm run dev:web
 ```
@@ -317,17 +339,18 @@ with `npm run db:seed:billing`.
 
 ### Current boundaries
 
-- **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's
-  layer rendering + search still read static GeoJSON directly; only AOI analysis
-  calls the API (with a Turf fallback).
-- `planning-summary` is a **backend-owned deterministic** summary service
-  (gated by `summary:generate`, metered, Redis-cached); the frontend uses it
-  when the API + plan allow and falls back to a local deterministic summary on
-  `403`, API failure, or no API. No real LLM is called.
-- If the database is unavailable, DB-backed routes return `503` (no silent
-  fallback); the frontend's AOI analysis falls back to Turf and shows a warning.
-- **Redis** caching, auth, Stripe, and Azure deployment are future steps.
-- No real LLM API and no paid map token are used anywhere.
+- **Map layer rendering** still reads static GeoJSON from `public/data`. With
+  `VITE_API_BASE_URL` set, analysis, planning search, Places geocode, billing,
+  and planning summary call the API.
+- `planning-summary` is a **backend-owned deterministic** summary (no LLM).
+- Places search proxies Nominatim and may return labeled **static-demo**
+  fallback when the public provider blocks the host — never a browser-side
+  Nominatim call.
+- If the database is unavailable, DB-backed routes return `503`; AOI analysis
+  falls back to Turf with a warning. Redis degrades gracefully when down.
+- Demo auth/billing keys are portfolio-only. Real Stripe Checkout/Portal and
+  production auth remain future work.
+- No paid map token is required (public MapLibre demotiles style).
 
 ## Project Structure
 
@@ -363,7 +386,9 @@ packages/
 docs/
   demo-checklist.md      # recording walkthrough + talking points
   application-snippets.md# paste-ready job-application text
-  deployment.md          # Vercel deployment notes
+  deployment.md          # frontend-only vs full-stack deploy order
+  deploy-env-checklist.md # production/demo API + web env vars
+  frontend-deploy-verification.md # post-deploy UI checklist
   portfolio-blurb.md     # short portfolio description
   screenshots/           # README screenshot assets
 ```

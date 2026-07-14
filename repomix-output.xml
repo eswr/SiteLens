@@ -1,0 +1,5564 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+The content has been processed where comments have been removed, empty lines have been removed, content has been compressed (code blocks are separated by ⋮---- delimiter).
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Code comments have been removed from supported file types
+- Empty lines have been removed from all files
+- Content has been compressed - code blocks are separated by ⋮---- delimiter
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.cursor/
+  settings.json
+.github/
+  ISSUE_TEMPLATE/
+    bug_report.md
+    feature_request.md
+  workflows/
+    ci.yml
+  pull_request_template.md
+apps/
+  api/
+    data/
+      constraints.geojson
+      development-activity.geojson
+      parcels.geojson
+      transit.geojson
+      zoning.geojson
+    db/
+      migrations/
+        001_enable_postgis.sql
+        002_create_spatial_tables.sql
+        003_create_spatial_indexes.sql
+        004_create_billing_tables.sql
+      seeds/
+        README.md
+    src/
+      auth/
+        authPlugin.ts
+        capabilities.test.ts
+        capabilities.ts
+        demoUsers.ts
+        getAuthContext.ts
+        requireCapability.ts
+      billing/
+        billingRepository.test.ts
+        billingRepository.ts
+        billingService.ts
+      cache/
+        cache.test.ts
+        cacheClient.redis.test.ts
+        cacheClient.ts
+        cacheJson.ts
+        cacheKeys.test.ts
+        cacheKeys.ts
+        clearCache.ts
+      db/
+        geojson.test.ts
+        geojson.ts
+        ingestGeojson.ts
+        migrate.ts
+        pool.ts
+        reset.ts
+        seed.ts
+        seedBilling.ts
+        spatialRepository.analysis.test.ts
+        spatialRepository.test.ts
+        spatialRepository.ts
+        sql.test.ts
+        sql.ts
+      geocoding/
+        geocodingRateLimiter.test.ts
+        geocodingRateLimiter.ts
+        geocodingService.test.ts
+        geocodingService.ts
+        nominatimClient.live.test.ts
+        nominatimClient.test.ts
+        nominatimClient.ts
+      lib/
+        featureText.ts
+        httpErrors.ts
+        layerConfig.ts
+      plugins/
+        errorHandler.ts
+        requestLogger.ts
+      routes/
+        analysis.test.ts
+        analysis.ts
+        auth.test.ts
+        billing.test.ts
+        billing.ts
+        geocoding.test.ts
+        geocoding.ts
+        health.ts
+        layers.ts
+        me.ts
+        parcels.ts
+        planningSummary.test.ts
+        planningSummary.ts
+        search.ts
+      summary/
+        generatePlanningSummary.test.ts
+        generatePlanningSummary.ts
+      test/
+        health.test.ts
+        routes.test.ts
+      app.ts
+      config.ts
+      server.ts
+    .env.example
+    package.json
+    README.md
+    tsconfig.json
+  web/
+    public/
+      data/
+        constraints.geojson
+        development-activity.geojson
+        parcels.geojson
+        transit.geojson
+        zoning.geojson
+      favicon.svg
+    src/
+      api/
+        analysisApi.ts
+        billingApi.ts
+        client.ts
+        geocodingApi.ts
+        meApi.ts
+        planningSummaryApi.ts
+      app/
+        App.tsx
+      components/
+        analysis/
+          AnalysisEngineChip.tsx
+          AnalysisSummary.tsx
+          AnalyticsDashboard.tsx
+          PlanningSummaryPanel.tsx
+        charts/
+          ChartEmpty.tsx
+          ConstraintRiskChart.tsx
+          DevelopmentActivityChart.tsx
+          DevelopmentScoreCard.tsx
+          ZoningBreakdownChart.tsx
+        layout/
+          AccessControls.tsx
+          AppShell.tsx
+          DetailsPanel.tsx
+          HeaderBar.tsx
+          Sidebar.tsx
+        map/
+          MapStatusBadge.tsx
+          SiteMap.tsx
+      data/
+        featureDisplay.ts
+        layers.ts
+      store/
+        aiSummaryStore.ts
+        analysisStore.ts
+        authStore.ts
+        billingStore.ts
+        layerStore.ts
+        mapStore.ts
+        placeSearchStore.ts
+        searchStore.ts
+        uiStore.ts
+      theme/
+        theme.ts
+      types/
+        aiSummary.ts
+        analysis.ts
+        map.ts
+        planning.ts
+      utils/
+        featureIndex.ts
+        mockPlanningSummary.ts
+        spatialAnalysis.ts
+      index.css
+      main.tsx
+      vite-env.d.ts
+    .env.example
+    .oxlintrc.json
+    index.html
+    package.json
+    tsconfig.app.json
+    tsconfig.json
+    tsconfig.node.json
+    vite.config.ts
+docs/
+  screenshots/
+    .gitkeep
+  api-reference.md
+  application-snippets.md
+  architecture.md
+  case-study.md
+  demo-checklist.md
+  deployment.md
+  environment.md
+  portfolio-blurb.md
+  production-readiness.md
+infra/
+  docker-compose.yml
+packages/
+  shared/
+    src/
+      aiSummary.ts
+      analysis.ts
+      api.ts
+      auth.ts
+      billing.ts
+      geocoding.ts
+      index.ts
+      planCatalog.ts
+      planning.ts
+    package.json
+    tsconfig.json
+scripts/
+  smoke-fullstack.sh
+.gitignore
+AGENTS.md
+package.json
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".cursor/settings.json">
+{
+  "plugins": {
+    "redis-development": {
+      "enabled": true
+    }
+  }
+}
+</file>
+
+<file path=".github/ISSUE_TEMPLATE/bug_report.md">
+---
+name: Bug report
+about: Report a problem in SiteLens
+title: "[Bug] "
+labels: bug
+---
+
+## Environment
+
+- OS / device:
+- Browser:
+- Mode: <!-- API mode (VITE_API_BASE_URL set) or local frontend-only fallback -->
+- Demo access (if API mode): <!-- viewer / planner / admin, plan -->
+
+## Steps to reproduce
+
+1.
+2.
+3.
+
+## Expected behavior
+
+## Actual behavior
+
+## Logs / screenshots
+</file>
+
+<file path=".github/ISSUE_TEMPLATE/feature_request.md">
+---
+name: Feature request
+about: Propose an improvement to SiteLens
+title: "[Feature] "
+labels: enhancement
+---
+
+## User problem
+
+<!-- What user need or pain does this address? -->
+
+## Proposed behavior
+
+## Frontend impact
+
+## Backend impact
+
+## Data / spatial impact
+
+## Acceptance criteria
+
+- [ ]
+- [ ]
+</file>
+
+<file path=".github/pull_request_template.md">
+## Summary
+
+## Testing
+
+- [ ] `npm run typecheck`
+- [ ] `npm run lint`
+- [ ] `npm run test`
+- [ ] `npm run build`
+- [ ] `npm run test:db -w apps/api` if backend/spatial changes were made
+
+## Risk Areas
+
+- [ ] Spatial SQL / PostGIS
+- [ ] Cache keys / Redis
+- [ ] Auth / entitlements
+- [ ] Billing gates
+- [ ] Frontend fallback behavior
+- [ ] Map interaction behavior
+
+## Notes for Reviewers
+</file>
+
+<file path="apps/api/data/constraints.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "constraint-flood",
+      "properties": {
+        "id": "constraint-flood",
+        "constraintType": "Flood Planning",
+        "riskLevel": "High",
+        "description": "1-in-100-year flood planning area affecting low-lying parcels."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2080, -33.8740], [151.2160, -33.8740], [151.2160, -33.8700], [151.2080, -33.8700], [151.2080, -33.8740]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-heritage",
+      "properties": {
+        "id": "constraint-heritage",
+        "constraintType": "Heritage Conservation",
+        "riskLevel": "Medium",
+        "description": "Heritage conservation area with controls on facade alterations."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2010, -33.8670], [151.2060, -33.8670], [151.2060, -33.8630], [151.2010, -33.8630], [151.2010, -33.8670]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-acid-sulfate",
+      "properties": {
+        "id": "constraint-acid-sulfate",
+        "constraintType": "Acid Sulfate Soils",
+        "riskLevel": "Low",
+        "description": "Class 3 acid sulfate soils requiring management for deep excavation."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2130, -33.8640], [151.2190, -33.8640], [151.2190, -33.8600], [151.2130, -33.8600], [151.2130, -33.8640]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/api/data/development-activity.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dev-001",
+      "properties": {
+        "id": "dev-001",
+        "projectName": "George Street Tower",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-11"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2065, -33.8725] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-002",
+      "properties": {
+        "id": "dev-002",
+        "projectName": "Exchange Place Mixed Use",
+        "status": "Approved",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-08"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2110, -33.8682] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-003",
+      "properties": {
+        "id": "dev-003",
+        "projectName": "Foundry Yard Redevelopment",
+        "status": "Lodged",
+        "applicationType": "Rezoning",
+        "lodgedMonth": "2026-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2045, -33.8652] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-004",
+      "properties": {
+        "id": "dev-004",
+        "projectName": "Parkside Community Hub",
+        "status": "Approved",
+        "applicationType": "Complying Development",
+        "lodgedMonth": "2025-06"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2160, -33.8665] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-005",
+      "properties": {
+        "id": "dev-005",
+        "projectName": "Crown Street Terraces",
+        "status": "Refused",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-09"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2135, -33.8625] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-006",
+      "properties": {
+        "id": "dev-006",
+        "projectName": "Elizabeth Street Offices",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-12"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2025, -33.8700] }
+    }
+  ]
+}
+</file>
+
+<file path="apps/api/data/parcels.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "parcel-001",
+      "properties": {
+        "id": "parcel-001",
+        "name": "12 George Street",
+        "parcelId": "LOT-1-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 82,
+        "areaSqm": 1420,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8750], [151.2040, -33.8750], [151.2040, -33.8712], [151.2000, -33.8712], [151.2000, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-002",
+      "properties": {
+        "id": "parcel-002",
+        "name": "48 Market Lane",
+        "parcelId": "LOT-2-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Retail",
+        "developmentScore": 74,
+        "areaSqm": 1180,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8750], [151.2090, -33.8750], [151.2090, -33.8712], [151.2050, -33.8712], [151.2050, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-003",
+      "properties": {
+        "id": "parcel-003",
+        "name": "3 Harbour View Terrace",
+        "parcelId": "LOT-3-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 61,
+        "areaSqm": 2050,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8750], [151.2140, -33.8750], [151.2140, -33.8712], [151.2100, -33.8712], [151.2100, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-004",
+      "properties": {
+        "id": "parcel-004",
+        "name": "215 Riley Street",
+        "parcelId": "LOT-4-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Townhouses",
+        "developmentScore": 55,
+        "areaSqm": 1760,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8750], [151.2190, -33.8750], [151.2190, -33.8712], [151.2150, -33.8712], [151.2150, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-005",
+      "properties": {
+        "id": "parcel-005",
+        "name": "9 Foundry Yard",
+        "parcelId": "LOT-5-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Warehouse",
+        "developmentScore": 88,
+        "areaSqm": 3120,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8700], [151.2040, -33.8700], [151.2040, -33.8662], [151.2000, -33.8662], [151.2000, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-006",
+      "properties": {
+        "id": "parcel-006",
+        "name": "77 Exchange Place",
+        "parcelId": "LOT-6-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Vacant",
+        "developmentScore": 91,
+        "areaSqm": 2480,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8700], [151.2090, -33.8700], [151.2090, -33.8662], [151.2050, -33.8662], [151.2050, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-007",
+      "properties": {
+        "id": "parcel-007",
+        "name": "140 Elizabeth Street",
+        "parcelId": "LOT-7-DP1004",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 69,
+        "areaSqm": 1990,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8700], [151.2140, -33.8700], [151.2140, -33.8662], [151.2100, -33.8662], [151.2100, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-008",
+      "properties": {
+        "id": "parcel-008",
+        "name": "5 Parkside Grove",
+        "parcelId": "LOT-8-DP1004",
+        "zoning": "RE1 Recreation",
+        "currentUse": "Open Space",
+        "developmentScore": 34,
+        "areaSqm": 4210,
+        "status": "Protected"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8700], [151.2190, -33.8700], [151.2190, -33.8662], [151.2150, -33.8662], [151.2150, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-009",
+      "properties": {
+        "id": "parcel-009",
+        "name": "22 Lofthouse Way",
+        "parcelId": "LOT-9-DP1005",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Light Industrial",
+        "developmentScore": 79,
+        "areaSqm": 2870,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8650], [151.2090, -33.8650], [151.2090, -33.8612], [151.2050, -33.8612], [151.2050, -33.8650]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-010",
+      "properties": {
+        "id": "parcel-010",
+        "name": "301 Crown Street",
+        "parcelId": "LOT-10-DP1005",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 47,
+        "areaSqm": 1630,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8650], [151.2140, -33.8650], [151.2140, -33.8612], [151.2100, -33.8612], [151.2100, -33.8650]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/api/data/transit.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "transit-001",
+      "properties": {
+        "id": "transit-001",
+        "name": "Market Street Station",
+        "mode": "Train",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2070, -33.8730] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-002",
+      "properties": {
+        "id": "transit-002",
+        "name": "Exchange Metro",
+        "mode": "Metro",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2100, -33.8690] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-003",
+      "properties": {
+        "id": "transit-003",
+        "name": "Foundry Light Rail",
+        "mode": "Light Rail",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2050, -33.8660] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-004",
+      "properties": {
+        "id": "transit-004",
+        "name": "Parkside Interchange",
+        "mode": "Bus",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2150, -33.8670] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-005",
+      "properties": {
+        "id": "transit-005",
+        "name": "Crown Street Wharf",
+        "mode": "Ferry",
+        "distanceCategory": "Moderate"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2120, -33.8630] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-006",
+      "properties": {
+        "id": "transit-006",
+        "name": "George Street Stop",
+        "mode": "Bus",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2030, -33.8710] }
+    }
+  ]
+}
+</file>
+
+<file path="apps/api/data/zoning.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "zone-b1",
+      "properties": {
+        "id": "zone-b1",
+        "zoneCode": "B1",
+        "zoneName": "Commercial Core",
+        "description": "Business and commercial premises supporting office and retail uses."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8760], [151.2095, -33.8760], [151.2095, -33.8680], [151.1990, -33.8680], [151.1990, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-r3",
+      "properties": {
+        "id": "zone-r3",
+        "zoneCode": "R3",
+        "zoneName": "Medium Density Residential",
+        "description": "Townhouses and apartments with supporting local services."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8760], [151.2200, -33.8760], [151.2200, -33.8680], [151.2095, -33.8680], [151.2095, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-mu1",
+      "properties": {
+        "id": "zone-mu1",
+        "zoneCode": "MU1",
+        "zoneName": "Mixed Use Precinct",
+        "description": "Combined residential, commercial and light-industrial activity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8680], [151.2095, -33.8680], [151.2095, -33.8600], [151.1990, -33.8600], [151.1990, -33.8680]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-re1",
+      "properties": {
+        "id": "zone-re1",
+        "zoneCode": "RE1",
+        "zoneName": "Public Recreation",
+        "description": "Public open space, parks and community recreation land."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8680], [151.2200, -33.8680], [151.2200, -33.8600], [151.2095, -33.8600], [151.2095, -33.8680]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/api/db/migrations/001_enable_postgis.sql">
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+</file>
+
+<file path="apps/api/db/migrations/002_create_spatial_tables.sql">
+CREATE TABLE IF NOT EXISTS planning_layers (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  description TEXT NOT NULL,
+  geometry_type TEXT NOT NULL,
+  default_visible BOOLEAN NOT NULL DEFAULT false,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS parcels (
+  id TEXT PRIMARY KEY,
+  parcel_id TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  zoning TEXT NOT NULL,
+  current_use TEXT NOT NULL,
+  development_score NUMERIC(5,2),
+  area_sqm NUMERIC(12,2),
+  status TEXT NOT NULL,
+  properties JSONB NOT NULL DEFAULT '{}',
+  geom geometry(MultiPolygon, 4326) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS zoning_overlays (
+  id TEXT PRIMARY KEY,
+  zone_code TEXT NOT NULL,
+  zone_name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  properties JSONB NOT NULL DEFAULT '{}',
+  geom geometry(MultiPolygon, 4326) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS constraints (
+  id TEXT PRIMARY KEY,
+  constraint_type TEXT NOT NULL,
+  risk_level TEXT NOT NULL,
+  description TEXT NOT NULL,
+  properties JSONB NOT NULL DEFAULT '{}',
+  geom geometry(MultiPolygon, 4326) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS transit_points (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  distance_category TEXT NOT NULL,
+  properties JSONB NOT NULL DEFAULT '{}',
+  geom geometry(Point, 4326) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS development_activity (
+  id TEXT PRIMARY KEY,
+  project_name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  application_type TEXT NOT NULL,
+  lodged_month TEXT NOT NULL,
+  properties JSONB NOT NULL DEFAULT '{}',
+  geom geometry(Point, 4326) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+</file>
+
+<file path="apps/api/db/migrations/003_create_spatial_indexes.sql">
+CREATE INDEX IF NOT EXISTS parcels_geom_gix ON parcels USING GIST (geom);
+CREATE INDEX IF NOT EXISTS zoning_overlays_geom_gix ON zoning_overlays USING GIST (geom);
+CREATE INDEX IF NOT EXISTS constraints_geom_gix ON constraints USING GIST (geom);
+CREATE INDEX IF NOT EXISTS transit_points_geom_gix ON transit_points USING GIST (geom);
+CREATE INDEX IF NOT EXISTS development_activity_geom_gix ON development_activity USING GIST (geom);
+CREATE INDEX IF NOT EXISTS parcels_search_idx
+  ON parcels USING GIN (
+    to_tsvector('english', coalesce(name, '') || ' ' || coalesce(parcel_id, '') || ' ' || coalesce(zoning, '') || ' ' || coalesce(status, ''))
+  );
+CREATE INDEX IF NOT EXISTS development_activity_search_idx
+  ON development_activity USING GIN (
+    to_tsvector('english', coalesce(project_name, '') || ' ' || coalesce(status, '') || ' ' || coalesce(application_type, ''))
+  );
+CREATE INDEX IF NOT EXISTS parcels_parcel_id_idx ON parcels (parcel_id);
+CREATE INDEX IF NOT EXISTS parcels_zoning_idx ON parcels (zoning);
+CREATE INDEX IF NOT EXISTS development_activity_status_idx ON development_activity (status);
+CREATE INDEX IF NOT EXISTS constraints_risk_level_idx ON constraints (risk_level);
+CREATE INDEX IF NOT EXISTS transit_points_mode_idx ON transit_points (mode);
+</file>
+
+<file path="apps/api/db/migrations/004_create_billing_tables.sql">
+CREATE TABLE IF NOT EXISTS demo_accounts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS billing_customers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id TEXT NOT NULL REFERENCES demo_accounts(id) ON DELETE CASCADE,
+  stripe_customer_id TEXT UNIQUE,
+  billing_email TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id TEXT NOT NULL REFERENCES demo_accounts(id) ON DELETE CASCADE,
+  plan TEXT NOT NULL,
+  status TEXT NOT NULL,
+  stripe_subscription_id TEXT UNIQUE,
+  stripe_price_id TEXT,
+  current_period_end TIMESTAMPTZ,
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS usage_counters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id TEXT NOT NULL REFERENCES demo_accounts(id) ON DELETE CASCADE,
+  feature TEXT NOT NULL,
+  period_start DATE NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (account_id, feature, period_start)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS subscriptions_account_uidx
+  ON subscriptions (account_id);
+CREATE INDEX IF NOT EXISTS subscriptions_plan_idx ON subscriptions (plan);
+CREATE INDEX IF NOT EXISTS subscriptions_status_idx ON subscriptions (status);
+CREATE INDEX IF NOT EXISTS usage_counters_lookup_idx
+  ON usage_counters (account_id, feature, period_start);
+</file>
+
+<file path="apps/api/db/seeds/README.md">
+# Seeds
+
+Sample data for SiteLens is **not** raw SQL — it is loaded from the mock GeoJSON
+in `apps/api/data` by the ingestion script, which upserts rows into the PostGIS
+spatial tables.
+
+## Load sample data
+
+```bash
+# from the repo root
+npm run db:up          # start PostgreSQL + PostGIS
+npm run db:migrate     # apply SQL migrations
+npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS
+# (npm run db:seed is an alias for ingest:geojson)
+```
+
+## Reset everything
+
+```bash
+npm run db:reset       # drop spatial tables, re-run migrations (dev only)
+npm run ingest:geojson # reload data
+```
+
+Datasets ingested:
+
+| GeoJSON file | Table |
+| ------------ | ----- |
+| `parcels.geojson` | `parcels` |
+| `zoning.geojson` | `zoning_overlays` |
+| `constraints.geojson` | `constraints` |
+| `transit.geojson` | `transit_points` |
+| `development-activity.geojson` | `development_activity` |
+</file>
+
+<file path="apps/api/src/auth/authPlugin.ts">
+import type { FastifyInstance } from 'fastify';
+import type { AuthContext } from '@sitelens/shared';
+import { getAuthContext } from './getAuthContext';
+⋮----
+interface FastifyRequest {
+    auth: AuthContext;
+  }
+⋮----
+export function registerAuth(app: FastifyInstance): void
+</file>
+
+<file path="apps/api/src/auth/getAuthContext.ts">
+import type { FastifyRequest } from 'fastify';
+import type { AuthContext } from '@sitelens/shared';
+import { getUserForApiKey } from './demoUsers';
+⋮----
+function extractApiKey(request: FastifyRequest): string | undefined
+⋮----
+export function getAuthContext(request: FastifyRequest): AuthContext
+</file>
+
+<file path="apps/api/src/billing/billingRepository.test.ts">
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  getBillingContextForUser,
+  getUsage,
+  recordUsage,
+  setDemoPlanForUser,
+} from './billingRepository';
+import { seedBilling } from '../db/seedBilling';
+import { closePool } from '../db/pool';
+</file>
+
+<file path="apps/api/src/billing/billingRepository.ts">
+import type {
+  BillingContext,
+  BillingFeature,
+  BillingPlanId,
+  SubscriptionState,
+} from '@sitelens/shared';
+import { getPlan, isBillingPlanId } from '@sitelens/shared';
+import { getPool } from '../db/pool';
+import { getUserById } from '../auth/demoUsers';
+⋮----
+function logFallback(context: string, error: unknown): void
+⋮----
+function periodStart(date = new Date()): string
+⋮----
+export function demoFallbackContext(userId: string | null): BillingContext
+⋮----
+function contextForPlan(
+  planId: BillingPlanId,
+  subscription: SubscriptionState,
+): BillingContext
+⋮----
+async function ensureAccount(userId: string): Promise<void>
+⋮----
+export async function getBillingContextForUser(
+  userId: string | null,
+): Promise<BillingContext>
+⋮----
+export async function setDemoPlanForUser(
+  userId: string,
+  plan: BillingPlanId,
+): Promise<BillingContext>
+⋮----
+export interface StripeSubscriptionUpdate {
+  accountId: string;
+  plan?: BillingPlanId;
+  status: SubscriptionState['status'];
+  stripeSubscriptionId?: string | null;
+}
+⋮----
+export async function applyStripeSubscriptionEvent(
+  update: StripeSubscriptionUpdate,
+): Promise<void>
+⋮----
+export async function recordUsage(
+  userId: string,
+  feature: BillingFeature,
+): Promise<void>
+⋮----
+export async function getUsage(
+  userId: string,
+  feature: BillingFeature,
+): Promise<number>
+</file>
+
+<file path="apps/api/src/billing/billingService.ts">
+import type { FastifyRequest } from 'fastify';
+import type {
+  BillingContext,
+  BillingFeature,
+  CapabilityFlags,
+  DemoUser,
+} from '@sitelens/shared';
+import { hasFeature } from '@sitelens/shared';
+import { getBillingContextForUser, getUsage } from './billingRepository';
+import { getCapabilities } from '../auth/capabilities';
+import { HttpError } from '../auth/requireCapability';
+⋮----
+export interface RequestBilling {
+  user: DemoUser | null;
+  billing: BillingContext;
+  capabilities: CapabilityFlags;
+}
+⋮----
+export async function resolveBilling(
+  request: FastifyRequest,
+): Promise<RequestBilling>
+⋮----
+export function assertFeature(
+  billing: BillingContext,
+  feature: BillingFeature,
+): void
+⋮----
+export async function assertUsageWithinLimit(
+  userId: string,
+  feature: BillingFeature,
+  limit: number | null,
+): Promise<void>
+</file>
+
+<file path="apps/api/src/cache/cacheClient.redis.test.ts">
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { deleteByPattern, getJson, setJson } from './cacheJson';
+import { closeRedisClient } from './cacheClient';
+</file>
+
+<file path="apps/api/src/cache/cacheClient.ts">
+import Redis from 'ioredis';
+import { loadConfig } from '../config';
+⋮----
+export function isCacheEnabled(): boolean
+⋮----
+export function logCacheError(context: string, error: unknown): void
+⋮----
+export function getRedisClient(): Redis | null
+⋮----
+export async function waitForCacheReady(timeoutMs = 2000): Promise<boolean>
+⋮----
+const cleanup = () =>
+const onReady = () =>
+⋮----
+export async function closeRedisClient(): Promise<void>
+</file>
+
+<file path="apps/api/src/cache/cacheJson.ts">
+import type { CacheStatus } from '@sitelens/shared';
+import { getRedisClient, isCacheEnabled, logCacheError } from './cacheClient';
+import { loadConfig } from '../config';
+⋮----
+export interface CacheReadResult<T> {
+  value: T | null;
+  status: CacheStatus;
+}
+⋮----
+export async function getJson<T>(key: string): Promise<CacheReadResult<T>>
+⋮----
+export async function setJson<T>(
+  key: string,
+  value: T,
+  ttlSeconds?: number,
+): Promise<void>
+⋮----
+interface CachedPayload<T> {
+  data: T;
+  computedAt: string;
+}
+⋮----
+export interface CachedResult<T> {
+  data: T;
+  cache: CacheStatus;
+  computedAt: string;
+}
+⋮----
+export async function cached<T>(options: {
+  key: string;
+  ttlSeconds: number;
+compute: ()
+⋮----
+export async function deleteByPattern(pattern: string): Promise<number>
+</file>
+
+<file path="apps/api/src/cache/clearCache.ts">
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { deleteByPattern } from './cacheJson';
+import {
+  closeRedisClient,
+  isCacheEnabled,
+  waitForCacheReady,
+} from './cacheClient';
+import { ALL_CACHE_PATTERN, PLANNING_CACHE_PATTERNS } from './cacheKeys';
+⋮----
+export async function clearPlanningCache(): Promise<number>
+⋮----
+export async function clearAllCache(): Promise<number>
+</file>
+
+<file path="apps/api/src/db/geojson.test.ts">
+import { describe, expect, it } from 'vitest';
+import {
+  assertFeatureCollection,
+  resolveFeatureId,
+  validateFeature,
+  type IngestFeature,
+} from './geojson';
+</file>
+
+<file path="apps/api/src/db/geojson.ts">
+export interface IngestGeometry {
+  type: string;
+  coordinates: unknown;
+}
+⋮----
+export interface IngestFeature {
+  type: 'Feature';
+  id?: string | number;
+  geometry: IngestGeometry | null;
+  properties: Record<string, unknown> | null;
+}
+⋮----
+export interface IngestFeatureCollection {
+  type: 'FeatureCollection';
+  features: IngestFeature[];
+}
+⋮----
+export function assertFeatureCollection(
+  data: unknown,
+  sourceName: string,
+): IngestFeatureCollection
+⋮----
+export interface FeatureValidation {
+  ok: boolean;
+  reason?: string;
+}
+⋮----
+export function validateFeature(
+  feature: IngestFeature,
+  requiredProps: string[],
+): FeatureValidation
+⋮----
+/** Resolve a stable feature id from the feature or its properties. */
+export function resolveFeatureId(feature: IngestFeature): string
+</file>
+
+<file path="apps/api/src/db/migrate.ts">
+import { readdir, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { getPool, closePool } from './pool';
+⋮----
+export async function runMigrations(): Promise<void>
+</file>
+
+<file path="apps/api/src/db/pool.ts">
+import { Pool } from 'pg';
+import type { Pool as PgPool } from 'pg';
+import { loadConfig } from '../config';
+⋮----
+export function getPool(): PgPool
+⋮----
+export async function closePool(): Promise<void>
+</file>
+
+<file path="apps/api/src/db/reset.ts">
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { getPool, closePool } from './pool';
+import { runMigrations } from './migrate';
+import { SPATIAL_TABLE_DROP_ORDER } from './sql';
+import { loadConfig } from '../config';
+⋮----
+export async function resetDatabase(): Promise<void>
+</file>
+
+<file path="apps/api/src/db/seed.ts">
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { ingestAll } from './ingestGeojson';
+import { closePool } from './pool';
+⋮----
+export async function seed(): Promise<void>
+</file>
+
+<file path="apps/api/src/db/seedBilling.ts">
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import type { BillingPlanId } from '@sitelens/shared';
+import { getPool, closePool } from './pool';
+import { demoApiKeys } from '../auth/demoUsers';
+⋮----
+export async function seedBilling(): Promise<number>
+</file>
+
+<file path="apps/api/src/db/spatialRepository.analysis.test.ts">
+import { afterAll, describe, expect, it } from 'vitest';
+import { analyzeArea, InvalidGeometryError } from './spatialRepository';
+import { closePool } from './pool';
+import type { GeoJsonPolygon } from '@sitelens/shared';
+</file>
+
+<file path="apps/api/src/db/spatialRepository.test.ts">
+import { afterAll, describe, expect, it } from 'vitest';
+import {
+  getLayers,
+  getParcelById,
+  getParcels,
+  searchFeatures,
+} from './spatialRepository';
+import { closePool } from './pool';
+</file>
+
+<file path="apps/api/src/db/sql.test.ts">
+import { describe, expect, it } from 'vitest';
+import { rowToFeature, rowsToFeatureCollection, isDbConnectionError } from './sql';
+</file>
+
+<file path="apps/api/src/db/sql.ts">
+import type { PlanningLayerId } from '@sitelens/shared';
+⋮----
+export interface FeatureRow {
+  id: string;
+  geometry: unknown;
+  properties: Record<string, unknown> | null;
+}
+⋮----
+export interface GeoFeature {
+  type: 'Feature';
+  id: string;
+  geometry: unknown;
+  properties: Record<string, unknown>;
+}
+⋮----
+export function rowToFeature(row: FeatureRow): GeoFeature
+⋮----
+export function rowsToFeatureCollection(rows: FeatureRow[]):
+⋮----
+export function isDbConnectionError(error: unknown): boolean
+</file>
+
+<file path="apps/api/src/geocoding/geocodingRateLimiter.test.ts">
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  resetGeocodingRateLimiter,
+  waitForGeocodingSlot,
+} from './geocodingRateLimiter';
+</file>
+
+<file path="apps/api/src/geocoding/geocodingRateLimiter.ts">
+import { loadConfig } from '../config';
+⋮----
+function sleep(ms: number): Promise<void>
+⋮----
+export function waitForGeocodingSlot(minIntervalMs?: number): Promise<void>
+⋮----
+export function resetGeocodingRateLimiter(): void
+</file>
+
+<file path="apps/api/src/geocoding/geocodingService.test.ts">
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PlaceSearchResult } from '@sitelens/shared';
+</file>
+
+<file path="apps/api/src/geocoding/geocodingService.ts">
+import type { CacheStatus, PlaceSearchResponse, PlaceSearchResult } from '@sitelens/shared';
+import { loadConfig } from '../config';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, placeSearchKey } from '../cache/cacheKeys';
+import { HttpError } from '../auth/requireCapability';
+import { waitForGeocodingSlot } from './geocodingRateLimiter';
+import { searchNominatim } from './nominatimClient';
+⋮----
+export function clampLimit(limit: number | undefined): number
+⋮----
+export interface PlaceSearchServiceResult {
+  response: PlaceSearchResponse;
+  cache: CacheStatus;
+  computedAt: string;
+}
+⋮----
+export async function searchPlaces(
+  query: string,
+  limit?: number,
+): Promise<PlaceSearchServiceResult>
+</file>
+
+<file path="apps/api/src/geocoding/nominatimClient.live.test.ts">
+import { describe, expect, it } from 'vitest';
+import { searchNominatim } from './nominatimClient';
+</file>
+
+<file path="apps/api/src/geocoding/nominatimClient.test.ts">
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { searchNominatim } from './nominatimClient';
+⋮----
+function stubFetch(impl: () => Promise<Response>): void
+</file>
+
+<file path="apps/api/src/geocoding/nominatimClient.ts">
+import type { PlaceSearchResult } from '@sitelens/shared';
+import { loadConfig } from '../config';
+import { HttpError } from '../auth/requireCapability';
+⋮----
+interface NominatimItem {
+  place_id?: number | string;
+  display_name?: string;
+  name?: string;
+  lat?: string;
+  lon?: string;
+  boundingbox?: [string, string, string, string] | string[];
+  category?: string;
+  type?: string;
+  importance?: number;
+}
+⋮----
+function toLabel(displayName: string): string
+⋮----
+function toBoundingBox(
+  raw: NominatimItem['boundingbox'],
+): [number, number, number, number] | undefined
+⋮----
+function mapItem(item: NominatimItem): PlaceSearchResult | null
+⋮----
+export async function searchNominatim(
+  query: string,
+  limit: number,
+): Promise<PlaceSearchResult[]>
+</file>
+
+<file path="apps/api/src/lib/httpErrors.ts">
+import type { FastifyReply } from 'fastify';
+import type { ApiErrorEnvelope } from '@sitelens/shared';
+import { loadConfig } from '../config';
+⋮----
+export function sendDatabaseUnavailable(
+  reply: FastifyReply,
+  error: unknown,
+): void
+</file>
+
+<file path="apps/api/src/plugins/errorHandler.ts">
+import type { FastifyError, FastifyInstance } from 'fastify';
+import type { ApiErrorEnvelope } from '@sitelens/shared';
+⋮----
+export function registerErrorHandler(
+  app: FastifyInstance,
+  options: { isProduction: boolean },
+): void
+</file>
+
+<file path="apps/api/src/plugins/requestLogger.ts">
+import type { FastifyInstance } from 'fastify';
+⋮----
+export function registerRequestLogger(app: FastifyInstance): void
+</file>
+
+<file path="apps/api/src/routes/billing.test.ts">
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+⋮----
+const ctx = (planId: 'free' | 'pro' | 'enterprise') =>
+</file>
+
+<file path="apps/api/src/routes/billing.ts">
+import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { FastifyInstance, FastifyReply } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type {
+  ApiEnvelope,
+  ApiErrorEnvelope,
+  BillingContext,
+  BillingPlan,
+  CapabilityFlags,
+} from '@sitelens/shared';
+import { PLAN_LIST, isBillingPlanId } from '@sitelens/shared';
+import { loadConfig } from '../config';
+import { requireAuthenticated } from '../auth/requireCapability';
+import { resolveBilling } from '../billing/billingService';
+import {
+  applyStripeSubscriptionEvent,
+  setDemoPlanForUser,
+} from '../billing/billingRepository';
+⋮----
+type DemoPlanBody = Static<typeof demoPlanBody>;
+⋮----
+interface BillingCurrentResponse {
+  plan: BillingPlan;
+  subscription: BillingContext['subscription'];
+  features: BillingContext['features'];
+  capabilities: CapabilityFlags;
+}
+⋮----
+function billingResponse(
+  billing: BillingContext,
+  capabilities: CapabilityFlags,
+): BillingCurrentResponse
+⋮----
+function verifySignature(
+  payload: string,
+  header: string | undefined,
+  secret: string,
+): boolean
+⋮----
+interface StripeEvent {
+  type?: string;
+  data?: { object?: Record<string, unknown> };
+}
+⋮----
+async function handleStripeEvent(event: StripeEvent): Promise<void>
+⋮----
+function forbidden(reply: FastifyReply, message: string): ApiErrorEnvelope
+⋮----
+export async function billingRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/routes/geocoding.test.ts">
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+import type { PlaceSearchResult } from '@sitelens/shared';
+⋮----
+function get(url: string)
+</file>
+
+<file path="apps/api/src/routes/geocoding.ts">
+import type { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type {
+  ApiEnvelope,
+  ApiErrorEnvelope,
+  PlaceSearchResponse,
+} from '@sitelens/shared';
+import { DEFAULT_NOMINATIM_USER_AGENT, loadConfig } from '../config';
+import { HttpError } from '../auth/requireCapability';
+import { MIN_QUERY_LENGTH, searchPlaces } from '../geocoding/geocodingService';
+⋮----
+type GeocodeQuery = Static<typeof geocodeQuery>;
+⋮----
+function assertGeocodingReady(): void
+⋮----
+export async function geocodingRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/routes/health.ts">
+import type { FastifyInstance } from 'fastify';
+import type { ApiEnvelope, HealthResponse } from '@sitelens/shared';
+import { API_VERSION } from '../config';
+⋮----
+export async function healthRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/routes/planningSummary.test.ts">
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+import type { SpatialAnalysisResult } from '@sitelens/shared';
+⋮----
+function post(key?: string, payload: object =
+</file>
+
+<file path="apps/api/src/summary/generatePlanningSummary.test.ts">
+import { describe, expect, it } from 'vitest';
+import type { SpatialAnalysisResult } from '@sitelens/shared';
+import { generatePlanningSummary } from './generatePlanningSummary';
+</file>
+
+<file path="apps/api/src/summary/generatePlanningSummary.ts">
+import type {
+  ConstraintIntersection,
+  DevelopmentActivitySummary,
+  NearbyTransitItem,
+  PlanningSummary,
+  PlanningSummaryRequest,
+  PlanningSummarySection,
+  SpatialAnalysisResult,
+  ZoningBreakdownItem,
+} from '@sitelens/shared';
+⋮----
+type ScoreBand = 'none' | 'low' | 'moderate' | 'high';
+⋮----
+function scoreBandFor(score: number | null): ScoreBand
+⋮----
+function plural(count: number, singular: string, pluralForm?: string): string
+⋮----
+function developmentPotentialSection(
+  band: ScoreBand,
+  score: number | null,
+  parcelCount: number,
+  transitCount: number,
+): PlanningSummarySection
+⋮----
+function constraintSection(
+  constraints: ConstraintIntersection[],
+): PlanningSummarySection
+⋮----
+function transitSection(
+  transit: NearbyTransitItem[],
+): PlanningSummarySection
+⋮----
+function zoningSection(
+  zoning: ZoningBreakdownItem[],
+): PlanningSummarySection
+⋮----
+function activitySection(
+  count: number,
+  byStatus: DevelopmentActivitySummary[],
+): PlanningSummarySection
+⋮----
+function buildExecutiveSummary(
+  band: ScoreBand,
+  constraintCount: number,
+  highRiskCount: number,
+  transitCount: number,
+  activityCount: number,
+): string
+⋮----
+function buildNextChecks(result: SpatialAnalysisResult): string[]
+⋮----
+/**
+ * Deterministically generate a planning-style summary from analysis metrics.
+ *
+ * Pure function, **no external API/LLM calls**: the same `analysisResult`
+ * always yields the same text (aside from the `generatedAt` timestamp).
+ */
+export function generatePlanningSummary(
+  input: PlanningSummaryRequest,
+): PlanningSummary
+</file>
+
+<file path="apps/api/src/test/health.test.ts">
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+import { buildApp } from '../app';
+</file>
+
+<file path="apps/api/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="apps/web/public/data/constraints.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "constraint-flood",
+      "properties": {
+        "id": "constraint-flood",
+        "constraintType": "Flood Planning",
+        "riskLevel": "High",
+        "description": "1-in-100-year flood planning area affecting low-lying parcels."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2080, -33.8740], [151.2160, -33.8740], [151.2160, -33.8700], [151.2080, -33.8700], [151.2080, -33.8740]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-heritage",
+      "properties": {
+        "id": "constraint-heritage",
+        "constraintType": "Heritage Conservation",
+        "riskLevel": "Medium",
+        "description": "Heritage conservation area with controls on facade alterations."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2010, -33.8670], [151.2060, -33.8670], [151.2060, -33.8630], [151.2010, -33.8630], [151.2010, -33.8670]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "constraint-acid-sulfate",
+      "properties": {
+        "id": "constraint-acid-sulfate",
+        "constraintType": "Acid Sulfate Soils",
+        "riskLevel": "Low",
+        "description": "Class 3 acid sulfate soils requiring management for deep excavation."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2130, -33.8640], [151.2190, -33.8640], [151.2190, -33.8600], [151.2130, -33.8600], [151.2130, -33.8640]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/web/public/data/development-activity.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "dev-001",
+      "properties": {
+        "id": "dev-001",
+        "projectName": "George Street Tower",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-11"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2065, -33.8725] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-002",
+      "properties": {
+        "id": "dev-002",
+        "projectName": "Exchange Place Mixed Use",
+        "status": "Approved",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-08"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2110, -33.8682] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-003",
+      "properties": {
+        "id": "dev-003",
+        "projectName": "Foundry Yard Redevelopment",
+        "status": "Lodged",
+        "applicationType": "Rezoning",
+        "lodgedMonth": "2026-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2045, -33.8652] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-004",
+      "properties": {
+        "id": "dev-004",
+        "projectName": "Parkside Community Hub",
+        "status": "Approved",
+        "applicationType": "Complying Development",
+        "lodgedMonth": "2025-06"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2160, -33.8665] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-005",
+      "properties": {
+        "id": "dev-005",
+        "projectName": "Crown Street Terraces",
+        "status": "Refused",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-09"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2135, -33.8625] }
+    },
+    {
+      "type": "Feature",
+      "id": "dev-006",
+      "properties": {
+        "id": "dev-006",
+        "projectName": "Elizabeth Street Offices",
+        "status": "Under Assessment",
+        "applicationType": "Development Application",
+        "lodgedMonth": "2025-12"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2025, -33.8700] }
+    }
+  ]
+}
+</file>
+
+<file path="apps/web/public/data/parcels.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "parcel-001",
+      "properties": {
+        "id": "parcel-001",
+        "name": "12 George Street",
+        "parcelId": "LOT-1-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 82,
+        "areaSqm": 1420,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8750], [151.2040, -33.8750], [151.2040, -33.8712], [151.2000, -33.8712], [151.2000, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-002",
+      "properties": {
+        "id": "parcel-002",
+        "name": "48 Market Lane",
+        "parcelId": "LOT-2-DP1001",
+        "zoning": "B1 Commercial",
+        "currentUse": "Retail",
+        "developmentScore": 74,
+        "areaSqm": 1180,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8750], [151.2090, -33.8750], [151.2090, -33.8712], [151.2050, -33.8712], [151.2050, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-003",
+      "properties": {
+        "id": "parcel-003",
+        "name": "3 Harbour View Terrace",
+        "parcelId": "LOT-3-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 61,
+        "areaSqm": 2050,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8750], [151.2140, -33.8750], [151.2140, -33.8712], [151.2100, -33.8712], [151.2100, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-004",
+      "properties": {
+        "id": "parcel-004",
+        "name": "215 Riley Street",
+        "parcelId": "LOT-4-DP1002",
+        "zoning": "R3 Residential",
+        "currentUse": "Townhouses",
+        "developmentScore": 55,
+        "areaSqm": 1760,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8750], [151.2190, -33.8750], [151.2190, -33.8712], [151.2150, -33.8712], [151.2150, -33.8750]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-005",
+      "properties": {
+        "id": "parcel-005",
+        "name": "9 Foundry Yard",
+        "parcelId": "LOT-5-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Warehouse",
+        "developmentScore": 88,
+        "areaSqm": 3120,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2000, -33.8700], [151.2040, -33.8700], [151.2040, -33.8662], [151.2000, -33.8662], [151.2000, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-006",
+      "properties": {
+        "id": "parcel-006",
+        "name": "77 Exchange Place",
+        "parcelId": "LOT-6-DP1003",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Vacant",
+        "developmentScore": 91,
+        "areaSqm": 2480,
+        "status": "Development Ready"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8700], [151.2090, -33.8700], [151.2090, -33.8662], [151.2050, -33.8662], [151.2050, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-007",
+      "properties": {
+        "id": "parcel-007",
+        "name": "140 Elizabeth Street",
+        "parcelId": "LOT-7-DP1004",
+        "zoning": "B1 Commercial",
+        "currentUse": "Office",
+        "developmentScore": 69,
+        "areaSqm": 1990,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8700], [151.2140, -33.8700], [151.2140, -33.8662], [151.2100, -33.8662], [151.2100, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-008",
+      "properties": {
+        "id": "parcel-008",
+        "name": "5 Parkside Grove",
+        "parcelId": "LOT-8-DP1004",
+        "zoning": "RE1 Recreation",
+        "currentUse": "Open Space",
+        "developmentScore": 34,
+        "areaSqm": 4210,
+        "status": "Protected"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2150, -33.8700], [151.2190, -33.8700], [151.2190, -33.8662], [151.2150, -33.8662], [151.2150, -33.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-009",
+      "properties": {
+        "id": "parcel-009",
+        "name": "22 Lofthouse Way",
+        "parcelId": "LOT-9-DP1005",
+        "zoning": "MU1 Mixed Use",
+        "currentUse": "Light Industrial",
+        "developmentScore": 79,
+        "areaSqm": 2870,
+        "status": "Under Review"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2050, -33.8650], [151.2090, -33.8650], [151.2090, -33.8612], [151.2050, -33.8612], [151.2050, -33.8650]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "parcel-010",
+      "properties": {
+        "id": "parcel-010",
+        "name": "301 Crown Street",
+        "parcelId": "LOT-10-DP1005",
+        "zoning": "R3 Residential",
+        "currentUse": "Apartments",
+        "developmentScore": 47,
+        "areaSqm": 1630,
+        "status": "Active"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2100, -33.8650], [151.2140, -33.8650], [151.2140, -33.8612], [151.2100, -33.8612], [151.2100, -33.8650]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/web/public/data/transit.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "transit-001",
+      "properties": {
+        "id": "transit-001",
+        "name": "Market Street Station",
+        "mode": "Train",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2070, -33.8730] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-002",
+      "properties": {
+        "id": "transit-002",
+        "name": "Exchange Metro",
+        "mode": "Metro",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2100, -33.8690] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-003",
+      "properties": {
+        "id": "transit-003",
+        "name": "Foundry Light Rail",
+        "mode": "Light Rail",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2050, -33.8660] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-004",
+      "properties": {
+        "id": "transit-004",
+        "name": "Parkside Interchange",
+        "mode": "Bus",
+        "distanceCategory": "Nearby"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2150, -33.8670] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-005",
+      "properties": {
+        "id": "transit-005",
+        "name": "Crown Street Wharf",
+        "mode": "Ferry",
+        "distanceCategory": "Moderate"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2120, -33.8630] }
+    },
+    {
+      "type": "Feature",
+      "id": "transit-006",
+      "properties": {
+        "id": "transit-006",
+        "name": "George Street Stop",
+        "mode": "Bus",
+        "distanceCategory": "Walkable"
+      },
+      "geometry": { "type": "Point", "coordinates": [151.2030, -33.8710] }
+    }
+  ]
+}
+</file>
+
+<file path="apps/web/public/data/zoning.geojson">
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "zone-b1",
+      "properties": {
+        "id": "zone-b1",
+        "zoneCode": "B1",
+        "zoneName": "Commercial Core",
+        "description": "Business and commercial premises supporting office and retail uses."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8760], [151.2095, -33.8760], [151.2095, -33.8680], [151.1990, -33.8680], [151.1990, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-r3",
+      "properties": {
+        "id": "zone-r3",
+        "zoneCode": "R3",
+        "zoneName": "Medium Density Residential",
+        "description": "Townhouses and apartments with supporting local services."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8760], [151.2200, -33.8760], [151.2200, -33.8680], [151.2095, -33.8680], [151.2095, -33.8760]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-mu1",
+      "properties": {
+        "id": "zone-mu1",
+        "zoneCode": "MU1",
+        "zoneName": "Mixed Use Precinct",
+        "description": "Combined residential, commercial and light-industrial activity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.1990, -33.8680], [151.2095, -33.8680], [151.2095, -33.8600], [151.1990, -33.8600], [151.1990, -33.8680]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "zone-re1",
+      "properties": {
+        "id": "zone-re1",
+        "zoneCode": "RE1",
+        "zoneName": "Public Recreation",
+        "description": "Public open space, parks and community recreation land."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[151.2095, -33.8680], [151.2200, -33.8680], [151.2200, -33.8600], [151.2095, -33.8600], [151.2095, -33.8680]]]
+      }
+    }
+  ]
+}
+</file>
+
+<file path="apps/web/public/favicon.svg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#2563eb" />
+  <path
+    d="M32 14c-8.284 0-15 6.716-15 15 0 10.5 15 21 15 21s15-10.5 15-21c0-8.284-6.716-15-15-15z"
+    fill="#ffffff"
+  />
+  <circle cx="32" cy="29" r="6.5" fill="#2563eb" />
+</svg>
+</file>
+
+<file path="apps/web/src/api/billingApi.ts">
+import { apiGetWithMeta, apiPostWithMeta } from './client';
+import type {
+  BillingContext,
+  BillingPlanSummary,
+  CapabilityFlags,
+  PlanTier,
+} from './meApi';
+⋮----
+export interface BillingCurrent extends BillingContext {
+  capabilities: CapabilityFlags;
+}
+⋮----
+export async function getPlans(): Promise<BillingPlanSummary[]>
+⋮----
+export async function getCurrentBilling(): Promise<BillingCurrent>
+⋮----
+export async function setDemoPlan(plan: PlanTier): Promise<BillingCurrent>
+</file>
+
+<file path="apps/web/src/api/geocodingApi.ts">
+import { ApiError, apiGetWithMeta, isApiConfigured, type CacheStatus } from './client';
+⋮----
+export interface PlaceSearchResult {
+  id: string;
+  label: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+  boundingBox?: [number, number, number, number];
+  category?: string;
+  type?: string;
+  importance?: number;
+  provider: 'nominatim';
+}
+⋮----
+interface PlaceSearchData {
+  results: PlaceSearchResult[];
+  provider: 'nominatim';
+  attribution: string;
+}
+⋮----
+export interface PlaceSearchApiResult {
+  results: PlaceSearchResult[];
+  attribution: string;
+  meta?: {
+    cache?: CacheStatus;
+    computedAt?: string;
+  };
+}
+⋮----
+export async function searchPlaces(
+  query: string,
+  limit = 5,
+): Promise<PlaceSearchApiResult>
+</file>
+
+<file path="apps/web/src/api/planningSummaryApi.ts">
+import { apiPostWithMeta, type CacheStatus } from './client';
+import type { PlanningSummary } from '../types/aiSummary';
+import type { SpatialAnalysisResult } from '../types/analysis';
+⋮----
+export type PlanningSummarySourceEngine =
+  | 'postgis'
+  | 'turf-local'
+  | 'turf-fallback';
+⋮----
+export interface PlanningSummaryApiInput {
+  analysisResult: SpatialAnalysisResult;
+  context?: {
+    label?: string;
+    sourceEngine?: PlanningSummarySourceEngine;
+  };
+}
+⋮----
+export interface PlanningSummaryApiResult {
+  summary: PlanningSummary;
+  engine: 'deterministic-backend';
+  meta?: {
+    cache?: CacheStatus;
+    computedAt?: string;
+  };
+}
+⋮----
+interface PlanningSummaryData {
+  summary: PlanningSummary;
+  engine: 'deterministic-backend';
+}
+⋮----
+export async function generatePlanningSummaryWithApi(
+  input: PlanningSummaryApiInput,
+): Promise<PlanningSummaryApiResult>
+</file>
+
+<file path="apps/web/src/app/App.tsx">
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
+import { theme } from '../theme/theme';
+import AppShell from '../components/layout/AppShell';
+⋮----
+export default function App()
+</file>
+
+<file path="apps/web/src/components/analysis/AnalyticsDashboard.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Divider from '@mui/material/Divider';
+import CircularProgress from '@mui/material/CircularProgress';
+import type { SpatialAnalysisResult } from '../../types/analysis';
+import ZoningBreakdownChart from '../charts/ZoningBreakdownChart';
+import DevelopmentActivityChart from '../charts/DevelopmentActivityChart';
+import ConstraintRiskChart from '../charts/ConstraintRiskChart';
+import DevelopmentScoreCard from '../charts/DevelopmentScoreCard';
+</file>
+
+<file path="apps/web/src/components/charts/ChartEmpty.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+</file>
+
+<file path="apps/web/src/components/charts/ConstraintRiskChart.tsx">
+import Box from '@mui/material/Box';
+import {
+  Bar,
+  BarChart,
+  Cell,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { ConstraintIntersection } from '../../types/analysis';
+import ChartEmpty from './ChartEmpty';
+</file>
+
+<file path="apps/web/src/components/charts/DevelopmentActivityChart.tsx">
+import Box from '@mui/material/Box';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { LAYER_COLORS } from '../../data/layers';
+import type { DevelopmentActivitySummary } from '../../types/analysis';
+import ChartEmpty from './ChartEmpty';
+</file>
+
+<file path="apps/web/src/components/charts/DevelopmentScoreCard.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
+⋮----
+interface Band {
+  label: string;
+  color: string;
+  interpretation: string;
+}
+⋮----
+function bandFor(score: number): Band
+</file>
+
+<file path="apps/web/src/components/charts/ZoningBreakdownChart.tsx">
+import Box from '@mui/material/Box';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { LAYER_COLORS } from '../../data/layers';
+import type { ZoningBreakdownItem } from '../../types/analysis';
+import ChartEmpty from './ChartEmpty';
+</file>
+
+<file path="apps/web/src/components/map/MapStatusBadge.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { useMapStore } from '../../store/mapStore';
+import { useAnalysisStore } from '../../store/analysisStore';
+⋮----
+interface Status {
+  label: string;
+  color: string;
+}
+</file>
+
+<file path="apps/web/src/data/featureDisplay.ts">
+import type { PlanningLayerId } from '../types/planning';
+⋮----
+type Props = Record<string, unknown>;
+⋮----
+function str(value: unknown): string | undefined
+⋮----
+/** Human-friendly title for a feature. */
+export function getFeatureTitle(layerId: PlanningLayerId, props: Props): string
+⋮----
+export function getFeatureSubtitle(
+  layerId: PlanningLayerId,
+  props: Props,
+): string
+</file>
+
+<file path="apps/web/src/data/layers.ts">
+import type { PlanningLayerId } from '../types/planning';
+⋮----
+export type LayerGeometryType = 'polygon' | 'point';
+⋮----
+export interface PlanningLayerConfig {
+  id: PlanningLayerId;
+  label: string;
+  description: string;
+  sourceUrl: string;
+  sourceId: string;
+  layerIds: string[];
+  geometryType: LayerGeometryType;
+  defaultVisible: boolean;
+}
+</file>
+
+<file path="apps/web/src/store/billingStore.ts">
+import { create } from 'zustand';
+import { isApiConfigured } from '../api/client';
+import { getCurrentBilling, getPlans, setDemoPlan } from '../api/billingApi';
+import type { BillingCurrent } from '../api/billingApi';
+import type { BillingPlanSummary, PlanTier } from '../api/meApi';
+import { refreshAuth } from './authStore';
+⋮----
+interface BillingState {
+  plans: BillingPlanSummary[];
+  currentBilling: BillingCurrent | null;
+  isLoading: boolean;
+  error: string | null;
+  initialize: () => Promise<void>;
+  setDemoPlan: (plan: PlanTier) => Promise<void>;
+}
+</file>
+
+<file path="apps/web/src/store/layerStore.ts">
+import { create } from 'zustand';
+import type { PlanningLayerId } from '../types/planning';
+import { PLANNING_LAYERS } from '../data/layers';
+⋮----
+interface LayerState {
+  visibleLayerIds: PlanningLayerId[];
+  toggleLayer: (layerId: PlanningLayerId) => void;
+  setLayerVisible: (layerId: PlanningLayerId, visible: boolean) => void;
+  isLayerVisible: (layerId: PlanningLayerId) => boolean;
+}
+</file>
+
+<file path="apps/web/src/store/mapStore.ts">
+import { create } from 'zustand';
+import type {
+  FlyToRequest,
+  LngLat,
+  MapViewport,
+  SelectedFeature,
+} from '../types/map';
+⋮----
+type FlyToTarget = Omit<FlyToRequest, 'nonce'>;
+⋮----
+interface MapState extends MapViewport {
+  selectedFeature: SelectedFeature | null;
+  flyToFeatureRequest: FlyToRequest | null;
+  setViewport: (viewport: MapViewport) => void;
+  setSelectedFeature: (feature: SelectedFeature | null) => void;
+  requestFlyToFeature: (target: FlyToTarget) => void;
+  clearFlyToFeatureRequest: () => void;
+}
+</file>
+
+<file path="apps/web/src/store/placeSearchStore.ts">
+import { create } from 'zustand';
+import { searchPlaces, type PlaceSearchResult } from '../api/geocodingApi';
+import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
+import { useMapStore } from './mapStore';
+import { useAnalysisStore } from './analysisStore';
+⋮----
+interface PlaceSearchState {
+  query: string;
+  results: PlaceSearchResult[];
+  isLoading: boolean;
+  error: string | null;
+  selectedPlace: PlaceSearchResult | null;
+  cacheStatus: CacheStatus | null;
+  computedAt: string | null;
+  attribution: string | null;
+  setQuery: (query: string) => void;
+  search: (query: string) => Promise<void>;
+  selectPlace: (place: PlaceSearchResult) => void;
+  clearSelectedPlace: () => void;
+  clear: () => void;
+}
+⋮----
+// A place selection is independent of local planning features.
+</file>
+
+<file path="apps/web/src/store/searchStore.ts">
+import { create } from 'zustand';
+import { buildFeatureIndex } from '../utils/featureIndex';
+import type { IndexedFeature } from '../utils/featureIndex';
+⋮----
+function haystackFor(record: IndexedFeature): string
+⋮----
+interface SearchState {
+  query: string;
+  results: IndexedFeature[];
+  isLoading: boolean;
+  error: string | null;
+  index: IndexedFeature[] | null;
+  initialize: () => Promise<void>;
+  setQuery: (query: string) => void;
+  search: (query: string) => void;
+  clearSearch: () => void;
+}
+⋮----
+// Re-run any query entered while the index was loading.
+</file>
+
+<file path="apps/web/src/store/uiStore.ts">
+import { create } from 'zustand';
+⋮----
+export type DetailsTab = 'summary' | 'analytics' | 'aiSummary';
+⋮----
+interface UiState {
+  detailsTab: DetailsTab;
+  setDetailsTab: (tab: DetailsTab) => void;
+}
+</file>
+
+<file path="apps/web/src/theme/theme.ts">
+import { createTheme } from '@mui/material/styles';
+</file>
+
+<file path="apps/web/src/types/aiSummary.ts">
+export type PlanningSummarySeverity = 'positive' | 'neutral' | 'warning' | 'risk';
+⋮----
+export interface PlanningSummarySection {
+  title: string;
+  body: string;
+  severity?: PlanningSummarySeverity;
+}
+⋮----
+export interface PlanningSummary {
+  generatedAt: string;
+  siteContext: string;
+  executiveSummary: string;
+  sections: PlanningSummarySection[];
+  recommendedNextChecks: string[];
+  dataCaveats: string[];
+  sourceMetrics: {
+    areaHectares: number;
+    parcelCount: number;
+    averageDevelopmentScore: number | null;
+    constraintCount: number;
+    nearbyTransitCount: number;
+    developmentActivityCount: number;
+  };
+}
+</file>
+
+<file path="apps/web/src/types/analysis.ts">
+import type { Feature, Polygon } from 'geojson';
+⋮----
+export interface AreaPoint {
+  lng: number;
+  lat: number;
+}
+⋮----
+export interface AreaOfInterest {
+  points: AreaPoint[];
+  polygon: Feature<Polygon>;
+}
+⋮----
+export interface ZoningBreakdownItem {
+  zoneCode: string;
+  zoneName: string;
+  count: number;
+}
+⋮----
+export interface ConstraintIntersection {
+  id: string;
+  constraintType: string;
+  riskLevel: string;
+  description: string;
+}
+⋮----
+export interface NearbyTransitItem {
+  id: string;
+  name: string;
+  mode: string;
+  distanceMeters: number;
+}
+⋮----
+export interface DevelopmentActivitySummary {
+  status: string;
+  count: number;
+}
+⋮----
+export interface ParcelAnalysisSummary {
+  parcelCount: number;
+  averageDevelopmentScore: number | null;
+  totalAreaSqm: number;
+}
+⋮----
+export interface SpatialAnalysisResult {
+  areaSqm: number;
+  areaHectares: number;
+  parcelCount: number;
+  averageDevelopmentScore: number | null;
+  zoningBreakdown: ZoningBreakdownItem[];
+  intersectingConstraints: ConstraintIntersection[];
+  nearbyTransit: NearbyTransitItem[];
+  developmentActivityCount: number;
+  developmentActivityByStatus: DevelopmentActivitySummary[];
+}
+</file>
+
+<file path="apps/web/src/types/map.ts">
+import type { PlanningLayerId } from './planning';
+⋮----
+export interface LngLat {
+  lng: number;
+  lat: number;
+}
+⋮----
+export interface MapViewport {
+  center: LngLat;
+  zoom: number;
+}
+⋮----
+export interface SelectedFeature {
+  layerId: PlanningLayerId;
+  featureId: string;
+  sourceId: string;
+  geometryType: string;
+  properties: Record<string, unknown>;
+  center: [number, number];
+  bbox?: [number, number, number, number];
+}
+⋮----
+export interface FlyToRequest {
+  center: [number, number];
+  bbox?: [number, number, number, number];
+  geometryType: string;
+  nonce: number;
+}
+</file>
+
+<file path="apps/web/src/types/planning.ts">
+export type PlanningLayerId =
+  | 'parcels'
+  | 'zoning'
+  | 'constraints'
+  | 'transit'
+  | 'developmentActivity';
+⋮----
+export interface ParcelProperties {
+  id: string;
+  name: string;
+  parcelId: string;
+  zoning: string;
+  currentUse: string;
+  developmentScore: number;
+  areaSqm: number;
+  status: string;
+}
+⋮----
+export interface ZoningProperties {
+  id: string;
+  zoneCode: string;
+  zoneName: string;
+  description: string;
+}
+⋮----
+export interface ConstraintProperties {
+  id: string;
+  constraintType: string;
+  riskLevel: string;
+  description: string;
+}
+⋮----
+export interface TransitProperties {
+  id: string;
+  name: string;
+  mode: string;
+  distanceCategory: string;
+}
+⋮----
+export interface DevelopmentActivityProperties {
+  id: string;
+  projectName: string;
+  status: string;
+  applicationType: string;
+  lodgedMonth: string;
+}
+⋮----
+export type PlanningFeatureProperties =
+  | ParcelProperties
+  | ZoningProperties
+  | ConstraintProperties
+  | TransitProperties
+  | DevelopmentActivityProperties;
+</file>
+
+<file path="apps/web/src/utils/featureIndex.ts">
+import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
+import type { Feature, FeatureCollection, Geometry } from 'geojson';
+import { PLANNING_LAYERS } from '../data/layers';
+import { getFeatureTitle, getFeatureSubtitle } from '../data/featureDisplay';
+import type { PlanningLayerId } from '../types/planning';
+⋮----
+export interface IndexedFeature {
+  id: string;
+  layerId: PlanningLayerId;
+  sourceId: string;
+  label: string;
+  subtitle: string;
+  properties: Record<string, unknown>;
+  geometry: Geometry;
+  bbox: [number, number, number, number];
+  center: [number, number];
+}
+⋮----
+function indexFeature(
+  feature: Feature,
+  layerId: PlanningLayerId,
+  sourceId: string,
+): IndexedFeature
+⋮----
+export async function buildFeatureIndex(): Promise<IndexedFeature[]>
+</file>
+
+<file path="apps/web/src/utils/mockPlanningSummary.ts">
+import type { SpatialAnalysisResult } from '../types/analysis';
+import type {
+  PlanningSummary,
+  PlanningSummarySection,
+} from '../types/aiSummary';
+⋮----
+type ScoreBand = 'none' | 'low' | 'moderate' | 'high';
+⋮----
+function scoreBandFor(score: number | null): ScoreBand
+⋮----
+function plural(count: number, singular: string, pluralForm?: string): string
+⋮----
+function developmentPotentialSection(
+  band: ScoreBand,
+  score: number | null,
+  parcelCount: number,
+  transitCount: number,
+): PlanningSummarySection
+⋮----
+function constraintSection(
+  constraints: SpatialAnalysisResult['intersectingConstraints'],
+): PlanningSummarySection
+⋮----
+function transitSection(
+  transit: SpatialAnalysisResult['nearbyTransit'],
+): PlanningSummarySection
+⋮----
+function zoningSection(
+  zoning: SpatialAnalysisResult['zoningBreakdown'],
+): PlanningSummarySection
+⋮----
+function activitySection(
+  count: number,
+  byStatus: SpatialAnalysisResult['developmentActivityByStatus'],
+): PlanningSummarySection
+⋮----
+function buildExecutiveSummary(
+  band: ScoreBand,
+  constraintCount: number,
+  highRiskCount: number,
+  transitCount: number,
+  activityCount: number,
+): string
+⋮----
+function buildNextChecks(result: SpatialAnalysisResult): string[]
+⋮----
+/**
+ * Deterministically generate a planning-style summary from analysis metrics.
+ *
+ * Pure function, no external calls: the same `result` always yields the same
+ * text (aside from the `generatedAt` timestamp).
+ */
+export function generateMockPlanningSummary(
+  result: SpatialAnalysisResult,
+): PlanningSummary
+</file>
+
+<file path="apps/web/src/utils/spatialAnalysis.ts">
+import {
+  area as turfArea,
+  booleanIntersects,
+  booleanPointInPolygon,
+  centroid as turfCentroid,
+  distance as turfDistance,
+} from '@turf/turf';
+import type { Feature, FeatureCollection, Point, Polygon } from 'geojson';
+import { LAYER_BY_ID } from '../data/layers';
+import type {
+  AreaOfInterest,
+  AreaPoint,
+  ConstraintIntersection,
+  DevelopmentActivitySummary,
+  NearbyTransitItem,
+  ParcelAnalysisSummary,
+  SpatialAnalysisResult,
+  ZoningBreakdownItem,
+} from '../types/analysis';
+⋮----
+export function pointsToAreaOfInterest(points: AreaPoint[]): AreaOfInterest
+⋮----
+async function loadCollection(url: string, label: string): Promise<FeatureCollection>
+⋮----
+function prop(feature: Feature, key: string): string | undefined
+⋮----
+function analyzeParcels(
+  parcels: FeatureCollection,
+  aoi: Feature<Polygon>,
+): ParcelAnalysisSummary
+⋮----
+function analyzeZoning(
+  zoning: FeatureCollection,
+  aoi: Feature<Polygon>,
+): ZoningBreakdownItem[]
+⋮----
+function analyzeConstraints(
+  constraints: FeatureCollection,
+  aoi: Feature<Polygon>,
+): ConstraintIntersection[]
+⋮----
+function analyzeTransit(
+  transit: FeatureCollection,
+  aoi: Feature<Polygon>,
+): NearbyTransitItem[]
+⋮----
+function analyzeDevelopmentActivity(
+  development: FeatureCollection,
+  aoi: Feature<Polygon>,
+):
+⋮----
+export async function analyzeArea(
+  aoi: Feature<Polygon>,
+): Promise<SpatialAnalysisResult>
+</file>
+
+<file path="apps/web/src/index.css">
+:root {
+⋮----
+html,
+⋮----
+body {
+⋮----
+* {
+</file>
+
+<file path="apps/web/src/main.tsx">
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+⋮----
+import App from './app/App';
+</file>
+
+<file path="apps/web/src/vite-env.d.ts">
+interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL?: string;
+}
+⋮----
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+</file>
+
+<file path="apps/web/.oxlintrc.json">
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+</file>
+
+<file path="apps/web/index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SiteLens — Geospatial Planning Intelligence Demo</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="apps/web/package.json">
+{
+  "name": "@sitelens/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SiteLens web app — React + Vite geospatial planning dashboard",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.2.0",
+    "@mui/material": "^9.2.0",
+    "@turf/turf": "^7.3.5",
+    "maplibre-gl": "^5.24.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "recharts": "^3.9.2",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
+}
+</file>
+
+<file path="apps/web/tsconfig.app.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="apps/web/tsconfig.json">
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+</file>
+
+<file path="apps/web/tsconfig.node.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "module": "nodenext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}
+</file>
+
+<file path="apps/web/vite.config.ts">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+</file>
+
+<file path="docs/screenshots/.gitkeep">
+# Placeholder so the screenshots folder is tracked in git.
+# Add portfolio screenshots here (referenced from the README):
+#   dashboard.png
+#   feature-selection.png
+#   aoi-analysis.png
+#   ai-summary.png
+</file>
+
+<file path="docs/case-study.md">
+# SiteLens Case Study
+
+## Problem
+
+Planning and property users need to understand place-based decisions quickly, but raw spatial datasets are difficult for non-technical users to interpret.
+
+## Solution
+
+SiteLens is a full-stack geospatial planning intelligence platform that turns mock planning/property GeoJSON into searchable map layers, spatial analysis, analytics dashboards, and source-transparent planning summaries.
+
+## Frontend Ownership
+
+React, TypeScript, MapLibre, Material UI, AOI drawing, Recharts, responsive dashboard UX.
+
+## Backend Ownership
+
+Fastify, PostgreSQL/PostGIS, spatial SQL, GeoJSON ingestion, Redis caching, auth, billing/entitlements, usage metering.
+
+## AI Feature Design
+
+Backend-owned deterministic summary service using source metrics, cache, entitlement gates, and fallback behavior.
+
+## Production Thinking
+
+CI, tests, migrations, ingestion, caching, access control, billing gates, fallback modes, deployment docs.
+
+## What I Would Add Next
+
+OpenAPI, vector tiles, real SSO, Stripe Checkout, Azure deployment, observability, real LLM with evals.
+</file>
+
+<file path="docs/portfolio-blurb.md">
+# SiteLens — Portfolio Blurb
+
+A short, paste-ready description of SiteLens for portfolios, résumés, and job
+applications.
+
+## Short description
+
+SiteLens is a React + TypeScript geospatial planning intelligence demo. It uses
+MapLibre GL, GeoJSON, Turf.js, Material UI, Recharts, and Zustand to let users
+inspect planning layers, search spatial features, draw an area of interest, run
+spatial analysis, and generate a deterministic AI-assisted planning summary.
+
+## Tech stack
+
+- React + TypeScript + Vite
+- MapLibre GL JS (interactive map)
+- GeoJSON (mock planning layers)
+- Turf.js (spatial analysis)
+- Material UI (dashboard UX)
+- Recharts (analytics charts)
+- Zustand (state management)
+
+## What it demonstrates
+
+- Map layer management and viewport/state handling
+- Feature selection and inspection
+- Search across spatial features
+- Custom area-of-interest drawing
+- Spatial calculations (area, intersections, distances)
+- Analytics dashboard UX
+- AI-assisted analysis with visible source metrics (trustworthy AI UX)
+
+## Suggested application answer
+
+> SiteLens is a React + TypeScript geospatial planning intelligence demo. It uses
+> MapLibre GL, GeoJSON, Turf.js, Material UI, Recharts, and Zustand to let users
+> inspect planning layers, search spatial features, draw an area of interest, run
+> spatial analysis, and generate a deterministic AI-assisted planning summary.
+>
+> I built it as a public portfolio project because my production mapping/spatial
+> work was done inside private company products. It demonstrates the same
+> engineering patterns: map layer management, feature selection, viewport state,
+> spatial calculations, dashboard UX, and AI-assisted analysis with visible
+> source metrics.
+</file>
+
+<file path="packages/shared/src/aiSummary.ts">
+import type { SpatialAnalysisResult } from './analysis';
+⋮----
+export type PlanningSummarySeverity =
+  | 'positive'
+  | 'neutral'
+  | 'warning'
+  | 'risk';
+⋮----
+export interface PlanningSummarySection {
+  title: string;
+  body: string;
+  severity?: PlanningSummarySeverity;
+}
+⋮----
+export interface PlanningSummarySourceMetrics {
+  areaHectares: number;
+  parcelCount: number;
+  averageDevelopmentScore: number | null;
+  constraintCount: number;
+  nearbyTransitCount: number;
+  developmentActivityCount: number;
+}
+⋮----
+export interface PlanningSummary {
+  generatedAt: string;
+  siteContext: string;
+  executiveSummary: string;
+  sections: PlanningSummarySection[];
+  recommendedNextChecks: string[];
+  dataCaveats: string[];
+  sourceMetrics: PlanningSummarySourceMetrics;
+}
+⋮----
+export type PlanningSummarySourceEngine =
+  | 'postgis'
+  | 'turf-local'
+  | 'turf-fallback';
+⋮----
+export interface PlanningSummaryRequest {
+  analysisResult: SpatialAnalysisResult;
+  context?: {
+    label?: string;
+    sourceEngine?: PlanningSummarySourceEngine;
+  };
+}
+⋮----
+export interface PlanningSummaryResponse {
+  summary: PlanningSummary;
+  engine: 'deterministic-backend';
+}
+</file>
+
+<file path="packages/shared/src/auth.ts">
+export type UserRole = 'viewer' | 'planner' | 'admin';
+export type PlanTier = 'free' | 'pro' | 'enterprise';
+⋮----
+export interface DemoUser {
+  id: string;
+  name: string;
+  role: UserRole;
+  plan: PlanTier;
+}
+⋮----
+export interface AuthContext {
+  user: DemoUser | null;
+  isAuthenticated: boolean;
+}
+⋮----
+export interface CapabilityFlags {
+  canReadLayers: boolean;
+  canReadParcels: boolean;
+  canRunAnalysis: boolean;
+  canGenerateSummary: boolean;
+  canIngestData: boolean;
+  canViewAllLayers: boolean;
+}
+</file>
+
+<file path="packages/shared/src/billing.ts">
+export type BillingPlanId = 'free' | 'pro' | 'enterprise';
+export type BillingInterval = 'month' | 'year';
+⋮----
+export type BillingFeature =
+  | 'layers:read'
+  | 'parcels:read'
+  | 'parcels:full'
+  | 'search:basic'
+  | 'search:full'
+  | 'analysis:run'
+  | 'summary:generate'
+  | 'ingestion:manage'
+  | 'admin:manage';
+⋮----
+export interface BillingPlan {
+  id: BillingPlanId;
+  name: string;
+  description: string;
+  interval: BillingInterval;
+  priceCents: number | null;
+  currency: 'usd';
+  stripePriceId?: string;
+  features: BillingFeature[];
+  limits: {
+    searchResults: number;
+    parcelLimit: number | null;
+    analysisRunsPerMonth: number | null;
+    summaryRunsPerMonth: number | null;
+  };
+}
+⋮----
+export type SubscriptionStatus =
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'canceled'
+  | 'none';
+⋮----
+export interface SubscriptionState {
+  plan: BillingPlanId;
+  status: SubscriptionStatus;
+  currentPeriodEnd?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+}
+⋮----
+export interface BillingContext {
+  plan: BillingPlan;
+  subscription: SubscriptionState;
+  features: BillingFeature[];
+}
+</file>
+
+<file path="packages/shared/src/geocoding.ts">
+export interface PlaceSearchRequest {
+  query: string;
+  limit?: number;
+}
+⋮----
+export interface PlaceSearchResult {
+  id: string;
+  label: string;
+  displayName: string;
+  latitude: number;
+  longitude: number;
+  boundingBox?: [number, number, number, number];
+  category?: string;
+  type?: string;
+  importance?: number;
+  provider: 'nominatim';
+}
+⋮----
+export interface PlaceSearchResponse {
+  results: PlaceSearchResult[];
+  provider: 'nominatim';
+  attribution: string;
+}
+</file>
+
+<file path="packages/shared/src/planCatalog.ts">
+import type { BillingFeature, BillingPlan, BillingPlanId } from './billing';
+⋮----
+export function getPlan(planId: BillingPlanId): BillingPlan
+⋮----
+export function hasFeature(plan: BillingPlan, feature: BillingFeature): boolean
+⋮----
+export function isBillingPlanId(value: unknown): value is BillingPlanId
+</file>
+
+<file path="packages/shared/package.json">
+{
+  "name": "@sitelens/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  }
+}
+</file>
+
+<file path="packages/shared/tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "declaration": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src"]
+}
+</file>
+
+<file path="apps/api/src/auth/capabilities.test.ts">
+import { describe, expect, it } from 'vitest';
+import type { BillingContext, BillingPlanId, DemoUser } from '@sitelens/shared';
+import { getPlan } from '@sitelens/shared';
+import { accessScope, getCapabilities } from './capabilities';
+import { getUserById, getUserForApiKey } from './demoUsers';
+⋮----
+function contextFor(planId: BillingPlanId): BillingContext
+</file>
+
+<file path="apps/api/src/auth/capabilities.ts">
+import type {
+  BillingContext,
+  BillingPlanId,
+  CapabilityFlags,
+  DemoUser,
+} from '@sitelens/shared';
+⋮----
+export function getCapabilities(
+  user: DemoUser | null,
+  billing: BillingContext,
+): CapabilityFlags
+⋮----
+const has = (feature: string): boolean
+⋮----
+export function accessScope(billing: BillingContext): BillingPlanId
+</file>
+
+<file path="apps/api/src/auth/demoUsers.ts">
+import type { DemoUser } from '@sitelens/shared';
+⋮----
+export function getUserForApiKey(key: string | undefined): DemoUser | null
+⋮----
+export function getUserById(userId: string | undefined): DemoUser | null
+</file>
+
+<file path="apps/api/src/auth/requireCapability.ts">
+import type { FastifyRequest } from 'fastify';
+⋮----
+export class HttpError extends Error
+⋮----
+constructor(statusCode: number, code: string, message: string)
+⋮----
+export function requireAuthenticated(request: FastifyRequest): void
+</file>
+
+<file path="apps/api/src/cache/cacheKeys.test.ts">
+import { describe, expect, it } from 'vitest';
+import { analysisKey, layersKey, parcelDetailKey, searchKey } from './cacheKeys';
+</file>
+
+<file path="apps/api/src/db/ingestGeojson.ts">
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import type { PoolClient } from 'pg';
+import type { PlanningLayerId } from '@sitelens/shared';
+import { getPool, closePool } from './pool';
+import {
+  assertFeatureCollection,
+  resolveFeatureId,
+  validateFeature,
+  type IngestFeature,
+} from './geojson';
+import { LAYER_DEFS } from '../lib/layerConfig';
+import { clearPlanningCache } from '../cache/clearCache';
+import {
+  closeRedisClient,
+  isCacheEnabled,
+  waitForCacheReady,
+} from '../cache/cacheClient';
+⋮----
+interface ColumnMap {
+  column: string;
+  prop: string;
+}
+⋮----
+interface IngestConfig {
+  layerId: PlanningLayerId;
+  table: string;
+  file: string;
+  geometryKind: 'polygon' | 'point';
+  requiredProps: string[];
+  columns: ColumnMap[];
+}
+⋮----
+interface LayerResult {
+  layerId: PlanningLayerId;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+}
+⋮----
+async function upsertPlanningLayers(client: PoolClient): Promise<void>
+⋮----
+function buildUpsertSql(config: IngestConfig): string
+⋮----
+async function ingestLayer(
+  client: PoolClient,
+  config: IngestConfig,
+  feature: IngestFeature,
+  sql: string,
+): Promise<'inserted' | 'updated'>
+⋮----
+async function ingestFile(
+  client: PoolClient,
+  config: IngestConfig,
+): Promise<LayerResult>
+⋮----
+export async function ingestAll(): Promise<LayerResult[]>
+⋮----
+async function invalidateCache(): Promise<void>
+</file>
+
+<file path="apps/api/src/db/spatialRepository.ts">
+import type {
+  ConstraintIntersection,
+  DevelopmentActivitySummary,
+  GeoJsonMultiPolygon,
+  GeoJsonPolygon,
+  LayerSummary,
+  NearbyTransitItem,
+  PlanningLayerId,
+  SearchResultItem,
+  SpatialAnalysisResult,
+  ZoningBreakdownItem,
+} from '@sitelens/shared';
+import { getPool } from './pool';
+import { isDbConnectionError } from './sql';
+import {
+  rowToFeature,
+  rowsToFeatureCollection,
+  type FeatureRow,
+  type GeoFeature,
+} from './sql';
+import { getFeatureSubtitle, getFeatureTitle } from '../lib/featureText';
+⋮----
+export async function getLayers(): Promise<LayerSummary[]>
+⋮----
+export async function getParcels(): Promise<
+⋮----
+export async function getParcelById(
+  idOrParcelId: string,
+): Promise<GeoFeature | null>
+⋮----
+interface SearchTable {
+  layerId: PlanningLayerId;
+  table: string;
+  columns: string[];
+}
+⋮----
+interface SearchRow {
+  id: string;
+  properties: Record<string, unknown> | null;
+  geometry: unknown;
+  xmin: number;
+  ymin: number;
+  xmax: number;
+  ymax: number;
+}
+⋮----
+export async function searchFeatures(
+  query: string,
+  limit: number = DEFAULT_SEARCH_LIMIT,
+): Promise<SearchResultItem[]>
+⋮----
+export class InvalidGeometryError extends Error
+⋮----
+constructor(message = 'Area geometry is invalid')
+⋮----
+function round(value: number, decimals: number): number
+⋮----
+export async function analyzeArea(
+  geometry: GeoJsonPolygon | GeoJsonMultiPolygon,
+): Promise<SpatialAnalysisResult>
+</file>
+
+<file path="apps/api/src/lib/featureText.ts">
+import type { PlanningLayerId } from '@sitelens/shared';
+⋮----
+type Props = Record<string, unknown>;
+⋮----
+function str(value: unknown): string | undefined
+⋮----
+export function getFeatureTitle(layerId: PlanningLayerId, props: Props): string
+⋮----
+export function getFeatureSubtitle(
+  layerId: PlanningLayerId,
+  props: Props,
+): string
+</file>
+
+<file path="apps/api/src/lib/layerConfig.ts">
+import type {
+  PlanningLayerId,
+  PlanningLayerGeometryType,
+} from '@sitelens/shared';
+⋮----
+export interface LayerDef {
+  id: PlanningLayerId;
+  label: string;
+  description: string;
+  geometryType: PlanningLayerGeometryType;
+  file: string;
+  defaultVisible: boolean;
+  sortOrder: number;
+}
+</file>
+
+<file path="apps/api/src/routes/me.ts">
+import type { FastifyInstance } from 'fastify';
+import type {
+  ApiEnvelope,
+  BillingContext,
+  CapabilityFlags,
+  DemoUser,
+} from '@sitelens/shared';
+import { resolveBilling } from '../billing/billingService';
+⋮----
+interface MeResponse {
+  user: DemoUser | null;
+  capabilities: CapabilityFlags;
+  billing: {
+    plan: BillingContext['plan'];
+    subscription: BillingContext['subscription'];
+    features: BillingContext['features'];
+  };
+}
+⋮----
+export async function meRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/web/src/api/analysisApi.ts">
+import type { AreaOfInterest, SpatialAnalysisResult } from '../types/analysis';
+import { apiPostWithMeta, type CacheStatus } from './client';
+⋮----
+interface AnalyzeAreaApiData {
+  result: SpatialAnalysisResult;
+  engine: 'postgis';
+}
+⋮----
+export interface AnalyzeAreaApiResult {
+  result: SpatialAnalysisResult;
+  engine: 'postgis';
+  cache?: CacheStatus;
+  computedAt?: string;
+}
+⋮----
+export async function analyzeAreaWithApi(
+  areaOfInterest: AreaOfInterest,
+): Promise<AnalyzeAreaApiResult>
+</file>
+
+<file path="apps/web/src/api/meApi.ts">
+import { apiGetWithMeta } from './client';
+⋮----
+export type UserRole = 'viewer' | 'planner' | 'admin';
+export type PlanTier = 'free' | 'pro' | 'enterprise';
+⋮----
+export interface DemoUser {
+  id: string;
+  name: string;
+  role: UserRole;
+  plan: PlanTier;
+}
+⋮----
+export interface CapabilityFlags {
+  canReadLayers: boolean;
+  canReadParcels: boolean;
+  canRunAnalysis: boolean;
+  canGenerateSummary: boolean;
+  canIngestData: boolean;
+  canViewAllLayers: boolean;
+}
+⋮----
+export interface BillingPlanSummary {
+  id: PlanTier;
+  name: string;
+  description: string;
+  priceCents: number | null;
+  features: string[];
+}
+⋮----
+export interface BillingSubscription {
+  plan: PlanTier;
+  status: string;
+  currentPeriodEnd?: string | null;
+}
+⋮----
+export interface BillingContext {
+  plan: BillingPlanSummary;
+  subscription: BillingSubscription;
+  features: string[];
+}
+⋮----
+export interface MeResponse {
+  user: DemoUser | null;
+  capabilities: CapabilityFlags;
+  billing: BillingContext;
+}
+⋮----
+export async function fetchMe(): Promise<MeResponse>
+</file>
+
+<file path="apps/web/src/components/analysis/AnalysisEngineChip.tsx">
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Typography from '@mui/material/Typography';
+import StorageIcon from '@mui/icons-material/Storage';
+import FunctionsIcon from '@mui/icons-material/Functions';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { useAnalysisStore } from '../../store/analysisStore';
+import type { AnalysisEngine } from '../../store/analysisStore';
+import type { CacheStatus } from '../../api/client';
+⋮----
+type ChipColor = 'success' | 'default' | 'warning';
+⋮----
+function cacheLabel(status: CacheStatus | null): string | null
+</file>
+
+<file path="apps/web/src/components/analysis/AnalysisSummary.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Divider from '@mui/material/Divider';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import InsightsIcon from '@mui/icons-material/Insights';
+import { useAnalysisStore } from '../../store/analysisStore';
+import { useUiStore } from '../../store/uiStore';
+import { LAYER_COLORS } from '../../data/layers';
+import type { SpatialAnalysisResult } from '../../types/analysis';
+import AnalysisEngineChip from './AnalysisEngineChip';
+⋮----
+function formatNumber(value: number): string
+⋮----
+</Typography>
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<InsightsIcon fontSize="small" />}
+        onClick={() => setDetailsTab('analytics')}
+      >
+        View detailed analytics
+      </Button>
+    </Stack>
+  );
+⋮----
+onClick=
+</file>
+
+<file path="apps/web/src/components/layout/AccessControls.tsx">
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import PersonIcon from '@mui/icons-material/Person';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import { isApiConfigured } from '../../api/client';
+import { useAuthStore, type AuthMode } from '../../store/authStore';
+import { useBillingStore } from '../../store/billingStore';
+import type { PlanTier } from '../../api/meApi';
+⋮----
+onChange=
+</file>
+
+<file path="apps/web/src/components/layout/HeaderBar.tsx">
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import PublicIcon from '@mui/icons-material/Public';
+import PlaceIcon from '@mui/icons-material/Place';
+import { useMapStore } from '../../store/mapStore';
+import { getFeatureTitle } from '../../data/featureDisplay';
+import { AccessStatusChip } from './AccessControls';
+</file>
+
+<file path="apps/web/src/components/map/SiteMap.tsx">
+import { useEffect, useRef, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import type { GeoJSONSource, MapGeoJSONFeature } from 'maplibre-gl';
+⋮----
+import { bbox as turfBbox, center as turfCenter } from '@turf/turf';
+import type { Feature, FeatureCollection } from 'geojson';
+import Box from '@mui/material/Box';
+import { INITIAL_CENTER, INITIAL_ZOOM, useMapStore } from '../../store/mapStore';
+import { useLayerStore } from '../../store/layerStore';
+import { useAnalysisStore } from '../../store/analysisStore';
+import { usePlaceSearchStore } from '../../store/placeSearchStore';
+import {
+  CLICK_PRIORITY,
+  CONFIG_BY_MAP_LAYER_ID,
+  LAYER_COLORS,
+  PLANNING_LAYERS,
+} from '../../data/layers';
+import type { PlanningLayerId } from '../../types/planning';
+import type { AreaOfInterest, AreaPoint } from '../../types/analysis';
+⋮----
+function addAoiLayers(map: maplibregl.Map)
+⋮----
+function buildAoiData(
+  draftPoints: AreaPoint[],
+  areaOfInterest: AreaOfInterest | null,
+): FeatureCollection
+⋮----
+function addPlanningData(map: maplibregl.Map, visibleLayerIds: PlanningLayerId[])
+⋮----
+export default function SiteMap()
+⋮----
+const handleMoveEnd = () =>
+⋮----
+const handleClick = (event: maplibregl.MapMouseEvent) =>
+⋮----
+const handleMouseMove = (event: maplibregl.MapMouseEvent) =>
+⋮----
+const handleLoad = () =>
+⋮----
+// Reflect the selected feature as a MapLibre feature-state for highlighting.
+⋮----
+function pickByPriority(features: MapGeoJSONFeature[]): MapGeoJSONFeature
+⋮----
+const rank = (feature: MapGeoJSONFeature) =>
+</file>
+
+<file path="apps/web/src/store/aiSummaryStore.ts">
+import { create } from 'zustand';
+import type { SpatialAnalysisResult } from '../types/analysis';
+import type { PlanningSummary } from '../types/aiSummary';
+import { generateMockPlanningSummary } from '../utils/mockPlanningSummary';
+import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
+import {
+  generatePlanningSummaryWithApi,
+  type PlanningSummarySourceEngine,
+} from '../api/planningSummaryApi';
+⋮----
+export type SummaryEngine =
+  | 'deterministic-backend'
+  | 'local'
+  | 'local-fallback'
+  | null;
+⋮----
+interface AiSummaryState {
+  summary: PlanningSummary | null;
+  isGenerating: boolean;
+  error: string | null;
+  summaryEngine: SummaryEngine;
+  summaryCacheStatus: CacheStatus | null;
+  summaryComputedAt: string | null;
+  summaryWarning: string | null;
+  generateSummary: (
+    analysisResult: SpatialAnalysisResult | null,
+    sourceEngine?: PlanningSummarySourceEngine,
+  ) => Promise<void>;
+  clearSummary: () => void;
+}
+</file>
+
+<file path="apps/web/src/store/authStore.ts">
+import { create } from 'zustand';
+import { getDemoApiKey, isApiConfigured, setDemoApiKey } from '../api/client';
+import { fetchMe } from '../api/meApi';
+import type { CapabilityFlags, DemoUser, PlanTier } from '../api/meApi';
+⋮----
+export type AuthMode =
+  | 'local'
+  | 'anonymous'
+  | 'viewer'
+  | 'planner'
+  | 'admin';
+⋮----
+function modeForUser(user: DemoUser | null): AuthMode
+⋮----
+interface AuthState {
+  user: DemoUser | null;
+  capabilities: CapabilityFlags;
+  plan: PlanTier | null;
+  isLoading: boolean;
+  error: string | null;
+  authMode: AuthMode;
+  initialize: () => Promise<void>;
+  setMode: (mode: AuthMode) => Promise<void>;
+}
+⋮----
+async function refresh(
+  set: (partial: Partial<AuthState>) => void,
+): Promise<void>
+⋮----
+export async function refreshAuth(): Promise<void>
+⋮----
+export function currentModeFromKey(): AuthMode
+</file>
+
+<file path="apps/web/.env.example">
+VITE_API_BASE_URL=http://localhost:4000
+# Demo API key for role/entitlement demos: demo-viewer-key | demo-planner-key | demo-admin-key
+VITE_DEMO_API_KEY=demo-planner-key
+</file>
+
+<file path="docs/api-reference.md">
+# API Reference
+
+Base URL: `http://localhost:4000` (configurable via `VITE_API_BASE_URL`).
+
+All success responses use the envelope `{ data, meta? }`; errors use
+`{ error: { code, message, details? } }`. Every response includes an
+`x-request-id` header. Auth is a demo `x-api-key` header (or `Authorization:
+Bearer <key>`): `demo-viewer-key` (Free), `demo-planner-key` (Pro),
+`demo-admin-key` (Enterprise). Missing/unknown keys are treated as anonymous
+(Free).
+
+`meta.cache` is one of `hit | miss | error | disabled` for cached routes.
+
+---
+
+### `GET /health` and `GET /api/health`
+
+- **Purpose:** liveness/readiness check.
+- **Auth:** none.
+- **Response:** `{ data: { status: "ok", version, uptime } }`.
+
+### `GET /api/me`
+
+- **Purpose:** current demo user, capabilities, and billing context.
+- **Auth:** optional (anonymous → Free).
+- **Response:** `{ data: { user, capabilities, billing: { plan, subscription, features } } }`.
+
+### `GET /api/layers`
+
+- **Purpose:** layer metadata + feature counts.
+- **Auth:** optional. **Cache:** yes (`sitelens:layers:*`).
+- **Response:** `{ data: Layer[], meta: { cache } }`.
+
+### `GET /api/parcels`
+
+- **Purpose:** parcels as a GeoJSON `FeatureCollection`.
+- **Auth:** optional; **plan-limited** (`parcelLimit`, Free = 5, Pro/Enterprise = all).
+- **Cache:** yes, plan-scoped (`sitelens:parcels:v1:<plan>`).
+- **Response:** `{ data: FeatureCollection, meta: { count, cache, access } }`.
+
+### `GET /api/parcels/:id`
+
+- **Purpose:** a single parcel by `id`/`parcel_id`.
+- **Auth:** optional. **Cache:** yes. Returns `404` if missing.
+
+### `GET /api/search?q=`
+
+- **Purpose:** search spatial features (`ILIKE`).
+- **Auth:** optional; **plan-limited** result count (Free 5 / Pro 8 / Enterprise 20).
+- **Cache:** yes, plan-scoped (`sitelens:search:v1:<plan>:<hash>`).
+- **Example:** `GET /api/search?q=central`.
+- **Response:** `{ data: SearchResultItem[], meta: { count, cache, access } }`.
+
+### `POST /api/analyze-area`
+
+- **Purpose:** PostGIS spatial analysis of an AOI polygon.
+- **Auth + plan:** requires `analysis:run` (Pro/Enterprise) → `403` otherwise;
+  metered per plan (`429 ENTITLEMENT_LIMIT_EXCEEDED` when exhausted).
+- **Cache:** yes, plan-scoped (`sitelens:analysis:v1:<plan>:<hash>`).
+- **Request:**
+  ```json
+  { "geometry": { "type": "Polygon", "coordinates": [[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]] } }
+  ```
+- **Response:** `{ data: { result: SpatialAnalysisResult, engine: "postgis" }, meta: { cache, computedAt, access } }`.
+
+### `POST /api/planning-summary`
+
+- **Purpose:** backend-owned **deterministic** planning summary (no LLM).
+- **Auth + plan:** requires `summary:generate` (Pro/Enterprise) → `403`
+  otherwise; metered per plan (`429 ENTITLEMENT_LIMIT_EXCEEDED`). Invalid body → `400`.
+- **Cache:** yes, plan-scoped (`sitelens:summary:v1:<plan>:<hash>`).
+- **Request:** `{ "analysisResult": SpatialAnalysisResult, "context": { "sourceEngine": "postgis" } }`.
+- **Response:** `{ data: { summary: PlanningSummary, engine: "deterministic-backend" }, meta: { cache, computedAt, access } }`.
+
+### `GET /api/geocode/search?q=&limit=`
+
+- **Purpose:** worldwide place search (geocoding) via a backend **Nominatim /
+  OpenStreetMap** proxy. The browser never calls Nominatim directly.
+- **Auth:** none (public).
+- **Params:** `q` required, min 3 chars; `limit` default 5, max 10 (clamped).
+- **Cache:** yes, Redis (`sitelens:place-search:v1:<limit>:<hash>` — the raw
+  query is hashed, never embedded). Outbound calls are rate-spaced.
+- **Example:** `GET /api/geocode/search?q=Bengaluru&limit=5`.
+- **Response:**
+  ```json
+  {
+    "data": {
+      "results": [
+        { "id": "123", "label": "Bengaluru, Karnataka, India", "displayName": "…", "latitude": 12.9768, "longitude": 77.5901, "boundingBox": [12.834, 13.143, 77.460, 77.784], "category": "place", "type": "city", "importance": 0.72, "provider": "nominatim" }
+      ],
+      "provider": "nominatim",
+      "attribution": "© OpenStreetMap contributors; geocoding by Nominatim"
+    },
+    "meta": { "cache": "miss", "computedAt": "…" }
+  }
+  ```
+- **Errors:** short/missing `q` → `400`; disabled/misconfigured → `503`; upstream
+  failure → `502`; upstream timeout → `504`. A Redis failure still returns fresh
+  results if Nominatim succeeds.
+
+### `GET /api/billing/plans`
+
+- **Purpose:** the public plan catalog (Free / Pro / Enterprise).
+- **Auth:** none.
+- **Response:** `{ data: BillingPlan[] }`.
+
+### `GET /api/billing/current`
+
+- **Purpose:** current billing context + capabilities (anonymous → Free).
+- **Auth:** optional.
+- **Response:** `{ data: { plan, subscription, features, capabilities } }`.
+
+### `POST /api/billing/demo-plan`
+
+- **Purpose:** switch the demo user's plan (portfolio-only).
+- **Auth:** required (`401` if anonymous). Refused in production unless
+  `ENABLE_DEMO_BILLING=true` (`403`).
+- **Request:** `{ "plan": "pro" }`.
+- **Response:** `{ data: { plan, subscription, features, capabilities } }`.
+
+### `POST /api/billing/webhook`
+
+- **Purpose:** Stripe-compatible webhook (demo-safe).
+- **Auth:** signature-based. When `STRIPE_WEBHOOK_SECRET` is set, an invalid
+  `stripe-signature` → `400`; in non-production without a secret, demo payloads
+  are accepted. Maps `customer.subscription.*` and `invoice.payment_failed`.
+- **Response:** `{ data: { received: true, type } }`.
+</file>
+
+<file path="docs/production-readiness.md">
+# Production Readiness Checklist
+
+SiteLens is a portfolio demo that is intentionally **production-shaped** but not
+production-deployed. This checklist captures what would be required to run it as
+a real geospatial SaaS. Items are grouped by concern.
+
+## Security
+
+- [ ] Replace demo API keys with real auth (OAuth/SSO, JWT, or session cookies)
+- [ ] Add an organization/team membership model
+- [ ] Verify and lock down CORS origins (`WEB_ORIGIN`)
+- [ ] Use secure, `HttpOnly`, `SameSite` cookies / session storage if added
+- [ ] Rate-limit sensitive endpoints (analysis, summary, webhook)
+- [ ] Sanitize inputs and log safely (no secrets/PII in logs)
+- [ ] Disable demo billing in production (`ENABLE_DEMO_BILLING` unset/false)
+
+## Data
+
+- [ ] Use managed PostgreSQL/PostGIS with backups and PITR
+- [ ] Automate migrations in the deploy pipeline
+- [ ] Monitor ingestion jobs (success/failure, row counts, timing)
+- [ ] Validate incoming spatial data (geometry validity, SRID, bounds)
+- [ ] Add data freshness checks / staleness alerts
+
+## Performance
+
+- [ ] Redis cache enabled with sized TTLs
+- [ ] Spatial indexes verified (GiST on geometry columns)
+- [ ] Query plans reviewed (`EXPLAIN ANALYZE`) for heavy spatial endpoints
+- [ ] Pagination for large feature collections
+- [ ] Tile / vector-tile strategy for large spatial layers
+
+## Billing
+
+- [ ] Stripe Checkout for self-serve upgrades
+- [ ] Stripe Customer Portal for plan management
+- [ ] Verified webhooks (signature + raw body via the Stripe SDK)
+- [ ] Idempotency keys on write operations
+- [ ] Entitlement reconciliation (Stripe ↔ local subscriptions)
+
+## AI
+
+- [ ] Prompt/version logging if a real LLM is added
+- [ ] Evaluation set for summary quality / regressions
+- [ ] Source metrics always visible alongside generated text
+- [ ] Human review for risky / high-impact outputs
+
+## Geocoding (worldwide place search)
+
+- [ ] Replace public Nominatim with a self-hosted Nominatim, Mapbox Geocoding, Pelias, or a commercial provider
+- [ ] Set a real identifying `NOMINATIM_USER_AGENT` (contact address)
+- [ ] Replace the single-process request spacer with a distributed Redis-backed rate limiter/queue
+- [ ] Keep visible OSM/Nominatim attribution wherever place results appear
+- [ ] Tune place-search cache TTL and monitor upstream error/latency rates
+
+## Observability
+
+- [ ] Structured logs (request id, user, plan, route)
+- [ ] Metrics (latency, cache hit rate, error rate, usage)
+- [ ] Distributed tracing across web → API → DB/cache
+- [ ] Error tracking (e.g. Sentry)
+- [ ] Health checks wired to orchestration/liveness probes
+- [ ] Deployment rollback plan (blue/green or canary)
+</file>
+
+<file path="infra/docker-compose.yml">
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sitelens-postgres
+    environment:
+      POSTGRES_DB: sitelens
+      POSTGRES_USER: sitelens
+      POSTGRES_PASSWORD: sitelens
+    ports:
+      - "54329:5432"
+    volumes:
+      - sitelens_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sitelens -d sitelens"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    container_name: sitelens-redis
+    ports:
+      - "6389:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - sitelens_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+volumes:
+  sitelens_postgres_data:
+  sitelens_redis_data:
+</file>
+
+<file path="packages/shared/src/planning.ts">
+export type PlanningLayerId =
+  | 'parcels'
+  | 'zoning'
+  | 'constraints'
+  | 'transit'
+  | 'developmentActivity';
+⋮----
+export type PlanningLayerGeometryType = 'polygon' | 'point';
+⋮----
+export interface LayerSummary {
+  id: PlanningLayerId;
+  label: string;
+  description: string;
+  geometryType: PlanningLayerGeometryType;
+  featureCount: number;
+}
+⋮----
+export interface SearchResultItem {
+  id: string;
+  layerId: PlanningLayerId;
+  label: string;
+  subtitle: string;
+  properties: Record<string, unknown>;
+  geometry: unknown;
+  bbox?: [number, number, number, number];
+}
+</file>
+
+<file path="scripts/smoke-fullstack.sh">
+set -euo pipefail
+API_BASE="${API_BASE:-http://localhost:4000}"
+curl -fsS "$API_BASE/api/health" >/dev/null
+curl -fsS "$API_BASE/api/layers" >/dev/null
+curl -fsS "$API_BASE/api/search?q=central" >/dev/null
+curl -fsS -X POST "$API_BASE/api/analyze-area" \
+  -H "content-type: application/json" \
+  -H "x-api-key: demo-planner-key" \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}' >/dev/null
+if [ "${SMOKE_GEOCODING:-false}" = "true" ]; then
+  curl -fsS "$API_BASE/api/geocode/search?q=Sydney&limit=3" >/dev/null
+fi
+echo "Full-stack smoke test passed"
+</file>
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage
+*.lcov
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="apps/api/src/cache/cache.test.ts">
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+</file>
+
+<file path="apps/api/src/routes/analysis.test.ts">
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+⋮----
+class InvalidGeometryError extends Error
+⋮----
+constructor(message = 'Area geometry is invalid')
+⋮----
+async function makeApp(): Promise<FastifyInstance>
+</file>
+
+<file path="apps/api/src/routes/auth.test.ts">
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+⋮----
+function withKey(key?: string)
+</file>
+
+<file path="apps/api/src/routes/layers.ts">
+import type { FastifyInstance } from 'fastify';
+import type { ApiEnvelope, LayerSummary } from '@sitelens/shared';
+import { getLayers } from '../db/spatialRepository';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, layersKey } from '../cache/cacheKeys';
+⋮----
+export async function layersRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/server.ts">
+import { buildApp } from './app';
+import { loadConfig } from './config';
+import { closePool } from './db/pool';
+import { closeRedisClient, waitForCacheReady } from './cache/cacheClient';
+⋮----
+async function main(): Promise<void>
+</file>
+
+<file path="apps/web/src/api/client.ts">
+function readStoredKey(): string | null
+⋮----
+/** Whether an API base URL is configured. */
+export function isApiConfigured(): boolean
+⋮----
+/** The configured API base URL (may be an empty string). */
+export function getApiBaseUrl(): string
+⋮----
+/** The demo API key currently sent with requests (may be empty = anonymous). */
+export function getDemoApiKey(): string
+⋮----
+/** Set (or clear) the demo API key; persisted to localStorage. */
+export function setDemoApiKey(key: string): void
+⋮----
+// Ignore storage errors (e.g. privacy mode).
+⋮----
+function buildHeaders(base: Record<string, string> =
+⋮----
+export class ApiError extends Error
+⋮----
+constructor(message: string, options:
+⋮----
+export type CacheStatus =
+  | 'hit'
+  | 'miss'
+  | 'bypass'
+  | 'disabled'
+  | 'error'
+  | 'none';
+⋮----
+export interface ApiMeta {
+  requestId?: string;
+  cache?: CacheStatus;
+  cacheKey?: string;
+  computedAt?: string;
+  count?: number;
+}
+⋮----
+interface ApiEnvelope<T> {
+  data: T;
+  meta?: ApiMeta;
+}
+⋮----
+interface ApiErrorBody {
+  error?: { code?: string; message?: string };
+}
+⋮----
+export async function apiPostWithMeta<T>(
+  path: string,
+  body: unknown,
+): Promise<
+⋮----
+export async function apiGetWithMeta<T>(
+  path: string,
+): Promise<
+⋮----
+export async function apiPost<T>(path: string, body: unknown): Promise<T>
+</file>
+
+<file path="apps/web/src/components/analysis/PlanningSummaryPanel.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { useAiSummaryStore, type SummaryEngine } from '../../store/aiSummaryStore';
+import { useAnalysisStore } from '../../store/analysisStore';
+import { useAuthStore } from '../../store/authStore';
+import { isApiConfigured, type CacheStatus } from '../../api/client';
+import AnalysisEngineChip from './AnalysisEngineChip';
+import type {
+  PlanningSummary,
+  PlanningSummarySeverity,
+} from '../../types/aiSummary';
+⋮----
+function Card({
+  children,
+  sx,
+}: {
+  children: React.ReactNode;
+  sx?: object;
+})
+⋮----
+generateSummary(analysisResult, analysisEngine ?? undefined)
+</file>
+
+<file path="apps/web/src/components/layout/AppShell.tsx">
+import { useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import HeaderBar from './HeaderBar';
+import Sidebar from './Sidebar';
+import DetailsPanel from './DetailsPanel';
+import SiteMap from '../map/SiteMap';
+import MapStatusBadge from '../map/MapStatusBadge';
+import { useAuthStore } from '../../store/authStore';
+import { useBillingStore } from '../../store/billingStore';
+</file>
+
+<file path="apps/web/src/components/layout/DetailsPanel.tsx">
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
+import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PublicIcon from '@mui/icons-material/Public';
+import { useMapStore } from '../../store/mapStore';
+import { useAnalysisStore } from '../../store/analysisStore';
+import { usePlaceSearchStore } from '../../store/placeSearchStore';
+import { useUiStore } from '../../store/uiStore';
+import AnalysisSummary from '../analysis/AnalysisSummary';
+import AnalyticsDashboard from '../analysis/AnalyticsDashboard';
+import PlanningSummaryPanel from '../analysis/PlanningSummaryPanel';
+import AnalysisEngineChip from '../analysis/AnalysisEngineChip';
+import { LAYER_BY_ID, LAYER_COLORS } from '../../data/layers';
+import { PRIORITY_KEYS, TITLE_KEY, getFeatureTitle } from '../../data/featureDisplay';
+import type { SelectedFeature } from '../../types/map';
+⋮----
+function formatKey(key: string): string
+⋮----
+function formatValue(key: string, value: unknown): string
+⋮----
+onClick=
+⋮----
+requestFlyToFeature(
+</file>
+
+<file path="packages/shared/src/analysis.ts">
+export interface GeoJsonPolygon {
+  type: 'Polygon';
+  coordinates: number[][][];
+}
+⋮----
+export interface GeoJsonMultiPolygon {
+  type: 'MultiPolygon';
+  coordinates: number[][][][];
+}
+⋮----
+export interface AnalyzeAreaRequest {
+  geometry: {
+    type: 'Polygon' | 'MultiPolygon';
+    coordinates: unknown;
+  };
+}
+⋮----
+export interface ZoningBreakdownItem {
+  zoneCode: string;
+  zoneName: string;
+  count: number;
+}
+⋮----
+export interface ConstraintIntersection {
+  id: string;
+  constraintType: string;
+  riskLevel: string;
+  description: string;
+}
+⋮----
+export interface NearbyTransitItem {
+  id: string;
+  name: string;
+  mode: string;
+  distanceMeters: number;
+}
+⋮----
+export interface DevelopmentActivitySummary {
+  status: string;
+  count: number;
+}
+⋮----
+export interface SpatialAnalysisResult {
+  areaSqm: number;
+  areaHectares: number;
+  parcelCount: number;
+  averageDevelopmentScore: number | null;
+  zoningBreakdown: ZoningBreakdownItem[];
+  intersectingConstraints: ConstraintIntersection[];
+  nearbyTransit: NearbyTransitItem[];
+  developmentActivityCount: number;
+  developmentActivityByStatus: DevelopmentActivitySummary[];
+}
+⋮----
+export interface AnalyzeAreaResponse {
+  result: SpatialAnalysisResult;
+  engine: 'postgis';
+}
+</file>
+
+<file path="packages/shared/src/api.ts">
+export type CacheStatus =
+  | 'hit'
+  | 'miss'
+  | 'bypass'
+  | 'disabled'
+  | 'error'
+  | 'none';
+⋮----
+export interface AccessMeta {
+  role?: 'viewer' | 'planner' | 'admin';
+  plan?: 'free' | 'pro' | 'enterprise';
+  limited?: boolean;
+}
+⋮----
+export interface ApiEnvelope<T> {
+  data: T;
+  meta?: {
+    requestId?: string;
+    cache?: CacheStatus;
+    cacheKey?: string;
+    computedAt?: string;
+    count?: number;
+    access?: AccessMeta;
+  };
+}
+⋮----
+export interface ApiErrorEnvelope {
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+}
+⋮----
+export interface HealthResponse {
+  status: 'ok';
+  service: 'sitelens-api';
+  version: string;
+  timestamp: string;
+}
+</file>
+
+<file path="apps/api/src/routes/planningSummary.ts">
+import type { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type {
+  ApiEnvelope,
+  PlanningSummaryResponse,
+  SpatialAnalysisResult,
+} from '@sitelens/shared';
+import {
+  assertFeature,
+  assertUsageWithinLimit,
+  resolveBilling,
+} from '../billing/billingService';
+import { recordUsage } from '../billing/billingRepository';
+import { accessScope } from '../auth/capabilities';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, planningSummaryKey } from '../cache/cacheKeys';
+import { generatePlanningSummary } from '../summary/generatePlanningSummary';
+⋮----
+type PlanningSummaryBody = Static<typeof planningSummaryBody>;
+⋮----
+export async function planningSummaryRoutes(
+  app: FastifyInstance,
+): Promise<void>
+</file>
+
+<file path="apps/api/src/app.ts">
+import { randomUUID } from 'node:crypto';
+import Fastify from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
+import { registerRequestLogger } from './plugins/requestLogger';
+import { registerErrorHandler } from './plugins/errorHandler';
+import { registerAuth } from './auth/authPlugin';
+import { healthRoutes } from './routes/health';
+import { meRoutes } from './routes/me';
+import { billingRoutes } from './routes/billing';
+import { layersRoutes } from './routes/layers';
+import { parcelsRoutes } from './routes/parcels';
+import { searchRoutes } from './routes/search';
+import { geocodingRoutes } from './routes/geocoding';
+import { analysisRoutes } from './routes/analysis';
+import { planningSummaryRoutes } from './routes/planningSummary';
+⋮----
+export interface BuildAppOptions {
+  webOrigin?: string;
+  isProduction?: boolean;
+}
+⋮----
+export async function buildApp(
+  options: BuildAppOptions = {},
+): Promise<FastifyInstance>
+</file>
+
+<file path="apps/api/src/cache/cacheKeys.ts">
+import { createHash } from 'node:crypto';
+⋮----
+function sha256(input: string): string
+⋮----
+export type AccessScope = 'free' | 'pro' | 'enterprise';
+⋮----
+export function layersKey(): string
+⋮----
+export function parcelsKey(scope: AccessScope): string
+⋮----
+export function parcelDetailKey(id: string): string
+⋮----
+export function searchKey(query: string, scope: AccessScope): string
+⋮----
+export function placeSearchKey(query: string, limit: number): string
+⋮----
+export function analysisKey(geometry: unknown, scope: AccessScope): string
+⋮----
+export function planningSummaryKey(
+  scope: AccessScope,
+  analysisResult: unknown,
+): string
+⋮----
+function fingerprintAnalysis(input: unknown): string
+⋮----
+const num = (value: unknown): number
+const len = (value: unknown): number
+const arr = (value: unknown): unknown[]
+</file>
+
+<file path="apps/api/src/routes/analysis.ts">
+import type { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type {
+  AnalyzeAreaResponse,
+  ApiEnvelope,
+  ApiErrorEnvelope,
+  GeoJsonMultiPolygon,
+  GeoJsonPolygon,
+} from '@sitelens/shared';
+import { analyzeArea, InvalidGeometryError } from '../db/spatialRepository';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { analysisKey, CACHE_TTL } from '../cache/cacheKeys';
+import { accessScope } from '../auth/capabilities';
+import {
+  assertFeature,
+  assertUsageWithinLimit,
+  resolveBilling,
+} from '../billing/billingService';
+import { recordUsage } from '../billing/billingRepository';
+⋮----
+type AnalyzeAreaBody = Static<typeof analyzeAreaBody>;
+⋮----
+export async function analysisRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/routes/parcels.ts">
+import type { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type { ApiEnvelope, ApiErrorEnvelope } from '@sitelens/shared';
+import { getParcelById, getParcels } from '../db/spatialRepository';
+import type { GeoFeature } from '../db/sql';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, parcelDetailKey, parcelsKey } from '../cache/cacheKeys';
+import { accessScope } from '../auth/capabilities';
+import { resolveBilling } from '../billing/billingService';
+⋮----
+type ParcelParams = Static<typeof parcelParams>;
+⋮----
+export async function parcelsRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/src/routes/search.ts">
+import type { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import type { ApiEnvelope, SearchResultItem } from '@sitelens/shared';
+import { searchFeatures } from '../db/spatialRepository';
+import { sendDatabaseUnavailable } from '../lib/httpErrors';
+import { cached } from '../cache/cacheJson';
+import { CACHE_TTL, searchKey } from '../cache/cacheKeys';
+import { accessScope } from '../auth/capabilities';
+import { resolveBilling } from '../billing/billingService';
+⋮----
+type SearchQuery = Static<typeof searchQuery>;
+⋮----
+export async function searchRoutes(app: FastifyInstance): Promise<void>
+</file>
+
+<file path="apps/api/package.json">
+{
+  "name": "@sitelens/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "test": "vitest run",
+    "test:db": "RUN_DB_TESTS=true vitest run src/db src/billing",
+    "test:redis": "RUN_REDIS_TESTS=true vitest run src/cache",
+    "test:geocoding:live": "RUN_GEOCODING_LIVE_TESTS=true vitest run src/geocoding/nominatimClient.live.test.ts",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:reset": "tsx src/db/reset.ts",
+    "ingest:geojson": "tsx src/db/ingestGeojson.ts",
+    "db:seed:billing": "tsx src/db/seedBilling.ts",
+    "db:seed": "npm run ingest:geojson && npm run db:seed:billing",
+    "cache:clear": "tsx src/cache/clearCache.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@sinclair/typebox": "^0.34.50",
+    "@sitelens/shared": "*",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.10.0",
+    "ioredis": "^5.11.1",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
+</file>
+
+<file path="apps/web/src/components/layout/Sidebar.tsx">
+import { useEffect, useState } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Switch from '@mui/material/Switch';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import List from '@mui/material/List';
+import ListItemButton from '@mui/material/ListItemButton';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import SearchIcon from '@mui/icons-material/Search';
+import PublicIcon from '@mui/icons-material/Public';
+import GestureIcon from '@mui/icons-material/Gesture';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { PLANNING_LAYERS, LAYER_COLORS, LAYER_BY_ID } from '../../data/layers';
+import { useLayerStore } from '../../store/layerStore';
+import { useSearchStore } from '../../store/searchStore';
+import { useMapStore } from '../../store/mapStore';
+import { useAnalysisStore, MIN_AOI_POINTS } from '../../store/analysisStore';
+import { useUiStore } from '../../store/uiStore';
+import { useAiSummaryStore } from '../../store/aiSummaryStore';
+import { useAuthStore } from '../../store/authStore';
+import {
+  usePlaceSearchStore,
+  MIN_PLACE_QUERY_LENGTH,
+} from '../../store/placeSearchStore';
+import { isApiConfigured } from '../../api/client';
+import { AnalysisSummaryCompact } from '../analysis/AnalysisSummary';
+import { DemoAccessSwitcher } from './AccessControls';
+import type { IndexedFeature } from '../../utils/featureIndex';
+import type { PlaceSearchResult } from '../../api/geocodingApi';
+import type { PlanningLayerId } from '../../types/planning';
+⋮----
+function LayerColorDot({
+  layerId,
+  point,
+}: {
+  layerId: PlanningLayerId;
+  point: boolean;
+})
+⋮----
+function SectionCard(
+⋮----
+const handleSelect = (record: IndexedFeature) =>
+⋮----
+// Selecting a search result exits any in-progress AOI drawing.
+⋮----
+// A planning-feature selection clears any selected worldwide place.
+⋮----
+onChange=
+⋮----
+onClick=
+⋮----
+const submit = () =>
+⋮----
+// Reuse the shared fly-to path; place bbox is [south, north, west, east].
+⋮----
+const handleGenerateAi = () =>
+</file>
+
+<file path="apps/web/src/store/analysisStore.ts">
+import { create } from 'zustand';
+import type {
+  AreaOfInterest,
+  AreaPoint,
+  SpatialAnalysisResult,
+} from '../types/analysis';
+import { analyzeArea, pointsToAreaOfInterest } from '../utils/spatialAnalysis';
+import { analyzeAreaWithApi } from '../api/analysisApi';
+import { ApiError, isApiConfigured, type CacheStatus } from '../api/client';
+import { useAiSummaryStore } from './aiSummaryStore';
+import { useMapStore } from './mapStore';
+⋮----
+export type AnalysisEngine = 'postgis' | 'turf-local' | 'turf-fallback' | null;
+⋮----
+interface AnalysisState {
+  isDrawing: boolean;
+  draftPoints: AreaPoint[];
+  areaOfInterest: AreaOfInterest | null;
+  analysisResult: SpatialAnalysisResult | null;
+  isAnalyzing: boolean;
+  error: string | null;
+  analysisEngine: AnalysisEngine;
+  analysisCacheStatus: CacheStatus | null;
+  analysisComputedAt: string | null;
+  analysisWarning?: string;
+  startDrawing: () => void;
+  addDraftPoint: (point: AreaPoint) => void;
+  undoLastPoint: () => void;
+  completeDrawing: () => Promise<void>;
+  cancelDrawing: () => void;
+  clearAnalysis: () => void;
+  setAnalysisResult: (result: SpatialAnalysisResult | null) => void;
+  setError: (error: string | null) => void;
+}
+</file>
+
+<file path="docs/demo-checklist.md">
+# SiteLens Demo Checklist
+
+## 2-Minute Walkthrough
+
+1. Open the dashboard and explain the product: geospatial planning intelligence demo.
+2. Toggle zoning, constraints, transit, and development activity layers.
+3. Search for a parcel or transit feature.
+4. Select a feature and inspect metadata in the right panel.
+5. Draw an Area of Interest.
+6. Review spatial analysis metrics.
+7. Open Analytics and show Recharts visualizations.
+8. Generate the deterministic AI Summary.
+9. Point out source metrics and demo-data caveats.
+
+## Access / Entitlement Demo
+
+Use the sidebar **Demo access** switcher (or `VITE_DEMO_API_KEY`) to show roles
+and plans:
+
+1. Switch to **Viewer · Free**: search is capped at 5 results; drawing an AOI
+   falls back to local Turf with an entitlement warning (backend returns 403).
+2. Switch to **Planner · Pro**: AOI analysis runs on the backend (PostGIS API),
+   search returns up to 8 results.
+3. Switch to **Admin · Enterprise**: same as planner, plus admin-only ingestion
+   capability (`/api/me` shows `canIngestData`).
+4. Point out the header chip (e.g. "Demo Planner · Pro") and that cache keys are
+   scoped by entitlement so lower tiers can't receive higher-tier cached data.
+
+## Worldwide Place Search Demo
+
+Requires backend API mode (`VITE_API_BASE_URL` set).
+
+1. In the sidebar Search card, switch from **Planning features** to **Places**.
+2. Type a worldwide place (e.g. "Bengaluru" or "London") and press Enter / click
+   **Search places**. (Place search runs only on explicit submit, min 3 chars.)
+3. First search shows `cache miss`; repeating the same search shows `cache hit`.
+4. Selecting a result flies/fits the map to the place, drops a marker, and shows
+   a Place card in the details panel with OSM/Nominatim attribution.
+5. Note the split: **Planning features** still searches the local PostGIS
+   dataset, and AOI analysis still applies only to that local dataset — place
+   search is independent. Open browser devtools → Network: no request goes to
+   nominatim.openstreetmap.org from the browser (only the SiteLens API).
+
+## Billing / Plan Demo
+
+Use the sidebar **Demo access → Plan** select to switch plans (Stripe-style):
+
+1. As Planner, keep **Pro**: AOI analysis runs on the backend (PostGIS).
+2. Switch **Plan** to **Free**: the header chip and capabilities update; drawing
+   an AOI now returns `403` and falls back to local Turf with a "gated by the
+   Pro plan" warning — showing entitlements are billing-driven, not just role.
+3. Switch back to **Pro** (or **Enterprise**): backend analysis works again.
+4. Mention `GET /api/billing/plans`, `POST /api/billing/demo-plan`, the
+   Stripe-compatible webhook, and that usage is metered in `usage_counters`.
+
+## Backend Planning Summary Demo
+
+1. As Planner/Pro, run an AOI analysis, then open the **AI Summary** tab and
+   click **Generate backend summary**. The panel shows a `Backend deterministic
+   summary` chip and a `cache miss` chip.
+2. Regenerate the same summary: the chip now shows `cache hit` (Redis-cached,
+   plan-scoped) — no recompute.
+3. Switch **Plan** to **Free** and generate again: the backend returns `403` and
+   the panel falls back to a `Local fallback summary` with the warning "Backend
+   planning summary requires Pro or Enterprise; using local demo summary."
+4. Clearing the AOI (or drawing a new one) clears the summary + its metadata.
+5. Note it is deterministic (no LLM), gated by `summary:generate`, metered, and
+   Redis-cached; production would swap in an LLM behind the same interface.
+
+## Talking Points
+
+- React + TypeScript architecture
+- MapLibre/Mapbox-style layer management
+- GeoJSON rendering
+- Turf.js spatial analysis
+- Recharts analytics
+- AI-assisted UX with visible source metrics
+- Built as a public recreation of private geospatial/spatial-interface experience
+</file>
+
+<file path="docs/deployment.md">
+# Deployment
+
+## Frontend (Vercel)
+
+The web app (`apps/web`) is a static Vite build and can be deployed to Vercel.
+
+1. Push the repo to GitHub.
+2. Import the repo in Vercel.
+3. Framework preset: Vite.
+4. Root directory: `apps/web` (or build from the monorepo root with
+   `npm run build:web`).
+5. Build command: `npm run build` (in `apps/web`) → output directory: `dist`.
+6. No environment variables are required for the current demo.
+
+Notes:
+
+- The web app uses static GeoJSON files from `apps/web/public/data`.
+- It does not call the API yet, so no backend is required to deploy the frontend.
+- No paid map token is required (public MapLibre demo style).
+- The AI summary is deterministic and local (no LLM).
+
+## Backend database + cache (local, Docker)
+
+The API (`apps/api`) is backed by PostgreSQL + PostGIS and an optional Redis
+cache, both via Docker Compose. `npm run db:up` starts both services
+(PostGIS on `54329`, Redis on `6389`).
+
+```bash
+npm install
+npm run db:up          # start PostgreSQL + PostGIS (54329) and Redis (6389)
+npm run db:migrate     # apply SQL migrations
+npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS (clears cache)
+npm run dev:api        # start the API on :4000
+```
+
+Smoke tests:
+
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/layers
+curl http://localhost:4000/api/parcels
+curl "http://localhost:4000/api/search?q=central"
+```
+
+Reset / teardown:
+
+```bash
+npm run db:reset       # drop tables + re-run migrations (dev only), then re-ingest
+npm run db:down        # stop and remove the container
+```
+
+Configuration is read from `apps/api/.env` (see `apps/api/.env.example`):
+`DATABASE_URL`, `DB_SSL`, `PORT`, `WEB_ORIGIN`, `NODE_ENV`, `REDIS_URL`,
+`CACHE_ENABLED`, `CACHE_DEFAULT_TTL_SECONDS`.
+
+## Caching (Redis)
+
+- Redis runs through Docker Compose on port `6389`.
+- The API caches layers, parcels, search, and AOI analysis; responses include
+  `meta.cache` (`hit` / `miss` / `disabled` / `error`).
+- Caching is optional and degrades gracefully — the API returns DB results even
+  if Redis is down. Ingestion clears the planning cache keys.
+- The Azure equivalent is **Azure Cache for Redis**.
+
+## Billing (Stripe-style, demo-safe)
+
+- Plans (Free/Pro/Enterprise) + `subscriptions`/`usage_counters` live in Postgres
+  (migration `004`; seed with `npm run db:seed:billing`).
+- `POST /api/billing/webhook` verifies `STRIPE_WEBHOOK_SECRET` when set; the demo
+  runs without real Stripe secrets.
+- Production: Stripe Checkout + Customer Portal, webhook verification via the
+  Stripe SDK using the raw request body, and org/team billing.
+
+## Planning summary (deterministic, backend-owned)
+
+- `POST /api/planning-summary` generates a deterministic summary from analysis
+  metrics — no external LLM. Gated by `summary:generate`, metered in
+  `usage_counters`, and Redis-cached with a plan-scoped key.
+- Production: swap the deterministic generator for an LLM call (keeping source
+  metrics + caveats), add evals + prompt/version logging, and human review for
+  high-risk outputs.
+
+## Roadmap
+
+- Done: PostGIS spatial storage + backend AOI analysis; Redis response caching;
+  demo auth/RBAC; Stripe-style billing + entitlements; backend-owned
+  deterministic planning summary.
+- Real Stripe Checkout/Portal, OAuth/SSO, real LLM summary, and Azure deployment
+  are future steps.
+</file>
+
+<file path="packages/shared/src/index.ts">
+
+</file>
+
+<file path="AGENTS.md">
+# AGENTS.md
+
+## Cursor Cloud specific instructions
+
+SiteLens is an **npm-workspaces monorepo**: `apps/web` (React + TypeScript +
+Vite dashboard with a MapLibre GL map), `apps/api` (Fastify + TypeScript API),
+and `packages/shared` (`@sitelens/shared` shared types). Run `npm install` once
+at the repo root; it installs and links all workspaces.
+
+- Dev servers (run from the repo root): `npm run dev:web` (Vite, port `5173`;
+  `npm run dev` is an alias) and `npm run dev:api` (Fastify via `tsx watch`,
+  port `4000`). They run independently.
+- Root scripts fan out to workspaces: `typecheck`, `lint` (oxlint), `test`
+  (Vitest — API only), and `build` all use `-ws --if-present`.
+- The web app still loads static mock GeoJSON from `apps/web/public/data`; the
+  API serves its own copy from `apps/api/data`. The frontend does not call the
+  API yet.
+- The map uses the no-token public style `https://demotiles.maplibre.org/style.json`,
+  so rendering the basemap requires outbound network access to that host.
+- `@sitelens/shared` is a **source** package: its `exports` point at
+  `src/index.ts` (no build step). Consumers use `moduleResolution: "bundler"`,
+  so importing `@sitelens/shared` resolves to TypeScript source directly.
+- The API is run with `tsx`; its `build`/`typecheck` are `tsc --noEmit` (no
+  compiled output). Fastify v5 types the error-handler `error` as `unknown` —
+  annotate it as `FastifyError`.
+- The web app's `tsconfig.app.json` enables `verbatimModuleSyntax`, so type-only
+  imports MUST use `import type { ... }` (this also applies to the API tsconfig).
+- The web app uses a modern Material UI major version where `Typography` does
+  not accept `lineHeight` as a direct prop — set it via the `sx` prop instead.
+
+### Backend database (PostgreSQL + PostGIS)
+
+The API is backed by PostGIS running in Docker (`infra/docker-compose.yml`,
+image `postgis/postgis:16-3.4`, host port `54329`). The DB is NOT part of the
+dependency update script — bring it up explicitly when working on the API.
+
+- Full backend setup: `npm run db:up` → `npm run db:migrate` →
+  `npm run ingest:geojson` → `npm run db:seed:billing` → `npm run dev:api`.
+  `db:up` starts **both** PostgreSQL/PostGIS (`54329`) and **Redis** (`6389`).
+  (`npm run db:seed` runs ingestion + billing seed together.)
+- Billing/entitlements are DB-backed (migration `004`, plans Free/Pro/Enterprise);
+  capabilities derive from the billing plan + role. If the billing DB is
+  unavailable the API falls back to the demo user's default plan. Demo plan
+  switching: `POST /api/billing/demo-plan` (needs auth; prod-gated by
+  `ENABLE_DEMO_BILLING`). The Stripe webhook runs without real secrets.
+- Redis caching is optional: it's enabled only when `REDIS_URL` is set (e.g. via
+  `apps/api/.env`, gitignored). With no Redis the API returns `cache:"disabled"`;
+  when Redis is down it returns DB results with `cache:"error"` (never hangs —
+  the client uses `enableOfflineQueue:false` and auto-reconnects). Default
+  `npm run test` needs neither Docker nor Redis; `npm run test:redis` (needs
+  `REDIS_URL` + Redis up) and `npm run test:db` cover live integration.
+- **Docker is required and may not be preinstalled.** If `docker` is missing,
+  install Docker Engine (docker-in-docker), and because this is Docker 29 with
+  fuse-overlayfs, set `/etc/docker/daemon.json` to
+  `{"storage-driver":"fuse-overlayfs","features":{"containerd-snapshotter":false}}`,
+  use `iptables-legacy`, and start `dockerd`. If `docker` commands hit a
+  socket permission error as the non-root user, `sudo chmod 666 /var/run/docker.sock`.
+- `npm run test` does NOT need the database — DB integration tests
+  (`src/db/spatialRepository.test.ts`) are skipped unless `RUN_DB_TESTS=true`
+  (`npm run test:db -w apps/api`, which needs the DB up). Route tests mock the
+  repository, so they pass without Postgres.
+- DB-backed routes (`/api/layers`, `/api/parcels`, `/api/search`) return `503`
+  when the database is unavailable — bring the DB up rather than expecting a
+  fallback. `analyze-area` / `planning-summary` remain `501` placeholders.
+- `pg` is CommonJS; the API tsconfig uses `moduleResolution: "bundler"` and is
+  run via `tsx`, so `import { Pool } from 'pg'` works at build and runtime.
+</file>
+
+<file path="apps/api/src/test/routes.test.ts">
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { FastifyInstance } from 'fastify';
+</file>
+
+<file path="docs/application-snippets.md">
+# Application Snippets
+
+## Short Project Description
+
+SiteLens is a React + TypeScript geospatial planning intelligence demo. It uses MapLibre GL, GeoJSON, Turf.js, Material UI, Recharts, and Zustand to let users inspect planning layers, search spatial features, draw an area of interest, run spatial analysis, and generate a deterministic AI-assisted planning summary.
+
+## Why I Built It
+
+I built SiteLens as a public portfolio project because my production map-based and spatial-interface work was done inside private company products. It recreates the same engineering patterns in a shareable form: map layer management, feature selection, viewport state, spatial calculations, dashboard UX, and AI-assisted analysis with visible source metrics.
+
+## Technical Ownership
+
+I designed and implemented the full stack: the frontend workflow (dashboard layout, MapLibre integration, GeoJSON layers, layer visibility controls, search, feature inspection, custom AOI drawing, Recharts analytics, deterministic AI summary) and the backend (a Fastify + TypeScript API over PostgreSQL/PostGIS with SQL migrations, GeoJSON ingestion, spatial indexes, and a real AOI spatial-analysis endpoint). The frontend runs analysis through the PostGIS API when configured and falls back to local Turf.js otherwise.
+
+## Enterprise SaaS Design
+
+SiteLens models enterprise access patterns for a geospatial product: role-based access control (viewer / planner / admin), subscription-tier entitlements (free / pro / enterprise), capability-gated endpoints (analysis and summary require a paid plan; ingestion is admin-only), entitlement-limited responses (free tiers get capped search/parcels), and entitlement-scoped caching so lower tiers can't receive higher-tier data from the cache. It's a demo API-key implementation with a clear production path to OAuth/SSO, JWT/session cookies, and org/team membership.
+
+## Backend-Owned Planning Summary
+
+SiteLens includes a backend-owned deterministic planning summary service. The frontend sends spatial analysis metrics to a Fastify API, the API enforces Pro/Enterprise entitlements, applies usage metering, caches summaries in Redis, and returns a source-transparent planning summary. The frontend preserves a local fallback so the demo remains usable without backend access.
+
+## Stripe-Style Billing
+
+SiteLens includes a Stripe-style entitlement layer with Free, Pro, and Enterprise plans. Backend routes enforce feature access for spatial analysis and summaries, search/parcel limits are plan-aware, cache keys are entitlement-scoped to avoid cross-plan data leakage, and the API includes a webhook-ready billing module that can be connected to Stripe Checkout/Portal in production.
+
+## Full-Stack Spatial Engineering
+
+SiteLens demonstrates an end-to-end spatial pipeline: a drawn area-of-interest polygon is sent to a Fastify endpoint, looked up in a Redis cache, analyzed in PostGIS on a miss with `ST_Intersects`/`ST_DWithin`/`ST_Area(::geography)` against parcels, zoning, constraints, transit, and development activity, cached with a TTL, and returned as a typed result (with cache metadata) that the frontend renders as analytics and a planning summary — with a client-side Turf.js fallback for robustness. It reflects real performance/scalability thinking for geospatial products: expensive spatial queries are cached, cache status is surfaced to the UI, and the system degrades gracefully when the cache or backend is unavailable.
+
+## Relevant To Geospatial Roles
+
+SiteLens demonstrates the kind of frontend engineering needed for urban analytics, planning, property intelligence, logistics, and spatial decision-support tools. It focuses on turning complex spatial data into an intuitive map-based product that non-technical users can understand quickly.
+
+## Worldwide Place Search (Geocoding Proxy)
+
+SiteLens adds worldwide place search using Nominatim/OpenStreetMap through a Fastify backend proxy — the browser never calls Nominatim directly. The API caches repeat queries in Redis, spaces outbound requests to respect Nominatim's ~1 req/sec policy, sends an identifying User-Agent, and returns typed results with OSM attribution. The UI cleanly separates local planning-feature search (PostGIS dataset) from worldwide place search; selecting a place flies/fits the map, while AOI spatial analysis stays scoped to the local planning dataset. Production would self-host Nominatim (or use Mapbox/Pelias/commercial) with a distributed Redis-backed rate limiter.
+
+## Full-Stack Geospatial Project Answer
+
+SiteLens is a full-stack geospatial planning intelligence platform I built as a public portfolio project. The frontend uses React, TypeScript, MapLibre, Material UI, Recharts, and Turf-style interactions for spatial layers, feature inspection, search, AOI drawing, and analytics. The backend uses Fastify, PostgreSQL/PostGIS, Redis, GeoJSON ingestion scripts, role/plan-based entitlements, Stripe-style billing gates, and a backend-owned deterministic planning summary service.
+
+The project demonstrates both frontend and backend ownership: map-centric UX, spatial data modeling, spatial SQL, API design, caching, ingestion pipelines, access control, billing-aware feature gates, and source-transparent AI-assisted summaries.
+</file>
+
+<file path="docs/architecture.md">
+# Architecture
+
+SiteLens is an npm-workspaces monorepo.
+
+## System diagram
+
+```txt
+React / MapLibre / MUI / Recharts
+        |
+        | VITE_API_BASE_URL
+        v
+Fastify API
+        |
+        | Auth + billing gates
+        |
+        +--> Redis cache
+        |
+        +--> PostgreSQL + PostGIS
+        |
+        +--> Deterministic planning summary service
+```
+
+## Data flow diagrams
+
+### Spatial analysis
+
+```txt
+AOI polygon
+  -> /api/analyze-area
+  -> entitlement check
+  -> Redis analysis cache
+  -> PostGIS spatial SQL
+  -> typed SpatialAnalysisResult
+  -> frontend charts + AI summary source metrics
+```
+
+### Planning summary
+
+```txt
+SpatialAnalysisResult
+  -> /api/planning-summary
+  -> entitlement + usage check
+  -> Redis summary cache
+  -> deterministic backend generator
+  -> source-transparent PlanningSummary
+  -> frontend summary panel
+```
+
+### Worldwide place search (geocoding)
+
+```txt
+Query (>= 3 chars, explicit submit)
+  -> /api/geocode/search            (browser only calls SiteLens API)
+  -> Redis place-search cache
+  -> request spacer (~1 req/sec)    (miss only)
+  -> Nominatim / OpenStreetMap      (identifying User-Agent)
+  -> typed PlaceSearchResult[] + OSM attribution
+  -> Places tab + map marker/fit    (separate from planning search + AOI analysis)
+```
+
+## Stack
+
+**Frontend** (`apps/web`)
+React + TypeScript + Vite + MapLibre GL + Turf.js + Recharts + Material UI + Zustand
+
+**Backend** (`apps/api`)
+Fastify + TypeScript (run with `tsx`), `pg` for database access
+
+**Database**
+PostgreSQL + PostGIS (via Docker Compose)
+
+**Cache**
+Redis (via Docker Compose, port 6389; Azure Cache for Redis equivalent)
+
+**Shared** (`packages/shared`)
+Shared TypeScript types (API envelopes, planning + analysis contracts)
+
+## Data flow
+
+Ingestion + read APIs:
+
+```
+GeoJSON files (apps/api/data/*.geojson)
+  → ingestion script (ST_GeomFromGeoJSON, ST_Multi, parameterized upserts)
+  → PostGIS spatial tables (geometry(MultiPolygon|Point, 4326), GIST indexes)
+  → Fastify API (ST_AsGeoJSON) → JSON envelopes
+```
+
+AOI analysis (full-stack, with cache):
+
+```
+Frontend AOI polygon (MapLibre draw)
+  → POST /api/analyze-area
+  → Redis cache lookup (key = sha256(geometry))
+  → PostGIS spatial SQL on cache miss (ST_IsValid, ST_Area::geography, ST_Intersects, ST_DWithin, ST_Distance, aggregates)
+  → Redis cache write (TTL)
+  → { result, engine: "postgis" } + meta.cache (hit|miss|disabled|error)
+  → frontend analytics + AI summary (shows cache status)
+```
+
+Layers, parcels, parcel detail, and search follow the same read-through cache
+pattern. Redis is optional: if unset the API returns `cache: "disabled"`; if
+unreachable it returns the DB result with `cache: "error"`. Ingestion clears the
+planning cache keys.
+
+The frontend calls the API when `VITE_API_BASE_URL` is set; otherwise (or if the
+API is unreachable) it uses local Turf.js analysis and marks the engine as
+`turf-local` / `turf-fallback`. The web app's layers/search still read static
+GeoJSON directly.
+
+## Future data flow
+
+```
+… → PostGIS spatial SQL → Redis cache → frontend analytics
+```
+
+## Spatial schema
+
+| Table | Geometry | Notes |
+| ----- | -------- | ----- |
+| `planning_layers` | — | Layer metadata + counts source |
+| `parcels` | `MultiPolygon, 4326` | GIST + FTS + btree indexes |
+| `zoning_overlays` | `MultiPolygon, 4326` | GIST index |
+| `constraints` | `MultiPolygon, 4326` | GIST + btree(risk_level) |
+| `transit_points` | `Point, 4326` | GIST + btree(mode) |
+| `development_activity` | `Point, 4326` | GIST + FTS + btree(status) |
+
+## Auth & entitlements (demo)
+
+API-key demo auth attaches an `AuthContext` to each request. Capabilities are
+derived from role (`viewer`/`planner`/`admin`) + plan (`free`/`pro`/`enterprise`)
+and enforced per route: analysis/summary require a paid plan; ingestion is
+admin-only; search/parcels are limited for free/anonymous. Cache keys are scoped
+by entitlement so lower tiers never receive higher-tier data. Production would
+swap API keys for OAuth/SSO + JWT/session cookies + org membership.
+
+## Billing & entitlements (Stripe-style)
+
+A plan catalog (Free / Pro / Enterprise) plus DB-backed `subscriptions` and
+`usage_counters` drive entitlements. Capabilities are derived from **plan
+features** (product access) and **role** (admin gating). Route gates check
+features (`analysis:run`, `summary:generate`), search/parcels use plan limits,
+cache keys are plan-scoped, and successful analyses are metered. A
+Stripe-compatible webhook maps subscription events; `POST /api/billing/demo-plan`
+switches the demo plan. Production swaps this for Stripe Checkout/Portal +
+signed webhooks.
+
+## Planning summary (backend-owned, deterministic)
+
+`POST /api/planning-summary` is a Fastify-owned deterministic summary service:
+source metrics → entitlement check (`summary:generate`) → usage limit → Redis
+cache (plan-scoped) → typed response (`engine: "deterministic-backend"`). No LLM
+is called. The frontend uses it when the API + plan allow and falls back to an
+identical local deterministic summary on `403` / failure / no API, surfacing the
+engine, cache status, and source metrics. Production would swap the generator
+for an LLM (keeping metrics + caveats, evals, prompt/version logging, human
+review) without changing the surrounding architecture.
+
+## Roadmap
+
+- Done: frontend AOI analysis connects to backend PostGIS (`/api/analyze-area`).
+- Done: Redis caching for layers/parcels/search/analysis/summary with cache metadata.
+- Done: demo API-key auth, RBAC roles, and plan-based entitlement gates.
+- Done: Stripe-style billing catalog, DB subscriptions, usage metering, webhook.
+- Done: backend-owned deterministic planning summary (gated, metered, cached).
+- Done: GitHub Actions CI (quality + PostGIS/Redis integration), deployment docs.
+- Done: worldwide place search via a Nominatim/OSM backend proxy (Redis-cached, rate-spaced, attributed).
+
+## Future improvements
+
+- OpenAPI/Swagger generation for the API
+- Vector tiles for large spatial datasets
+- Production SSO (OAuth/OIDC) + org/team membership
+- Real Stripe Checkout / Customer Portal
+- Azure deployment (App Service / Container Apps + managed Postgres/Redis)
+- Observability stack (structured logs, metrics, tracing, error tracking)
+- Real LLM planning summary with prompt/version logging + eval set
+</file>
+
+<file path="package.json">
+{
+  "name": "sitelens",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SiteLens — geospatial planning intelligence platform (monorepo: web + API + shared)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:api": "npm run dev -w apps/api",
+    "build": "npm run build -ws --if-present",
+    "build:web": "npm run build -w apps/web",
+    "build:api": "npm run build -w apps/api",
+    "typecheck": "npm run typecheck -ws --if-present",
+    "lint": "npm run lint -ws --if-present",
+    "test": "npm run test -ws --if-present",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:reset": "npm run db:reset -w apps/api",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:seed": "npm run db:seed -w apps/api",
+    "db:seed:billing": "npm run db:seed:billing -w apps/api",
+    "ingest:geojson": "npm run ingest:geojson -w apps/api",
+    "cache:clear": "npm run cache:clear -w apps/api",
+    "smoke:fullstack": "bash scripts/smoke-fullstack.sh"
+  }
+}
+</file>
+
+<file path="README.md">
+# SiteLens — Geospatial Planning Intelligence Platform
+
+## Reviewer Quickstart
+
+Frontend-only demo (no backend needed):
+
+```bash
+npm install
+npm run dev:web
+```
+
+Full-stack demo (PostGIS + Redis via Docker):
+
+```bash
+npm install
+npm run db:up
+npm run db:migrate
+npm run db:seed:billing
+npm run ingest:geojson
+npm run dev:api
+npm run dev:web
+```
+
+Quality checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+Full-stack smoke test (while the API is running):
+
+```bash
+npm run smoke:fullstack
+```
+
+See [`docs/environment.md`](docs/environment.md) for env vars,
+[`docs/api-reference.md`](docs/api-reference.md) for endpoints, and
+[`docs/case-study.md`](docs/case-study.md) for the employer-facing overview.
+
+## What This Proves
+
+- React + TypeScript geospatial frontend engineering
+- MapLibre/Mapbox-style map layer UX
+- AOI drawing and spatial analysis workflows
+- Fastify backend API design
+- PostgreSQL/PostGIS spatial queries and indexes
+- GeoJSON ingestion pipeline
+- Redis caching and cache-safe entitlement scopes
+- Demo auth, roles, plans, and billing gates
+- Backend-owned deterministic AI summary service
+- Worldwide place search via a cached, rate-limited Nominatim/OSM backend proxy
+- CI/CD and deployment-readiness
+
+## Overview
+
+SiteLens is a React + TypeScript geospatial planning app for exploring planning
+data on an interactive map: toggle planning layers, search spatial features,
+inspect a feature's metadata, draw an area of interest, run Turf.js spatial
+analysis, view Recharts analytics, and generate a deterministic AI-assisted
+planning summary.
+
+It is organized as an **npm-workspaces monorepo** with a React/Vite web app, a
+Fastify + TypeScript API, and a shared types package. The API is backed by
+**PostgreSQL + PostGIS** — layers, parcels, and search come from spatial tables,
+and AOI spatial analysis runs in PostGIS. When `VITE_API_BASE_URL` is set the
+web app runs analysis through the API (with a local Turf.js fallback); otherwise
+it runs fully client-side.
+
+## Monorepo Structure
+
+```txt
+sitelens/
+  apps/
+    web/        # React + Vite frontend (the dashboard)
+    api/        # Fastify + TypeScript API (mock-data endpoints + placeholders)
+  packages/
+    shared/     # @sitelens/shared — shared API/domain types
+  docs/         # portfolio + backend docs
+  package.json  # npm workspaces root
+```
+
+- **`apps/web`** (`@sitelens/web`) — the existing dashboard; unchanged behavior,
+  still loads static GeoJSON from `apps/web/public/data`.
+- **`apps/api`** (`@sitelens/api`) — Fastify API on port `4000`, backed by
+  PostgreSQL + PostGIS, with health, layers, parcels, and search routes plus
+  typed/validated placeholder analysis endpoints. See
+  [`apps/api/README.md`](apps/api/README.md).
+- **`packages/shared`** (`@sitelens/shared`) — shared TypeScript types (API
+  envelopes, planning layer types, analysis request/response contracts).
+
+## Live Demo
+
+- **App:** https://sitelens-demo.vercel.app _(placeholder — update after deploying; see [`docs/deployment.md`](docs/deployment.md))_
+- **Loom walkthrough:** _(placeholder — add your recording link; see [`docs/demo-checklist.md`](docs/demo-checklist.md))_
+
+## Screenshots
+
+> Placeholders — add real captures under `docs/screenshots/` (see [`docs/demo-checklist.md`](docs/demo-checklist.md)).
+
+![Dashboard with planning layers](docs/screenshots/dashboard.png)
+![Feature selection and details](docs/screenshots/feature-selection.png)
+![Area of interest analysis](docs/screenshots/aoi-analysis.png)
+![AI-assisted planning summary](docs/screenshots/ai-summary.png)
+
+## Why I Built This
+
+My production geospatial and spatial-interface work was done inside private
+company products. SiteLens recreates the same engineering patterns in a public,
+shareable portfolio project so the approach and code quality can be reviewed
+without exposing proprietary work.
+
+## What It Demonstrates
+
+- React + TypeScript frontend architecture
+- MapLibre/Mapbox-style map interactions and layer management
+- GeoJSON layer rendering
+- Search across spatial features
+- Feature inspection
+- Custom area-of-interest drawing
+- Turf.js spatial analysis
+- Recharts analytics
+- Deterministic AI-assisted planning summary with visible source metrics
+- Material UI dashboard UX and clean Zustand state management
+
+## Features
+
+- **Interactive map** — MapLibre GL JS centered on Sydney, navigation controls,
+  resize-aware, non-blocking workflow status badge.
+- **Planning layers** — parcels, zoning, constraints, transit, development
+  activity; each toggleable, with a legend.
+- **Search** — case-insensitive, debounced search across feature attributes;
+  selecting a result reveals hidden layers and flies/fits the map to it.
+- **Feature inspection** — prioritized "key facts" + metadata, with zoom/clear
+  actions and a selected-feature highlight.
+- **Area of Interest** — custom click-to-add-points draw mode (no heavy drawing
+  library) with draft/complete rendering.
+- **Spatial analysis** — Turf.js: area, intersecting parcels + average
+  development score, zoning breakdown, constraints, nearby transit, and
+  development activity by status.
+- **Analytics** — Recharts dashboard (zoning, development activity, constraint
+  risk, development-score card).
+- **AI-assisted summary** — deterministic, on-device planning narrative
+  generated from the analysis metrics, with the exact source metrics shown.
+
+## Tech Stack
+
+- [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vite.dev/) (dev server & build)
+- [Material UI](https://mui.com/) (layout, theming, icons)
+- [MapLibre GL JS](https://maplibre.org/) (interactive map)
+- [Zustand](https://zustand.docs.pmnd.rs/) (state management)
+- [Turf.js](https://turfjs.org/) (spatial analysis)
+- [Recharts](https://recharts.org/) (analytics charts)
+- [PostgreSQL + PostGIS](https://postgis.net/) (spatial database) and
+  [Redis](https://redis.io/) (response cache), via Docker Compose
+
+## Architecture
+
+- **View layer:** React function components + Material UI. A three-column
+  `AppShell` (sidebar / map / details panel) fills the viewport.
+- **Map:** a single MapLibre instance (`SiteMap`) created once; planning sources
+  and layers are added after style load, and camera / AOI / highlight are driven
+  by store state via effects (UI requests actions such as fly-to; the map reacts).
+- **State:** small, focused Zustand stores — `mapStore` (camera, selection,
+  fly-to), `layerStore` (visibility), `searchStore` (index + results),
+  `analysisStore` (drawing + analysis), `aiSummaryStore` (summary), and `uiStore`
+  (active details tab).
+- **Domain logic:** pure utilities — `featureIndex` (search index),
+  `spatialAnalysis` (Turf calculations), and `mockPlanningSummary` (deterministic
+  summary). All are frontend-only and read `/data/*.geojson`.
+
+## Demo Walkthrough
+
+1. Toggle planning layers.
+2. Search for a parcel or transit feature.
+3. Select a feature and inspect metadata.
+4. Draw an area of interest.
+5. Review spatial analysis.
+6. Open analytics charts.
+7. Generate an AI-assisted planning summary.
+
+A recording checklist and talking points live in [`docs/demo-checklist.md`](docs/demo-checklist.md).
+
+## Local Development
+
+Requires Node.js 20+. Install once at the repo root (npm workspaces):
+
+```bash
+npm install        # install all workspaces
+npm run dev:web    # web app  → http://localhost:5173
+npm run dev:api    # API      → http://localhost:4000
+npm run typecheck  # typecheck all workspaces
+npm run lint       # lint all workspaces (oxlint)
+npm run test       # run workspace tests (Vitest — API)
+npm run build      # build all workspaces
+```
+
+`npm run dev` is a shortcut for `dev:web`. Web and API run independently.
+
+### Backend database (PostgreSQL + PostGIS)
+
+The API is backed by PostGIS via Docker Compose. Full backend setup:
+
+```bash
+npm install
+npm run db:up          # start PostgreSQL + PostGIS (host port 54329)
+npm run db:migrate     # apply SQL migrations
+npm run ingest:geojson # load apps/api/data/*.geojson into PostGIS
+npm run dev:api        # start the API on :4000
+```
+
+Smoke tests:
+
+```bash
+curl http://localhost:4000/api/health
+curl http://localhost:4000/api/layers
+curl http://localhost:4000/api/parcels
+curl "http://localhost:4000/api/search?q=central"
+```
+
+See [`docs/architecture.md`](docs/architecture.md) and
+[`apps/api/README.md`](apps/api/README.md) for schema and details.
+
+### Full-stack analysis mode
+
+`POST /api/analyze-area` runs the AOI spatial analysis in **PostGIS**. The
+frontend uses it when `VITE_API_BASE_URL` is set, and falls back to local
+Turf.js if the API is unreachable — the UI shows which engine was used
+(`PostGIS API` / `Local Turf` / `Turf fallback`).
+
+Enable full-stack mode for the web app:
+
+```bash
+# apps/web/.env.local
+VITE_API_BASE_URL=http://localhost:4000
+```
+
+Run everything, then draw an area of interest in the browser:
+
+```bash
+npm run db:up && npm run db:migrate && npm run ingest:geojson
+npm run dev:api
+npm run dev:web
+```
+
+Analyze-area smoke test (run twice — first `cache: "miss"`, second `cache: "hit"`):
+
+```bash
+curl -X POST http://localhost:4000/api/analyze-area \
+  -H "content-type: application/json" \
+  -d '{"geometry":{"type":"Polygon","coordinates":[[[151.205,-33.87],[151.215,-33.87],[151.215,-33.86],[151.205,-33.86],[151.205,-33.87]]]}}'
+```
+
+### Caching (Redis)
+
+`npm run db:up` also starts Redis (port `6389`). The API caches layers, parcels,
+search, and AOI analysis, and reports the outcome in `meta.cache`
+(`hit` / `miss` / `disabled` / `error`); the frontend shows it subtly
+(e.g. `PostGIS API · cache hit`). Caching is optional and degrades gracefully —
+if Redis is down the API still returns DB results (`cache: "error"`) and the app
+keeps working. Ingestion clears the planning cache; `npm run cache:clear` clears
+all keys.
+
+### Demo auth & entitlements
+
+The API supports **API-key demo auth** with roles (`viewer`, `planner`, `admin`)
+and plans (`free`, `pro`, `enterprise`). Capabilities are derived from role/plan
+and gate the API:
+
+- Public: `GET /api/health`, `GET /api/layers`.
+- Entitlement-limited: `GET /api/search` (5 results for free/anonymous, 8 for
+  pro/enterprise) and `GET /api/parcels` (first 5 for free, full for pro+).
+- Gated (`403` otherwise): `POST /api/analyze-area` and `POST /api/planning-summary`
+  require a `planner`/`enterprise` account. Ingestion is `admin`-only.
+
+`GET /api/me` returns the current user + capabilities. Cached responses are
+scoped by entitlement (`…:free:` vs `…:pro:`) so lower tiers never receive
+higher-tier data.
+
+Run the web app in different demo roles (or use the **Demo access** switcher in
+the sidebar footer at runtime):
+
+```bash
+VITE_DEMO_API_KEY=demo-planner-key npm run dev:web   # Planner · Pro
+VITE_DEMO_API_KEY=demo-viewer-key  npm run dev:web   # Viewer · Free
+VITE_DEMO_API_KEY=demo-admin-key   npm run dev:web   # Admin · Enterprise
+```
+
+If a viewer/free user runs analysis, the backend returns `403` and the frontend
+falls back to local Turf.js with a clear entitlement warning.
+
+> **Not production auth.** This is a portfolio demo. Production would use
+> OAuth/SSO, JWT/session cookies, Passport-style strategies, and org/team
+> membership.
+
+### Stripe-style billing & plans
+
+Capabilities are driven by a **billing plan catalog** — **Free** (limited
+search/parcels), **Pro** (PostGIS analysis + AI summaries), **Enterprise**
+(ingestion/admin) — persisted in DB (`demo_accounts`, `subscriptions`,
+`usage_counters`). `GET /api/billing/plans` and `GET /api/billing/current`
+expose it; `POST /api/billing/demo-plan` switches the demo plan; and a
+Stripe-compatible `POST /api/billing/webhook` maps subscription events (safe
+without real Stripe secrets). Successful backend analyses are metered.
+
+The sidebar footer has a **Demo access** control to switch identity (role) and
+plan at runtime; downgrading a planner to Free blocks backend analysis (`403`)
+and the app falls back to local Turf with a plan-gated warning. Seed billing
+with `npm run db:seed:billing`.
+
+> Demo billing only — no live checkout. Production path: Stripe Checkout +
+> Customer Portal, webhook signature verification via the Stripe SDK, and
+> org/team billing.
+
+### Current boundaries
+
+- **Layers/parcels/search and AOI analysis are PostGIS-backed.** The web app's
+  layer rendering + search still read static GeoJSON directly; only AOI analysis
+  calls the API (with a Turf fallback).
+- `planning-summary` is a **backend-owned deterministic** summary service
+  (gated by `summary:generate`, metered, Redis-cached); the frontend uses it
+  when the API + plan allow and falls back to a local deterministic summary on
+  `403`, API failure, or no API. No real LLM is called.
+- If the database is unavailable, DB-backed routes return `503` (no silent
+  fallback); the frontend's AOI analysis falls back to Turf and shows a warning.
+- **Redis** caching, auth, Stripe, and Azure deployment are future steps.
+- No real LLM API and no paid map token are used anywhere.
+
+## Project Structure
+
+```txt
+apps/
+  web/                   # @sitelens/web — React + Vite dashboard
+    public/data/         # mock planning GeoJSON (parcels, zoning, etc.)
+    public/favicon.svg
+    src/
+      app/               # App root (theme + shell)
+      components/        # layout, map, analysis, charts
+      data/              # layer config + display helpers
+      store/             # Zustand stores (map, layer, search, analysis, aiSummary, ui)
+      utils/             # featureIndex, spatialAnalysis, mockPlanningSummary
+      types/             # frontend TypeScript types
+      theme/             # Material UI theme
+  api/                   # @sitelens/api — Fastify + TypeScript API (PostGIS)
+    data/                # source GeoJSON ingested into PostGIS
+    db/
+      migrations/        # 001 enable postgis, 002 tables, 003 indexes
+      seeds/             # seed docs
+    src/
+      app.ts             # Fastify app factory (testable)
+      server.ts          # startup (port 4000)
+      config.ts          # env config (DATABASE_URL, DB_SSL) + API version
+      plugins/           # requestLogger, errorHandler
+      routes/            # health, layers, parcels, search, analysis, planningSummary
+      lib/               # layerConfig, featureText, httpErrors
+      db/                # pool, sql, migrate, reset, ingestGeojson, seed, spatialRepository
+      test/              # Vitest API tests
+packages/
+  shared/                # @sitelens/shared — shared types (api, planning, analysis)
+docs/
+  demo-checklist.md      # recording walkthrough + talking points
+  application-snippets.md# paste-ready job-application text
+  deployment.md          # Vercel deployment notes
+  portfolio-blurb.md     # short portfolio description
+  screenshots/           # README screenshot assets
+```
+
+## Data Model / Mock Data
+
+All data is small, hand-authored **mock** GeoJSON under `public/data`, clustered
+around the Sydney CBD — **not** real cadastral or planning data:
+
+- `parcels.geojson` — polygons with `parcelId`, `zoning`, `currentUse`,
+  `developmentScore`, `areaSqm`, `status`.
+- `zoning.geojson` — polygons with `zoneCode`, `zoneName`, `description`.
+- `constraints.geojson` — polygons with `constraintType`, `riskLevel`,
+  `description`.
+- `transit.geojson` — points with `name`, `mode`, `distanceCategory`.
+- `development-activity.geojson` — points with `projectName`, `status`,
+  `applicationType`, `lodgedMonth`.
+
+Spatial analysis and charts are derived from this mock data, not official records.
+
+## AI Summary Design
+
+The planning summary is a **deterministic** generator with **no LLM**. It is now
+**backend-owned**: the frontend POSTs the spatial-analysis metrics to
+`/api/planning-summary`, which enforces the `summary:generate` entitlement,
+meters usage, caches in Redis (plan-scoped), and returns source-transparent
+planning text with severity-tagged sections and recommended next checks. The
+frontend keeps an identical **local fallback** (`generateMockPlanningSummary`)
+for `403` / API failure / no-API, and the panel shows the summary engine, cache
+status, and the **exact source metrics** used. **Production path:** swap the
+deterministic generator for an LLM call while keeping source metrics + caveats,
+add evals + prompt/version logging, and human review for high-risk outputs.
+
+## Limitations
+
+- Mock GeoJSON only; not connected to authoritative planning/cadastral sources.
+- Spatial analysis uses simple intersection and centroid-distance heuristics.
+- The planning summary is deterministic template logic (backend-owned with a
+  local fallback), not a real language model.
+- No persistence, backend, authentication, or multi-user support.
+- Basemap is the public MapLibre demo style (no paid token).
+
+## Future Improvements
+
+- Real basemap/tiles and richer cartography.
+- Backend + database (e.g. PostGIS) for live planning datasets.
+- Persisted areas of interest and shareable analysis links.
+- Optional real LLM integration behind the same source-metric transparency UX.
+- Deployment automation and CI.
+</file>
+
+</files>

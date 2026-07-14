@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { PlaceSearchResult } from '@sitelens/shared';
+import { resetGeocodingUpstreamState } from '../geocoding/geocodingUpstreamState';
 
 const { nominatim } = vi.hoisted(() => ({
   nominatim: {
     calls: 0,
     lastLimit: 0,
-    mode: 'ok' as 'ok' | 'error',
+    mode: 'ok' as 'ok' | 'error' | 'forbidden',
     results: [] as PlaceSearchResult[],
   },
 }));
@@ -20,6 +21,13 @@ vi.mock('../geocoding/nominatimClient', async (importOriginal) => {
     searchNominatim: vi.fn(async (_query: string, limit: number) => {
       nominatim.calls += 1;
       nominatim.lastLimit = limit;
+      if (nominatim.mode === 'forbidden') {
+        throw new HttpError(
+          502,
+          'GEOCODING_UPSTREAM_FORBIDDEN',
+          'denied',
+        );
+      }
       if (nominatim.mode === 'error') {
         throw new HttpError(
           502,
@@ -44,6 +52,20 @@ vi.mock('../cache/cacheJson', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../cache/cacheJson')>();
   return {
     ...actual,
+    getJson: async <T>(key: string) => {
+      if (!cacheState.store.has(key)) {
+        return { value: null, status: 'miss' as const };
+      }
+      const entry = cacheState.store.get(key) as {
+        data: T;
+        cache: string;
+        computedAt: string;
+      };
+      return {
+        value: { data: entry.data, computedAt: entry.computedAt },
+        status: 'hit' as const,
+      };
+    },
     cached: async <T>({
       key,
       compute,
@@ -53,7 +75,12 @@ vi.mock('../cache/cacheJson', async (importOriginal) => {
       compute: () => Promise<T>;
     }) => {
       if (cacheState.store.has(key)) {
-        return cacheState.store.get(key);
+        const entry = cacheState.store.get(key) as {
+          data: T;
+          cache: string;
+          computedAt: string;
+        };
+        return { data: entry.data, cache: 'hit', computedAt: entry.computedAt };
       }
       const data = await compute();
       const miss = { data, cache: 'miss', computedAt: new Date().toISOString() };
@@ -91,11 +118,15 @@ beforeEach(() => {
   nominatim.mode = 'ok';
   nominatim.results = [oneResult];
   cacheState.store.clear();
+  resetGeocodingUpstreamState();
   delete process.env.GEOCODING_ENABLED;
+  delete process.env.GEOCODING_STATIC_FALLBACK_ENABLED;
+  process.env.GEOCODING_STATIC_FALLBACK_ENABLED = 'true';
 });
 
 afterAll(async () => {
   delete process.env.GEOCODING_ENABLED;
+  delete process.env.GEOCODING_STATIC_FALLBACK_ENABLED;
   await app.close();
 });
 
@@ -132,7 +163,20 @@ describe('GET /api/geocode/search', () => {
     expect(nominatim.lastLimit).toBe(10);
   });
 
-  it('maps an upstream failure to a safe 502', async () => {
+  it('returns static-demo fallback on upstream 403 when fallback enabled', async () => {
+    nominatim.mode = 'forbidden';
+    const res = await get('/api/geocode/search?q=london');
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.data.provider).toBe('static-demo');
+    expect(body.data.fallback.active).toBe(true);
+    expect(body.data.fallback.reason).toBe('upstream_forbidden');
+    expect(body.data.results[0]?.provider).toBe('static-demo');
+    expect(body.data.attribution).toContain('Static demo place dataset');
+  });
+
+  it('maps an upstream failure to a safe 502 when fallback is disabled', async () => {
+    process.env.GEOCODING_STATIC_FALLBACK_ENABLED = 'false';
     nominatim.mode = 'error';
     const res = await get('/api/geocode/search?q=london');
     expect(res.statusCode).toBe(502);

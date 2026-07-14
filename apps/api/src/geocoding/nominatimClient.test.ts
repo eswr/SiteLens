@@ -43,31 +43,39 @@ describe('searchNominatim', () => {
     expect(await searchNominatim('nowhere-xyz', 5)).toEqual([]);
   });
 
-  it('maps a non-2xx response to a 502 upstream error', async () => {
+  it('maps 403 to GEOCODING_UPSTREAM_FORBIDDEN', async () => {
+    stubFetch(async () => new Response('Access denied', { status: 403 }));
+    await expect(searchNominatim('sydney', 5)).rejects.toMatchObject({
+      statusCode: 502,
+      code: 'GEOCODING_UPSTREAM_FORBIDDEN',
+    });
+  });
+
+  it('maps 429 to GEOCODING_UPSTREAM_RATE_LIMITED', async () => {
     stubFetch(async () => new Response('rate limited', { status: 429 }));
     await expect(searchNominatim('sydney', 5)).rejects.toMatchObject({
       statusCode: 502,
-      code: 'GEOCODING_UPSTREAM_ERROR',
+      code: 'GEOCODING_UPSTREAM_RATE_LIMITED',
     });
   });
 
-  it('maps a non-array response to a 502 bad-response error', async () => {
+  it('maps a non-array response to GEOCODING_UPSTREAM_MALFORMED_RESPONSE', async () => {
     stubFetch(async () => new Response('{}', { status: 200 }));
     await expect(searchNominatim('sydney', 5)).rejects.toMatchObject({
       statusCode: 502,
-      code: 'GEOCODING_BAD_RESPONSE',
+      code: 'GEOCODING_UPSTREAM_MALFORMED_RESPONSE',
     });
   });
 
-  it('maps invalid JSON to a 502 bad-response error', async () => {
+  it('maps invalid JSON to GEOCODING_UPSTREAM_MALFORMED_RESPONSE', async () => {
     stubFetch(async () => new Response('not json', { status: 200 }));
     await expect(searchNominatim('sydney', 5)).rejects.toMatchObject({
       statusCode: 502,
-      code: 'GEOCODING_BAD_RESPONSE',
+      code: 'GEOCODING_UPSTREAM_MALFORMED_RESPONSE',
     });
   });
 
-  it('maps an aborted request to a 504 timeout error', async () => {
+  it('maps an aborted request to GEOCODING_UPSTREAM_TIMEOUT', async () => {
     stubFetch(async () => {
       const error = new Error('aborted');
       error.name = 'AbortError';
@@ -75,7 +83,7 @@ describe('searchNominatim', () => {
     });
     await expect(searchNominatim('sydney', 5)).rejects.toMatchObject({
       statusCode: 504,
-      code: 'GEOCODING_TIMEOUT',
+      code: 'GEOCODING_UPSTREAM_TIMEOUT',
     });
   });
 });

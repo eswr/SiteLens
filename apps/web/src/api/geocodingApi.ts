@@ -1,4 +1,11 @@
-import { ApiError, apiGetWithMeta, isApiConfigured, type CacheStatus } from './client';
+import {
+  ApiError,
+  apiGetWithMeta,
+  isApiConfigured,
+  type CacheStatus,
+} from './client';
+
+export type GeocodingProvider = 'nominatim' | 'static-demo';
 
 export interface PlaceSearchResult {
   id: string;
@@ -11,25 +18,34 @@ export interface PlaceSearchResult {
   category?: string;
   type?: string;
   importance?: number;
-  provider: 'nominatim';
+  provider: GeocodingProvider;
+}
+
+export interface PlaceSearchFallback {
+  active: boolean;
+  reason: string;
+  message: string;
 }
 
 interface PlaceSearchData {
   results: PlaceSearchResult[];
-  provider: 'nominatim';
+  provider: GeocodingProvider;
   attribution: string;
+  fallback?: PlaceSearchFallback;
 }
 
 export interface PlaceSearchApiResult {
   results: PlaceSearchResult[];
+  provider: GeocodingProvider;
   attribution: string;
+  fallback: PlaceSearchFallback | null;
   meta?: {
     cache?: CacheStatus;
     computedAt?: string;
   };
 }
 
-/** Worldwide place search via the SiteLens backend proxy (Nominatim). */
+/** Worldwide place search via the SiteLens backend proxy (Nominatim / demo fallback). */
 export async function searchPlaces(
   query: string,
   limit = 5,
@@ -46,7 +62,9 @@ export async function searchPlaces(
   );
   return {
     results: data.results,
+    provider: data.provider,
     attribution: data.attribution,
+    fallback: data.fallback?.active ? data.fallback : null,
     meta: { cache: meta?.cache, computedAt: meta?.computedAt },
   };
 }
