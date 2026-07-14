@@ -551,8 +551,12 @@ export default function DetailsPanel() {
   const isAnalyzing = useAnalysisStore((state) => state.isAnalyzing);
   const selectedPlace = usePlaceSearchStore((state) => state.selectedPlace);
 
-  const showAoi = !selectedFeature && (Boolean(areaOfInterest) || isAnalyzing);
-  const showPlace = !selectedFeature && !showAoi && Boolean(selectedPlace);
+  // AOI analysis / AI summary take priority over a clicked map feature so
+  // "Generate backend summary" and the AI Summary tab stay visible while an
+  // area of interest is active. Feature details return after clearing the AOI.
+  const showAoi = Boolean(areaOfInterest) || isAnalyzing;
+  const showFeature = Boolean(selectedFeature) && !showAoi;
+  const showPlace = !showFeature && !showAoi && Boolean(selectedPlace);
 
   return (
     <Box
@@ -570,12 +574,12 @@ export default function DetailsPanel() {
       }}
     >
       <Typography variant="overline">Details</Typography>
-      {selectedFeature ? (
+      {showAoi ? (
+        <AoiPanel />
+      ) : showFeature && selectedFeature ? (
         <Box sx={{ mt: 1.5 }}>
           <SelectedFeatureDetails feature={selectedFeature} />
         </Box>
-      ) : showAoi ? (
-        <AoiPanel />
       ) : showPlace ? (
         <PlaceDetails />
       ) : (

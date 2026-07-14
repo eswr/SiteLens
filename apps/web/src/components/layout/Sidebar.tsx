@@ -850,9 +850,12 @@ function AnalysisSection() {
       : 'Generate local demo summary';
 
   const handleGenerateAi = () => {
+    // Selected map features take over the Details panel; clear so the AI
+    // Summary tab is actually visible after generation.
+    useMapStore.getState().setSelectedFeature(null);
     setDetailsTab('aiSummary');
     if (!aiSummary) {
-      generateSummary(analysisResult, analysisEngine ?? undefined);
+      void generateSummary(analysisResult, analysisEngine ?? undefined);
     }
   };
 

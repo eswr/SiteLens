@@ -63,8 +63,10 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   analysisWarning: undefined,
 
   startDrawing: () => {
-    // A new drawing invalidates any previous AI summary.
+    // A new drawing invalidates any previous AI summary and feature selection
+    // so the Details panel can show AOI analysis when drawing completes.
     useAiSummaryStore.getState().clearSummary();
+    useMapStore.getState().setSelectedFeature(null);
     set({
       isDrawing: true,
       draftPoints: [],
@@ -92,6 +94,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     }
 
     const areaOfInterest = pointsToAreaOfInterest(draftPoints);
+    // Keep Details on the AOI panel (not a previously selected feature).
+    useMapStore.getState().setSelectedFeature(null);
     set({
       areaOfInterest,
       isDrawing: false,
